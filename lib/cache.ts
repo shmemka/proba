@@ -14,11 +14,14 @@ export function invalidateCache(prefix?: string) {
     return
   }
 
-  for (const key of cache.keys()) {
+  const keysToDelete: string[] = []
+  cache.forEach((_, key) => {
     if (key.startsWith(prefix)) {
-      cache.delete(key)
+      keysToDelete.push(key)
     }
-  }
+  })
+  
+  keysToDelete.forEach(key => cache.delete(key))
 }
 
 export async function fetchWithCache<T>(

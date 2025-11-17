@@ -24,9 +24,6 @@ const nextConfig = {
       exclude: ['error', 'warn'],
     } : false,
   },
-  experimental: {
-    optimizeCss: true,
-  },
   swcMinify: true,
 }
 
