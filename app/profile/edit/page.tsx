@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { CheckIcon, PlusIcon, XMarkIcon, PhotoIcon } from '@heroicons/react/24/outline'
+import { CheckIcon, PlusIcon, XMarkIcon, PhotoIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { getActiveUser, loadSpecialistProfile, readJson, saveSpecialistProfile, type StoredUser, writeJson } from '@/lib/storage'
 import { getCurrentUser, getSpecialist, updateSpecialist, isSupabaseAvailable } from '@/lib/supabase'
+import Image from 'next/image'
 
 type Specialization = 'Дизайн' | 'SMM' | 'Веб-разработка'
 
@@ -47,7 +48,6 @@ export default function EditProfilePage() {
   const [currentUser, setCurrentUser] = useState<StoredUser | null>(null)
   
   useEffect(() => {
-    // Проверяем авторизацию
     const checkAuth = async () => {
       if (isSupabaseAvailable()) {
         const user = await getCurrentUser()
@@ -86,14 +86,12 @@ export default function EditProfilePage() {
   const [activeTab, setActiveTab] = useState<'card' | 'portfolio'>('card')
   const [avatarPreview, setAvatarPreview] = useState<string>('')
 
-  // Загружаем данные профиля из Supabase или localStorage
   useEffect(() => {
     if (!isAuthorized || !currentUser) return
 
     const loadProfile = async () => {
       try {
         if (isSupabaseAvailable()) {
-          // Загружаем из Supabase
           const specialist = await getSpecialist(currentUser.id)
           if (specialist) {
             setFormData({
@@ -107,12 +105,10 @@ export default function EditProfilePage() {
               showInSearch: specialist.show_in_search !== undefined ? specialist.show_in_search : true,
             })
             
-            // Загружаем аватарку
             if (specialist.avatar_url) {
               setAvatarPreview(specialist.avatar_url)
             }
             
-            // Загружаем портфолио
             if (specialist.portfolio && Array.isArray(specialist.portfolio)) {
               setProjects(specialist.portfolio as Project[])
             }
@@ -120,7 +116,6 @@ export default function EditProfilePage() {
             setFormData(prev => ({ ...prev, email: currentUser.email || '' }))
           }
         } else {
-          // Fallback на localStorage
           const savedProfile = loadSpecialistProfile<ProfileData | null>(currentUser.id, null)
           if (savedProfile) {
             if ('name' in savedProfile && typeof savedProfile.name === 'string') {
@@ -160,7 +155,6 @@ export default function EditProfilePage() {
     loadProfile()
   }, [isAuthorized, currentUser])
 
-  // Функция для обработки аватарки (квадрат 400x400)
   const processAvatar = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader()
@@ -205,7 +199,6 @@ export default function EditProfilePage() {
     }
   }
 
-  // Функция для обрезки изображения в формат 4:3 (альбомная ориентация)
   const cropImageTo4_3 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader()
@@ -219,12 +212,10 @@ export default function EditProfilePage() {
             return
           }
 
-          // Фиксированный размер для альбомной ориентации 4:3
           const targetWidth = 1200
           const targetHeight = 900
           const targetRatio = 4 / 3
 
-          // Вычисляем размеры для обрезки в формате 4:3
           let sourceWidth = img.width
           let sourceHeight = img.height
           let sourceX = 0
@@ -233,20 +224,16 @@ export default function EditProfilePage() {
           const imgRatio = img.width / img.height
 
           if (imgRatio > targetRatio) {
-            // Изображение шире нужного формата, обрезаем по ширине
             sourceWidth = img.height * targetRatio
             sourceX = (img.width - sourceWidth) / 2
           } else {
-            // Изображение выше нужного формата, обрезаем по высоте
             sourceHeight = img.width / targetRatio
             sourceY = (img.height - sourceHeight) / 2
           }
 
-          // Устанавливаем размеры canvas
           canvas.width = targetWidth
           canvas.height = targetHeight
 
-          // Рисуем обрезанное изображение на canvas
           ctx.drawImage(
             img,
             sourceX, sourceY, sourceWidth, sourceHeight,
@@ -263,19 +250,29 @@ export default function EditProfilePage() {
     })
   }
 
-  const handleImageUpload = async (projectId: string, file: File) => {
+  const handleImageUpload = useCallback(async (projectId: string, files: FileList | null) => {
+    if (!files || files.length === 0) return
+    
     try {
-      const croppedImage = await cropImageTo4_3(file)
+      const uploadPromises = Array.from(files).slice(0, 3).map(file => cropImageTo4_3(file))
+      const croppedImages = await Promise.all(uploadPromises)
+      
       setProjects(prev => prev.map(project => 
         project.id === projectId
-          ? { ...project, images: [...project.images, { url: croppedImage, file }] }
+          ? { 
+              ...project, 
+              images: [
+                ...project.images, 
+                ...croppedImages.map(url => ({ url }))
+              ].slice(0, 3)
+            }
           : project
       ))
     } catch (error) {
       console.error('Ошибка обработки изображения:', error)
       alert('Не удалось обработать изображение')
     }
-  }
+  }, [])
 
   const removeImage = (projectId: string, imageIndex: number) => {
     setProjects(prev => prev.map(project =>
@@ -299,7 +296,9 @@ export default function EditProfilePage() {
   }
 
   const removeProject = (projectId: string) => {
-    setProjects(prev => prev.filter(p => p.id !== projectId))
+    if (confirm('Удалить этот проект?')) {
+      setProjects(prev => prev.filter(p => p.id !== projectId))
+    }
   }
 
   const updateProject = (projectId: string, field: 'title' | 'description', value: string) => {
@@ -313,7 +312,6 @@ export default function EditProfilePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // Валидация
     if (!formData.firstName.trim() || !formData.lastName.trim() || !formData.telegram.trim()) {
       alert('Заполните обязательные поля: имя, фамилия и Telegram')
       return
@@ -326,13 +324,14 @@ export default function EditProfilePage() {
 
     try {
       if (isSupabaseAvailable()) {
-        // Сохраняем в Supabase
-        const portfolioData = projects.map(p => ({
-          id: p.id,
-          title: p.title,
-          description: p.description,
-          images: p.images.map(img => ({ url: img.url }))
-        }))
+        const portfolioData = projects
+          .filter(p => p.title.trim() || p.description.trim() || p.images.length > 0)
+          .map(p => ({
+            id: p.id,
+            title: p.title.trim(),
+            description: p.description.trim(),
+            images: p.images.map(img => ({ url: img.url }))
+          }))
 
         await updateSpecialist(currentUser.id, {
           first_name: formData.firstName.trim(),
@@ -348,15 +347,16 @@ export default function EditProfilePage() {
 
         router.push('/specialists')
       } else {
-        // Fallback на localStorage
         const profileDataWithProjects = {
           ...formData,
-          projects: projects.map(p => ({
-            id: p.id,
-            title: p.title,
-            description: p.description,
-            images: p.images.map(img => ({ url: img.url }))
-          }))
+          projects: projects
+            .filter(p => p.title.trim() || p.description.trim() || p.images.length > 0)
+            .map(p => ({
+              id: p.id,
+              title: p.title.trim(),
+              description: p.description.trim(),
+              images: p.images.map(img => ({ url: img.url }))
+            }))
         }
         saveSpecialistProfile(currentUser.id, profileDataWithProjects)
         
@@ -399,18 +399,18 @@ export default function EditProfilePage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
-      <div className="mb-6 sm:mb-8">
-        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-light text-primary-900 mb-2 sm:mb-3 tracking-tight">Настройки профиля</h1>
-        <p className="text-base sm:text-lg font-light text-primary-600">Управляйте информацией о себе и портфолио</p>
+      <div className="mb-8">
+        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-light text-primary-900 mb-2 tracking-tight">Настройки</h1>
+        <p className="text-base sm:text-lg font-light text-primary-600">Управляйте информацией о себе</p>
       </div>
 
       {/* Tabs */}
-      <div className="mb-6 border-b border-primary-200">
+      <div className="mb-8 border-b border-primary-200">
         <div className="flex gap-6">
           <button
             type="button"
             onClick={() => setActiveTab('card')}
-            className={`relative text-sm font-normal transition-colors tracking-tight pb-4 ${
+            className={`relative text-sm font-normal transition-all duration-200 ease-out tracking-tight pb-4 ${
               activeTab === 'card'
                 ? 'text-[#FF4600]'
                 : 'text-primary-400 hover:text-primary-600'
@@ -418,13 +418,13 @@ export default function EditProfilePage() {
           >
             Моя карточка
             {activeTab === 'card' && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FF4600]"></span>
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FF4600] animate-[slideInRight_0.3s_ease-out]"></span>
             )}
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('portfolio')}
-            className={`relative text-sm font-normal transition-colors tracking-tight pb-4 ${
+            className={`relative text-sm font-normal transition-all duration-200 ease-out tracking-tight pb-4 ${
               activeTab === 'portfolio'
                 ? 'text-[#FF4600]'
                 : 'text-primary-400 hover:text-primary-600'
@@ -432,7 +432,7 @@ export default function EditProfilePage() {
           >
             Портфолио
             {activeTab === 'portfolio' && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FF4600]"></span>
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FF4600] animate-[slideInRight_0.3s_ease-out]"></span>
             )}
           </button>
         </div>
@@ -440,68 +440,59 @@ export default function EditProfilePage() {
 
       <form onSubmit={handleSubmit}>
         {activeTab === 'card' && (
-          <div className="bg-white rounded-apple border border-primary-100 p-4 sm:p-6 lg:p-10 space-y-4 sm:space-y-6">
-            {/* Загрузка аватарки */}
+          <div className="bg-white rounded-apple border border-primary-100 p-6 sm:p-8 lg:p-10 space-y-6 fade-in">
+            {/* Avatar */}
             <div>
-              <label className="block text-sm font-light text-primary-700 mb-2">
-                Фото профиля
-              </label>
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
-                <div className="relative">
-                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-apple overflow-hidden border border-primary-200 bg-primary-50 flex items-center justify-center">
-                    {avatarPreview ? (
-                      <img
-                        src={avatarPreview}
-                        alt="Аватар"
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-primary-400 text-xl sm:text-2xl font-light">
-                        {(formData.firstName?.[0] || '') + (formData.lastName?.[0] || '') || '?'}
-                      </div>
-                    )}
-                  </div>
+              <label className="block text-sm font-light text-primary-700 mb-3">Фото профиля</label>
+              <div className="flex items-center gap-6">
+                <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-apple overflow-hidden border border-primary-200 bg-primary-50 flex-shrink-0">
+                  {avatarPreview ? (
+                    <Image
+                      src={avatarPreview}
+                      alt="Аватар"
+                      fill
+                      className="object-cover"
+                      sizes="96px"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-primary-400 text-xl sm:text-2xl font-light">
+                      {(formData.firstName?.[0] || '') + (formData.lastName?.[0] || '') || '?'}
+                    </div>
+                  )}
                 </div>
-                <div className="flex-1 w-full sm:w-auto">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
-                    <label className="inline-block cursor-pointer">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0]
-                          if (file) {
-                            handleAvatarUpload(file)
-                          }
-                        }}
-                      />
-                      <span className="inline-flex items-center gap-2 px-4 py-2 border border-primary-200 rounded-apple text-sm font-normal text-primary-700 hover:bg-primary-50 transition-colors">
-                        <PhotoIcon className="w-4 h-4" />
-                        {avatarPreview ? 'Изменить фото' : 'Загрузить фото'}
-                      </span>
-                    </label>
-                    {avatarPreview && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setAvatarPreview('')
-                          setFormData({ ...formData, avatarUrl: '' })
-                        }}
-                        className="text-sm font-light text-primary-500 hover:text-primary-700"
-                      >
-                        Удалить
-                      </button>
-                    )}
-                  </div>
-                  <p className="text-xs font-light text-primary-500 mt-2">
-                    Рекомендуемый размер: квадрат, минимум 400x400px
-                  </p>
+                <div className="flex-1">
+                  <label className="inline-block cursor-pointer">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) handleAvatarUpload(file)
+                      }}
+                    />
+                    <span className="inline-flex items-center gap-2 px-4 py-2 border border-primary-200 rounded-apple text-sm font-normal text-primary-700 hover:bg-primary-50 transition-colors">
+                      <PhotoIcon className="w-4 h-4" />
+                      {avatarPreview ? 'Изменить фото' : 'Загрузить фото'}
+                    </span>
+                  </label>
+                  {avatarPreview && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAvatarPreview('')
+                        setFormData({ ...formData, avatarUrl: '' })
+                      }}
+                      className="ml-3 text-sm font-light text-primary-500 hover:text-primary-700"
+                    >
+                      Удалить
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-4">
+            <div className="grid md:grid-cols-2 gap-6">
               <div>
                 <label htmlFor="firstName" className="block text-sm font-light text-primary-700 mb-2">
                   Имя <span className="text-primary-400">*</span>
@@ -510,7 +501,7 @@ export default function EditProfilePage() {
                   id="firstName"
                   type="text"
                   required
-                  className="w-full px-5 py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white"
+                  className="w-full px-4 py-3 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white text-sm transition-all duration-200 ease-out focus:shadow-sm"
                   value={formData.firstName}
                   onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                 />
@@ -524,7 +515,7 @@ export default function EditProfilePage() {
                   id="lastName"
                   type="text"
                   required
-                  className="w-full px-5 py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white"
+                  className="w-full px-4 py-3 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white text-sm transition-all duration-200 ease-out focus:shadow-sm"
                   value={formData.lastName}
                   onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                 />
@@ -538,14 +529,12 @@ export default function EditProfilePage() {
               <select
                 id="specialization"
                 required
-                className="w-full px-5 py-4 border border-primary-200 rounded-apple text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white"
+                className="w-full px-4 py-3 border border-primary-200 rounded-apple text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white text-sm transition-all duration-200 ease-out focus:shadow-sm"
                 value={formData.specialization}
                 onChange={(e) => setFormData({ ...formData, specialization: e.target.value as Specialization })}
               >
                 {specializations.map((spec) => (
-                  <option key={spec} value={spec}>
-                    {spec}
-                  </option>
+                  <option key={spec} value={spec}>{spec}</option>
                 ))}
               </select>
             </div>
@@ -556,9 +545,9 @@ export default function EditProfilePage() {
               </label>
               <textarea
                 id="bio"
-                rows={5}
+                rows={4}
                 placeholder="Расскажите о себе, своем опыте и целях..."
-                className="w-full px-5 py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white"
+                className="w-full px-4 py-3 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white text-sm resize-none"
                 value={formData.bio || ''}
                 onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
               />
@@ -573,7 +562,7 @@ export default function EditProfilePage() {
                 type="text"
                 required
                 placeholder="@username"
-                className="w-full px-5 py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white"
+                        className="w-full px-4 py-3 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white text-sm transition-all duration-200 ease-out focus:shadow-sm"
                 value={formData.telegram}
                 onChange={(e) => setFormData({ ...formData, telegram: e.target.value })}
               />
@@ -587,13 +576,13 @@ export default function EditProfilePage() {
                 id="email"
                 type="email"
                 placeholder="example@mail.com"
-                className="w-full px-5 py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white"
+                        className="w-full px-4 py-3 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white text-sm transition-all duration-200 ease-out focus:shadow-sm"
                 value={formData.email || ''}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               />
             </div>
 
-            <div className="pt-6 border-t border-primary-100">
+            <div className="pt-4 border-t border-primary-100">
               <label className="flex items-center gap-3 cursor-pointer">
                 <input
                   type="checkbox"
@@ -605,18 +594,18 @@ export default function EditProfilePage() {
               </label>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4 sm:pt-6 border-t border-primary-100">
+            <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-primary-100">
               <button
                 type="submit"
-                className="inline-flex items-center justify-center gap-2 bg-primary-900 text-white px-6 py-3 sm:py-4 rounded-apple hover:bg-primary-800 transition-colors font-normal tracking-tight"
+                className="inline-flex items-center justify-center gap-2 bg-primary-900 text-white px-6 py-3 rounded-apple hover:bg-primary-800 transition-colors font-normal tracking-tight text-sm"
               >
-                <CheckIcon className="w-5 h-5" />
+                <CheckIcon className="w-4 h-4" />
                 Сохранить изменения
               </button>
               <button
                 type="button"
                 onClick={() => router.back()}
-                className="border border-primary-200 text-primary-700 px-6 py-3 sm:py-4 rounded-apple hover:bg-primary-50 transition-colors font-normal tracking-tight"
+                className="border border-primary-200 text-primary-700 px-6 py-3 rounded-apple hover:bg-primary-50 transition-colors font-normal tracking-tight text-sm"
               >
                 Отмена
               </button>
@@ -625,132 +614,144 @@ export default function EditProfilePage() {
         )}
 
         {activeTab === 'portfolio' && (
-          <div className="bg-white rounded-apple border border-primary-100 p-4 sm:p-6 lg:p-10">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6 mb-4 sm:mb-6">
+          <div className="space-y-6 fade-in">
+            <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-xl sm:text-2xl font-light text-primary-900 mb-1 tracking-tight">Портфолио</h2>
-                <p className="text-xs sm:text-sm font-light text-primary-600">Добавьте до 3 проектов с фотографиями</p>
+                <p className="text-sm font-light text-primary-600">Добавьте до 3 проектов с фотографиями</p>
               </div>
               {projects.length < 3 && (
                 <button
                   type="button"
                   onClick={addProject}
-                  className="inline-flex items-center justify-center gap-2 bg-primary-900 text-white px-4 sm:px-5 py-2 sm:py-3 rounded-apple hover:bg-primary-800 transition-colors font-normal tracking-tight"
+                  className="inline-flex items-center gap-2 bg-primary-900 text-white px-4 py-2 rounded-apple hover:bg-primary-800 transition-all duration-200 ease-out hover:scale-105 active:scale-100 font-normal text-sm"
                 >
-                  <PlusIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <PlusIcon className="w-4 h-4" />
                   Добавить проект
                 </button>
               )}
             </div>
+            {projects.length === 0 ? (
+              <div className="bg-white rounded-apple border border-primary-100 p-12 text-center">
+                <PhotoIcon className="w-12 h-12 text-primary-300 mx-auto mb-4" />
+                <p className="text-base font-light text-primary-600 mb-1">Портфолио пусто</p>
+                <p className="text-sm font-light text-primary-500 mb-6">Добавьте проекты, чтобы показать свои работы</p>
+                <button
+                  type="button"
+                  onClick={addProject}
+                  className="inline-flex items-center gap-2 bg-primary-900 text-white px-4 py-2 rounded-apple hover:bg-primary-800 transition-colors font-normal text-sm"
+                >
+                  <PlusIcon className="w-4 h-4" />
+                  Добавить первый проект
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {projects.map((project, projectIndex) => (
+                  <div key={project.id} className="bg-white rounded-apple border border-primary-100 p-6 space-y-6 fade-in-up" style={{ animationDelay: `${projectIndex * 100}ms` }}>
+                    <div className="flex items-start justify-between">
+                      <h3 className="text-lg font-normal text-primary-900 tracking-tight">Проект {projectIndex + 1}</h3>
+                      <button
+                        type="button"
+                        onClick={() => removeProject(project.id)}
+                        className="p-2 hover:bg-primary-50 rounded-apple transition-all duration-200 ease-out hover:scale-110 active:scale-95"
+                        aria-label="Удалить проект"
+                      >
+                        <TrashIcon className="w-5 h-5 text-primary-500" />
+                      </button>
+                    </div>
 
-            <div className="space-y-4 sm:space-y-6">
-              {projects.map((project, projectIndex) => (
-                <div key={project.id} className="border border-primary-200 rounded-apple p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6">
-                  <div className="flex items-start justify-between">
-                    <h3 className="text-xl font-normal text-primary-900 tracking-tight">Проект {projectIndex + 1}</h3>
-                    <button
-                      type="button"
-                      onClick={() => removeProject(project.id)}
-                      className="p-2 hover:bg-primary-50 rounded-apple transition-colors"
-                    >
-                      <XMarkIcon className="w-5 h-5 text-primary-600" />
-                    </button>
-                  </div>
+                    <div>
+                      <label className="block text-sm font-light text-primary-700 mb-2">
+                        Название проекта
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Название проекта"
+                        className="w-full px-4 py-3 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white text-sm transition-all duration-200 ease-out focus:shadow-sm"
+                        value={project.title}
+                        onChange={(e) => updateProject(project.id, 'title', e.target.value)}
+                      />
+                    </div>
 
-                  <div>
-                    <label className="block text-sm font-light text-primary-700 mb-2">
-                      Название проекта
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Название проекта"
-                      className="w-full px-5 py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white"
-                      value={project.title}
-                      onChange={(e) => updateProject(project.id, 'title', e.target.value)}
-                    />
-                  </div>
+                    <div>
+                      <label className="block text-sm font-light text-primary-700 mb-2">
+                        Описание
+                      </label>
+                      <textarea
+                        rows={3}
+                        placeholder="Краткое описание проекта"
+                        className="w-full px-4 py-3 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white text-sm resize-none"
+                        value={project.description}
+                        onChange={(e) => updateProject(project.id, 'description', e.target.value)}
+                      />
+                    </div>
 
-                  <div>
-                    <label className="block text-sm font-light text-primary-700 mb-2">
-                      Описание проекта
-                    </label>
-                    <textarea
-                      rows={3}
-                      placeholder="Описание проекта"
-                      className="w-full px-5 py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white"
-                      value={project.description}
-                      onChange={(e) => updateProject(project.id, 'description', e.target.value)}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-light text-primary-700 mb-2">
-                      Фотографии (до 3, формат 4:3)
-                    </label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                      {project.images.map((image, imageIndex) => (
-                        <div key={imageIndex} className="relative group">
-                          <div className="rounded-apple overflow-hidden border border-primary-200 bg-primary-50" style={{ aspectRatio: '4/3' }}>
-                            <img
-                              src={image.url}
-                              alt={`Проект ${projectIndex + 1} - фото ${imageIndex + 1}`}
-                              className="w-full h-full object-cover"
-                              style={{ aspectRatio: '4/3' }}
-                            />
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => removeImage(project.id, imageIndex)}
-                            className="absolute top-2 right-2 p-1 bg-white/90 backdrop-blur-sm rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <XMarkIcon className="w-4 h-4 text-primary-700" />
-                          </button>
+                    <div>
+                      <label className="block text-sm font-light text-primary-700 mb-3">
+                        Фотографии {project.images.length > 0 && `(${project.images.length}/3)`}
+                      </label>
+                      
+                      {project.images.length > 0 && (
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                          {project.images.map((image, imageIndex) => (
+                            <div key={imageIndex} className="relative group">
+                              <div className="relative w-full rounded-apple overflow-hidden border border-primary-200 bg-primary-50" style={{ aspectRatio: '4/3' }}>
+                                <Image
+                                  src={image.url}
+                                  alt={`${project.title || 'Проект'} - фото ${imageIndex + 1}`}
+                                  fill
+                                  className="object-cover"
+                                  sizes="(max-width: 640px) 100vw, 33vw"
+                                />
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => removeImage(project.id, imageIndex)}
+                                className="absolute top-2 right-2 p-1.5 bg-white/90 backdrop-blur-sm rounded-apple opacity-0 group-hover:opacity-100 transition-all duration-200 ease-out hover:scale-110 active:scale-95"
+                                aria-label="Удалить фото"
+                              >
+                                <XMarkIcon className="w-4 h-4 text-primary-700" />
+                              </button>
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                      )}
+
                       {project.images.length < 3 && (
-                        <label className="rounded-apple border-2 border-dashed border-primary-300 hover:border-primary-400 transition-colors cursor-pointer flex items-center justify-center bg-primary-50" style={{ aspectRatio: '4/3' }}>
+                        <label className="block w-full rounded-apple border-2 border-dashed border-primary-300 hover:border-primary-400 transition-all duration-200 ease-out hover:bg-primary-100 cursor-pointer bg-primary-50 p-8 text-center">
                           <input
                             type="file"
                             accept="image/*"
+                            multiple
                             className="hidden"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0]
-                              if (file) {
-                                handleImageUpload(project.id, file)
-                              }
-                            }}
+                            onChange={(e) => handleImageUpload(project.id, e.target.files)}
                           />
-                          <div className="text-center">
-                            <PhotoIcon className="w-8 h-8 text-primary-400 mx-auto mb-2" />
-                            <span className="text-xs font-light text-primary-600">Добавить фото</span>
-                          </div>
+                          <PhotoIcon className="w-8 h-8 text-primary-400 mx-auto mb-2" />
+                          <span className="text-sm font-light text-primary-600 block">
+                            {project.images.length === 0 ? 'Добавить фотографии' : `Добавить еще (до ${3 - project.images.length})`}
+                          </span>
+                          <span className="text-xs font-light text-primary-500 mt-1 block">Формат 4:3, до 3 фото</span>
                         </label>
                       )}
                     </div>
                   </div>
-                </div>
-              ))}
-              {projects.length === 0 && (
-                <div className="text-center py-16 text-primary-500 font-light">
-                  <PhotoIcon className="w-16 h-16 text-primary-300 mx-auto mb-4" />
-                  <p className="text-base mb-2">Портфолио пока пусто</p>
-                  <p className="text-sm">Добавьте проекты, чтобы показать свои работы</p>
-                </div>
-              )}
-            </div>
+                ))}
+              </div>
+            )}
 
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4 sm:pt-6 border-t border-primary-100 mt-6 sm:mt-8">
+            <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-primary-100">
               <button
                 type="submit"
-                className="inline-flex items-center justify-center gap-2 bg-primary-900 text-white px-6 py-3 sm:py-4 rounded-apple hover:bg-primary-800 transition-colors font-normal tracking-tight"
+                className="inline-flex items-center justify-center gap-2 bg-primary-900 text-white px-6 py-3 rounded-apple hover:bg-primary-800 transition-colors font-normal tracking-tight text-sm"
               >
-                <CheckIcon className="w-5 h-5" />
+                <CheckIcon className="w-4 h-4" />
                 Сохранить изменения
               </button>
               <button
                 type="button"
                 onClick={() => router.back()}
-                className="border border-primary-200 text-primary-700 px-6 py-3 sm:py-4 rounded-apple hover:bg-primary-50 transition-colors font-normal tracking-tight"
+                className="border border-primary-200 text-primary-700 px-6 py-3 rounded-apple hover:bg-primary-50 transition-colors font-normal tracking-tight text-sm"
               >
                 Отмена
               </button>
@@ -761,3 +762,4 @@ export default function EditProfilePage() {
     </div>
   )
 }
+

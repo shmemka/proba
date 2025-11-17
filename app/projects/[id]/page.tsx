@@ -404,7 +404,7 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
               <textarea
                 id="application"
                 rows={6}
-                className="w-full px-4 sm:px-5 py-3 sm:py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white text-sm sm:text-base"
+                className="w-full px-4 sm:px-5 py-3 sm:py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white text-sm sm:text-base transition-all duration-200 ease-out focus:shadow-sm"
                 placeholder="Опишите ваш опыт, навыки и мотивацию..."
                 value={applicationText}
                 onChange={(e) => setApplicationText(e.target.value)}
@@ -414,7 +414,7 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               <button
                 type="submit"
-                className="inline-flex items-center justify-center gap-2 bg-primary-900 text-white px-6 py-3 sm:py-4 rounded-apple hover:bg-primary-800 transition-colors font-normal tracking-tight"
+                className="inline-flex items-center justify-center gap-2 bg-primary-900 text-white px-6 py-3 sm:py-4 rounded-apple hover:bg-primary-800 transition-all duration-200 ease-out hover:scale-105 active:scale-100 font-normal tracking-tight"
               >
                 <PaperAirplaneIcon className="w-5 h-5" />
                 Отправить заявку
@@ -422,7 +422,7 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
               <button
                 type="button"
                 onClick={() => setShowApplicationForm(false)}
-                className="border border-primary-200 text-primary-700 px-6 py-3 sm:py-4 rounded-apple hover:bg-primary-50 transition-colors font-normal tracking-tight"
+                className="border border-primary-200 text-primary-700 px-6 py-3 sm:py-4 rounded-apple hover:bg-primary-50 transition-all duration-200 ease-out hover:scale-105 active:scale-100 font-normal tracking-tight"
               >
                 Отмена
               </button>
@@ -432,7 +432,7 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
           <div className="border-t border-primary-100 pt-6 sm:pt-8">
             <button
               onClick={() => setShowApplicationForm(true)}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-primary-900 text-white px-6 py-3 sm:py-4 rounded-apple hover:bg-primary-800 transition-colors font-normal tracking-tight"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-primary-900 text-white px-6 py-3 sm:py-4 rounded-apple hover:bg-primary-800 transition-all duration-200 ease-out hover:scale-105 active:scale-100 font-normal tracking-tight"
             >
               <PaperAirplaneIcon className="w-5 h-5" />
               Подать заявку на проект

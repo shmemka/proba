@@ -104,7 +104,7 @@ export default function SpecialistDrawer({
       {/* Overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 transition-opacity"
+          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 transition-opacity duration-300 ease-out animate-[fadeIn_0.3s_ease-out]"
           onClick={onClose}
         />
       )}
@@ -122,10 +122,10 @@ export default function SpecialistDrawer({
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-3 sm:top-4 right-3 sm:right-4 z-40 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/90 backdrop-blur-sm border border-primary-200 flex items-center justify-center hover:bg-white active:bg-white transition-colors shadow-sm"
+          className="absolute top-3 sm:top-4 right-3 sm:right-4 z-40 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/90 backdrop-blur-sm border border-primary-200 flex items-center justify-center hover:bg-white active:bg-white transition-all duration-200 ease-out hover:scale-110 active:scale-95 shadow-sm"
           aria-label="Закрыть"
         >
-          <XMarkIcon className="w-4 h-4 sm:w-5 sm:h-5 text-primary-700" />
+          <XMarkIcon className="w-4 h-4 sm:w-5 sm:h-5 text-primary-700 transition-transform duration-200" />
         </button>
 
         {/* Content */}
@@ -299,17 +299,17 @@ export default function SpecialistDrawer({
                   <div className="absolute bottom-3 sm:bottom-4 right-3 sm:right-4 flex items-center gap-2 z-30">
                     <button
                       onClick={handlePrevious}
-                      className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/90 backdrop-blur-sm border border-primary-200 flex items-center justify-center hover:bg-white active:bg-white transition-colors shadow-sm"
+                      className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/90 backdrop-blur-sm border border-primary-200 flex items-center justify-center hover:bg-white active:bg-white transition-all duration-200 ease-out hover:scale-110 active:scale-95 shadow-sm"
                       aria-label="Предыдущий проект"
                     >
-                      <ChevronLeftIcon className="w-4 h-4 sm:w-5 sm:h-5 text-primary-700" />
+                      <ChevronLeftIcon className="w-4 h-4 sm:w-5 sm:h-5 text-primary-700 transition-transform duration-200" />
                     </button>
                     <button
                       onClick={handleNext}
-                      className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/90 backdrop-blur-sm border border-primary-200 flex items-center justify-center hover:bg-white active:bg-white transition-colors shadow-sm"
+                      className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/90 backdrop-blur-sm border border-primary-200 flex items-center justify-center hover:bg-white active:bg-white transition-all duration-200 ease-out hover:scale-110 active:scale-95 shadow-sm"
                       aria-label="Следующий проект"
                     >
-                      <ChevronRightIcon className="w-4 h-4 sm:w-5 sm:h-5 text-primary-700" />
+                      <ChevronRightIcon className="w-4 h-4 sm:w-5 sm:h-5 text-primary-700 transition-transform duration-200" />
                     </button>
                   </div>
                 )}

@@ -287,7 +287,7 @@ export default function SpecialistsPage() {
     return (
       <button
         onClick={onClick}
-        className="bg-white rounded-apple border border-primary-100 hover:border-primary-200 transition-colors p-4 sm:p-6 lg:p-8 text-left w-full flex flex-col"
+        className="bg-white rounded-apple border border-primary-100 hover:border-primary-200 transition-all duration-200 ease-out hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 p-4 sm:p-6 lg:p-8 text-left w-full flex flex-col fade-in-up"
       >
         <div className="flex items-start gap-3 sm:gap-5 mb-3 sm:mb-4 flex-shrink-0">
           {specialist.avatarUrl ? (
@@ -328,12 +328,16 @@ export default function SpecialistsPage() {
         {portfolioImages.length > 0 && (
           <div className="flex gap-2 sm:gap-3 overflow-x-auto -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 scrollbar-hide">
             {portfolioImages.map((image, index) => (
-              <div key={index} className="relative flex-shrink-0 w-48 sm:w-56 lg:w-64 h-36 sm:h-44 lg:h-48 rounded-apple overflow-hidden border border-primary-100 bg-primary-50">
+              <div 
+                key={index} 
+                className="relative flex-shrink-0 w-48 sm:w-56 lg:w-64 h-36 sm:h-44 lg:h-48 rounded-apple overflow-hidden border border-primary-100 bg-primary-50 transition-transform duration-200 ease-out hover:scale-105"
+                style={{ animationDelay: `${index * 50}ms` }}
+              >
                 <Image
                   src={image.url}
                   alt={`Портфолио ${index + 1}`}
                   fill
-                  className="object-cover"
+                  className="object-cover transition-transform duration-300 ease-out"
                   sizes="(max-width: 640px) 192px, (max-width: 1024px) 224px, 256px"
                   loading="lazy"
                 />
@@ -377,7 +381,7 @@ export default function SpecialistsPage() {
             <input
               type="text"
               placeholder="Поиск"
-              className="w-full pl-12 pr-4 py-2.5 border border-primary-200 rounded-apple focus:ring-1 focus:ring-primary-900 focus:border-primary-900 bg-white text-primary-900 placeholder-primary-400 font-light text-sm"
+              className="w-full pl-12 pr-4 py-2.5 border border-primary-200 rounded-apple focus:ring-1 focus:ring-primary-900 focus:border-primary-900 bg-white text-primary-900 placeholder-primary-400 font-light text-sm transition-all duration-200 ease-out focus:shadow-sm"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -389,7 +393,7 @@ export default function SpecialistsPage() {
           <div className="flex items-center gap-3 sm:gap-6 overflow-x-auto scrollbar-hide -mx-4 sm:mx-0 px-4 sm:px-0">
             <button
               onClick={() => setSelectedSpecialization('')}
-              className={`text-sm font-normal transition-colors tracking-tight whitespace-nowrap ${
+              className={`text-sm font-normal transition-all duration-200 ease-out tracking-tight whitespace-nowrap ${
                 selectedSpecialization === ''
                   ? 'text-[#FF4600]'
                   : 'text-primary-400 hover:text-primary-600'
@@ -401,7 +405,7 @@ export default function SpecialistsPage() {
               <button
                 key={spec}
                 onClick={() => setSelectedSpecialization(spec)}
-                className={`text-sm font-normal transition-colors tracking-tight whitespace-nowrap ${
+                className={`text-sm font-normal transition-all duration-200 ease-out tracking-tight whitespace-nowrap ${
                   selectedSpecialization === spec
                     ? 'text-[#FF4600]'
                     : 'text-primary-400 hover:text-primary-600'

@@ -93,22 +93,22 @@ export default function ProjectsPage() {
     loadProjects()
     
     if (!SUPABASE_AVAILABLE) {
-      const handleStorageChange = () => {
+    const handleStorageChange = () => {
+      loadProjects()
+    }
+    
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
         loadProjects()
       }
-      
-      const handleVisibilityChange = () => {
-        if (document.visibilityState === 'visible') {
-          loadProjects()
-        }
-      }
+    }
 
       window.addEventListener('storage', handleStorageChange)
-      document.addEventListener('visibilitychange', handleVisibilityChange)
-
-      return () => {
-        window.removeEventListener('storage', handleStorageChange)
-        document.removeEventListener('visibilitychange', handleVisibilityChange)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
       }
     }
   }, [])
@@ -167,7 +167,7 @@ export default function ProjectsPage() {
       <Link
         href={`/projects/${project.id}`}
         prefetch={true}
-        className="block bg-white rounded-apple border border-primary-100 hover:border-primary-200 transition-colors p-4 sm:p-6 lg:p-8"
+        className="block bg-white rounded-apple border border-primary-100 hover:border-primary-200 transition-all duration-200 ease-out hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 p-4 sm:p-6 lg:p-8 fade-in-up"
       >
         <div className="flex justify-between items-start mb-3 sm:mb-4 gap-3">
           <div className="flex-1 min-w-0">
@@ -200,10 +200,11 @@ export default function ProjectsPage() {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          {project.skills.map((skill) => (
+          {project.skills.map((skill, index) => (
             <span
               key={skill}
-              className="inline-flex items-center px-3 py-1.5 bg-primary-50 text-primary-700 rounded-apple text-xs font-light"
+              className="inline-flex items-center px-3 py-1.5 bg-primary-50 text-primary-700 rounded-apple text-xs font-light transition-all duration-200 ease-out hover:bg-primary-100 hover:scale-105"
+              style={{ animationDelay: `${index * 30}ms` }}
             >
               {skill}
             </span>
@@ -254,14 +255,14 @@ export default function ProjectsPage() {
           <input
             type="text"
             placeholder="Поиск по названию, описанию или навыкам..."
-            className="w-full pl-12 pr-4 py-3 border border-primary-200 rounded-apple focus:ring-1 focus:ring-primary-900 focus:border-primary-900 bg-white text-primary-900 placeholder-primary-400 font-light text-sm sm:text-base"
+            className="w-full pl-12 pr-4 py-3 border border-primary-200 rounded-apple focus:ring-1 focus:ring-primary-900 focus:border-primary-900 bg-white text-primary-900 placeholder-primary-400 font-light text-sm sm:text-base transition-all duration-200 ease-out focus:shadow-sm"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
         <button
           onClick={() => setIsFilterModalOpen(true)}
-          className="px-4 sm:px-5 py-3 border border-primary-200 rounded-apple hover:bg-primary-50 transition-colors flex items-center justify-center gap-2 text-primary-700 font-normal"
+          className="px-4 sm:px-5 py-3 border border-primary-200 rounded-apple hover:bg-primary-50 transition-all duration-200 ease-out hover:scale-105 active:scale-100 flex items-center justify-center gap-2 text-primary-700 font-normal"
         >
           <FunnelIcon className="w-5 h-5" />
           Фильтры
@@ -272,19 +273,19 @@ export default function ProjectsPage() {
       {isFilterModalOpen && (
         <>
           <div 
-            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[100]"
+            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[100] animate-[fadeIn_0.2s_ease-out]"
             onClick={() => setIsFilterModalOpen(false)}
           />
           <div className="fixed inset-0 flex items-center justify-center z-[101] pointer-events-none">
             <div 
-              className="bg-white rounded-apple border border-primary-100 shadow-xl p-6 w-full max-w-md mx-4 pointer-events-auto"
+              className="bg-white rounded-apple border border-primary-100 shadow-xl p-6 w-full max-w-md mx-4 pointer-events-auto animate-[fadeInUp_0.3s_ease-out]"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-normal text-primary-900 tracking-tight">Фильтры</h2>
                 <button
                   onClick={() => setIsFilterModalOpen(false)}
-                  className="p-2 hover:bg-primary-50 rounded-apple transition-colors"
+                  className="p-2 hover:bg-primary-50 rounded-apple transition-all duration-200 ease-out hover:scale-110 active:scale-95"
                 >
                   <XMarkIcon className="w-5 h-5 text-primary-600" />
                 </button>
@@ -298,7 +299,7 @@ export default function ProjectsPage() {
                   <select
                     value={selectedSkill}
                     onChange={(e) => setSelectedSkill(e.target.value)}
-                    className="w-full px-4 py-3 border border-primary-200 rounded-apple focus:ring-1 focus:ring-primary-900 focus:border-primary-900 bg-white text-primary-900 font-light"
+                    className="w-full px-4 py-3 border border-primary-200 rounded-apple focus:ring-1 focus:ring-primary-900 focus:border-primary-900 bg-white text-primary-900 font-light transition-all duration-200 ease-out focus:shadow-sm"
                   >
                     <option value="">Все навыки</option>
                     {allSkills.map(skill => (
@@ -314,7 +315,7 @@ export default function ProjectsPage() {
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value as 'deadline' | 'applications')}
-                    className="w-full px-4 py-3 border border-primary-200 rounded-apple focus:ring-1 focus:ring-primary-900 focus:border-primary-900 bg-white text-primary-900 font-light"
+                    className="w-full px-4 py-3 border border-primary-200 rounded-apple focus:ring-1 focus:ring-primary-900 focus:border-primary-900 bg-white text-primary-900 font-light transition-all duration-200 ease-out focus:shadow-sm"
                   >
                     <option value="deadline">Сначала ближайшие дедлайны</option>
                     <option value="applications">Популярные проекты</option>

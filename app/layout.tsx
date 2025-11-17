@@ -29,7 +29,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'FreeExperience - Платформа для опыта и портфолио',
+  title: 'FreeExperience - Платформа для опыта и портфолио',
     description: 'Платформа, где молодые специалисты получают реальный опыт, а малые компании — качественные решения',
   },
   robots: {
