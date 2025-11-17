@@ -34,6 +34,8 @@ export interface Database {
           specialization: string
           bio: string
           telegram: string
+          show_in_search: boolean
+          portfolio: any
           created_at: string
           updated_at: string
         }
@@ -57,10 +59,16 @@ export interface Database {
           company_id: string
           title: string
           description: string
+          full_description: string
           specialization: string
+          skills: string[]
+          location: string
+          deadline: string | null
           budget: string
           timeline: string
-          status: 'open' | 'closed'
+          requirements: string[]
+          deliverables: string[]
+          status: 'open' | 'closed' | 'in_progress' | 'completed'
           created_at: string
           updated_at: string
         }

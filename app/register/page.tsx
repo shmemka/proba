@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { UserPlusIcon, UserIcon, BriefcaseIcon } from '@heroicons/react/24/outline'
+import { signUp, getCurrentUser, isSupabaseAvailable } from '@/lib/supabase'
 import { findUserByEmail, getActiveUser, registerUser, saveSpecialistProfile, setActiveUser } from '@/lib/storage'
 
 function RegisterForm() {
@@ -21,22 +22,37 @@ function RegisterForm() {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
-    const type = searchParams.get('type')
-    if (type === 'company' || type === 'specialist') {
-      setUserType(type)
-    }
+    const checkAuth = async () => {
+      const type = searchParams.get('type')
+      if (type === 'company' || type === 'specialist') {
+        setUserType(type)
+      }
 
-    const user = getActiveUser()
-    if (user?.email && user?.password) {
-      if (user.type === 'specialist') {
-        router.push('/profile/edit')
+      if (isSupabaseAvailable()) {
+        const user = await getCurrentUser()
+        if (user) {
+          const userType = user.user_metadata?.userType || 'specialist'
+          if (userType === 'specialist') {
+            router.push('/profile/edit')
+          } else {
+            router.push('/projects')
+          }
+        }
       } else {
-        router.push('/projects')
+        const user = getActiveUser()
+        if (user?.email && user?.password) {
+          if (user.type === 'specialist') {
+            router.push('/profile/edit')
+          } else {
+            router.push('/projects')
+          }
+        }
       }
     }
+    checkAuth()
   }, [searchParams, router])
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
 
@@ -71,36 +87,45 @@ function RegisterForm() {
     setIsSubmitting(true)
 
     try {
-      // Локальная регистрация
-      if (findUserByEmail(normalizedEmail)) {
-        setError('Пользователь с таким email уже зарегистрирован')
-        return
-      }
-
-      const newUser = registerUser({
-        email: normalizedEmail,
-        name: userType === 'company' ? trimmedCompany : trimmedName,
-        type: userType,
-        password: formData.password,
-        companyName: userType === 'company' ? trimmedCompany : undefined,
-      })
-      setActiveUser(newUser)
-      window.dispatchEvent(new Event('storage'))
-
-      if (userType === 'specialist') {
-        const nameParts = trimmedName.split(' ')
-        const specialistProfile = {
-          firstName: nameParts[0] || '',
-          lastName: nameParts.slice(1).join(' ') || '',
-          specialization: 'Дизайн' as const,
-          bio: '',
-          telegram: '',
-          email: normalizedEmail,
+      if (isSupabaseAvailable()) {
+        // Используем Supabase Auth
+        const displayName = userType === 'company' ? trimmedCompany : trimmedName
+        await signUp(normalizedEmail, formData.password, userType, displayName)
+        
+        // После регистрации перенаправляем
+        router.push(userType === 'company' ? '/projects/new' : '/profile/edit')
+      } else {
+        // Fallback на localStorage
+        if (findUserByEmail(normalizedEmail)) {
+          setError('Пользователь с таким email уже зарегистрирован')
+          return
         }
-        saveSpecialistProfile(newUser.id, specialistProfile)
-      }
 
-      router.push(userType === 'company' ? '/projects/new' : '/profile/edit')
+        const newUser = registerUser({
+          email: normalizedEmail,
+          name: userType === 'company' ? trimmedCompany : trimmedName,
+          type: userType,
+          password: formData.password,
+          companyName: userType === 'company' ? trimmedCompany : undefined,
+        })
+        setActiveUser(newUser)
+        window.dispatchEvent(new Event('storage'))
+
+        if (userType === 'specialist') {
+          const nameParts = trimmedName.split(' ')
+          const specialistProfile = {
+            firstName: nameParts[0] || '',
+            lastName: nameParts.slice(1).join(' ') || '',
+            specialization: 'Дизайн' as const,
+            bio: '',
+            telegram: '',
+            email: normalizedEmail,
+          }
+          saveSpecialistProfile(newUser.id, specialistProfile)
+        }
+
+        router.push(userType === 'company' ? '/projects/new' : '/profile/edit')
+      }
     } catch (err: any) {
       console.error(err)
       setError(err?.message || 'Не удалось создать аккаунт. Попробуйте снова.')

@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { CheckIcon, PlusIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { createProject, getCurrentUser, isSupabaseAvailable } from '@/lib/supabase'
+import { getActiveUser } from '@/lib/storage'
 
 interface ProjectData {
   title: string
@@ -21,12 +23,29 @@ export default function NewProjectPage() {
   
   useEffect(() => {
     // Проверяем авторизацию
-    const user = JSON.parse(localStorage.getItem('user') || '{}')
-    if (user.type === 'company' || user.email) {
-      setIsAuthorized(true)
-    } else {
-      router.push('/login?redirect=/projects/new')
+    const checkAuth = async () => {
+      if (isSupabaseAvailable()) {
+        const user = await getCurrentUser()
+        if (user) {
+          const userType = user.user_metadata?.userType
+          if (userType === 'company' || user.email) {
+            setIsAuthorized(true)
+          } else {
+            router.push('/login?redirect=/projects/new')
+          }
+        } else {
+          router.push('/login?redirect=/projects/new')
+        }
+      } else {
+        const user = getActiveUser()
+        if (user?.type === 'company' || user?.email) {
+          setIsAuthorized(true)
+        } else {
+          router.push('/login?redirect=/projects/new')
+        }
+      }
     }
+    checkAuth()
   }, [router])
   
   const [formData, setFormData] = useState<ProjectData>({
@@ -43,7 +62,7 @@ export default function NewProjectPage() {
   const [newRequirement, setNewRequirement] = useState('')
   const [newDeliverable, setNewDeliverable] = useState('')
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
     // Валидация
@@ -62,25 +81,49 @@ export default function NewProjectPage() {
       return
     }
     
-    // Получаем данные пользователя
-    const user = JSON.parse(localStorage.getItem('user') || '{}')
-    
-    // В реальном приложении здесь была бы отправка данных через API
-    const projects = JSON.parse(localStorage.getItem('projects') || '[]')
-    const newProject = {
-      ...formData,
-      id: Date.now().toString(),
-      status: 'open' as const,
-      applicationsCount: 0,
-      company: user.name || 'Компания',
+    try {
+      if (isSupabaseAvailable()) {
+        // Используем Supabase
+        const user = await getCurrentUser()
+        if (!user) {
+          router.push('/login?redirect=/projects/new')
+          return
+        }
+        
+        await createProject({
+          company_id: user.id,
+          title: formData.title,
+          description: formData.description,
+          full_description: formData.fullDescription,
+          specialization: formData.skills[0] || 'Другое',
+          skills: formData.skills,
+          location: formData.location,
+          deadline: formData.deadline,
+          requirements: formData.requirements,
+          deliverables: formData.deliverables,
+        })
+        
+        router.push('/projects')
+      } else {
+        // Fallback на localStorage
+        const user = getActiveUser()
+        const projects = JSON.parse(localStorage.getItem('projects') || '[]')
+        const newProject = {
+          ...formData,
+          id: Date.now().toString(),
+          status: 'open' as const,
+          applicationsCount: 0,
+          company: user?.name || 'Компания',
+        }
+        projects.push(newProject)
+        localStorage.setItem('projects', JSON.stringify(projects))
+        window.dispatchEvent(new Event('storage'))
+        router.push('/projects')
+      }
+    } catch (error: any) {
+      console.error('Ошибка создания проекта:', error)
+      alert(error?.message || 'Не удалось создать проект. Попробуйте снова.')
     }
-    projects.push(newProject)
-    localStorage.setItem('projects', JSON.stringify(projects))
-    
-    // Триггерим событие для обновления списка на других вкладках
-    window.dispatchEvent(new Event('storage'))
-    
-    router.push('/projects')
   }
 
   const addSkill = () => {

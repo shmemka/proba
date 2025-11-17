@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { MagnifyingGlassIcon, PlusIcon, CalendarIcon, MapPinIcon, TagIcon, FunnelIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import { readJson } from '@/lib/storage'
+import { getProjects, isSupabaseAvailable } from '@/lib/supabase'
 
 interface Project {
   id: string
@@ -72,9 +73,45 @@ export default function ProjectsPage() {
   const [sortBy, setSortBy] = useState<'deadline' | 'applications'>('deadline')
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false)
 
-  // Загружаем проекты из localStorage и объединяем с моковыми
+  // Загружаем проекты из Supabase или localStorage
   useEffect(() => {
-    const loadProjects = () => {
+    const loadProjects = async () => {
+      if (isSupabaseAvailable()) {
+        try {
+          const supabaseProjects = await getProjects()
+          // Преобразуем данные из Supabase в формат приложения
+          const formattedProjects: Project[] = supabaseProjects.map((p: any) => ({
+            id: p.id,
+            title: p.title,
+            description: p.description,
+            company: p.company || 'Компания',
+            skills: p.skills || [],
+            location: p.location || '',
+            deadline: p.deadline || '',
+            status: p.status || 'open',
+            applicationsCount: p.applicationsCount || 0,
+          }))
+          
+          // Объединяем с моковыми данными
+          const allProjects = [...mockProjects]
+          formattedProjects.forEach((saved: Project) => {
+            if (!allProjects.find(p => p.id === saved.id)) {
+              allProjects.push(saved)
+            }
+          })
+          
+          setProjects(allProjects)
+        } catch (error) {
+          console.error('Ошибка загрузки проектов:', error)
+          // Fallback на localStorage
+          loadFromLocalStorage()
+        }
+      } else {
+        loadFromLocalStorage()
+      }
+    }
+    
+    const loadFromLocalStorage = () => {
       const savedProjects = readJson<Project[]>('projects', [])
       const allProjects = [...mockProjects]
       savedProjects.forEach((saved: Project) => {
@@ -106,11 +143,10 @@ export default function ProjectsPage() {
     }
     
     window.addEventListener('storage', handleStorageChange)
-    window.addEventListener('focus', loadProjects)
+    window.addEventListener('focus', () => loadProjects())
     
     return () => {
       window.removeEventListener('storage', handleStorageChange)
-      window.removeEventListener('focus', loadProjects)
     }
   }, [])
 

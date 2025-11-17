@@ -4,7 +4,8 @@ import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline'
-import { findUserByEmail, getActiveUser, getStoredUsers, setActiveUser, registerUser } from '@/lib/storage'
+import { signIn, getCurrentUser, isSupabaseAvailable } from '@/lib/supabase'
+import { getActiveUser, setActiveUser } from '@/lib/storage'
 
 function LoginForm() {
   const router = useRouter()
@@ -16,18 +17,36 @@ function LoginForm() {
 
   // Если пользователь уже авторизован, перенаправляем на рабочие страницы
   useEffect(() => {
-    const user = getActiveUser()
-    if (user?.email && user?.password) {
-      const redirect = searchParams.get('redirect')
-      if (redirect) {
-        router.push(redirect)
+    const checkAuth = async () => {
+      if (isSupabaseAvailable()) {
+        const user = await getCurrentUser()
+        if (user) {
+          const redirect = searchParams.get('redirect')
+          if (redirect) {
+            router.push(redirect)
+          } else {
+            // Определяем тип пользователя из metadata
+            const userType = user.user_metadata?.userType || 'specialist'
+            router.push(userType === 'company' ? '/projects' : '/specialists')
+          }
+        }
       } else {
-        router.push(user.type === 'company' ? '/projects' : '/specialists')
+        // Fallback на localStorage
+        const user = getActiveUser()
+        if (user?.email && user?.password) {
+          const redirect = searchParams.get('redirect')
+          if (redirect) {
+            router.push(redirect)
+          } else {
+            router.push(user.type === 'company' ? '/projects' : '/specialists')
+          }
+        }
       }
     }
+    checkAuth()
   }, [router, searchParams])
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     if (isSubmitting) {
@@ -42,32 +61,45 @@ function LoginForm() {
     const normalizedEmail = email.trim().toLowerCase()
     const passwordValue = password.trim()
 
-    // Тестовый режим: вход с любыми данными
     setIsSubmitting(true)
     try {
-      let userToLogin = findUserByEmail(normalizedEmail)
-      
-      // Если пользователь не найден, создаем нового с именем "Матвей"
-      if (!userToLogin) {
-        const legacyUser = getActiveUser()
-        if (legacyUser && legacyUser.email.trim().toLowerCase() === normalizedEmail) {
-          userToLogin = legacyUser
-        } else {
-          // Создаем нового пользователя для теста
-          userToLogin = registerUser({
-            email: normalizedEmail,
-            name: 'Матвей',
-            password: passwordValue,
-            type: 'specialist',
-          })
+      if (isSupabaseAvailable()) {
+        // Используем Supabase Auth
+        const { user } = await signIn(normalizedEmail, passwordValue)
+        if (user) {
+          const redirect = searchParams.get('redirect')
+          const userType = user.user_metadata?.userType || 'specialist'
+          const defaultRedirect = userType === 'company' ? '/projects' : '/specialists'
+          router.push(redirect || defaultRedirect)
         }
-      }
+      } else {
+        // Fallback на localStorage
+        const { findUserByEmail, registerUser } = await import('@/lib/storage')
+        let userToLogin = findUserByEmail(normalizedEmail)
+        
+        if (!userToLogin) {
+          const legacyUser = getActiveUser()
+          if (legacyUser && legacyUser.email.trim().toLowerCase() === normalizedEmail) {
+            userToLogin = legacyUser
+          } else {
+            userToLogin = registerUser({
+              email: normalizedEmail,
+              name: 'Матвей',
+              password: passwordValue,
+              type: 'specialist',
+            })
+          }
+        }
 
-      setActiveUser(userToLogin)
-      window.dispatchEvent(new Event('storage'))
-      const redirect = searchParams.get('redirect')
-      const defaultRedirect = userToLogin.type === 'company' ? '/projects' : '/specialists'
-      router.push(redirect || defaultRedirect)
+        setActiveUser(userToLogin)
+        window.dispatchEvent(new Event('storage'))
+        const redirect = searchParams.get('redirect')
+        const defaultRedirect = userToLogin.type === 'company' ? '/projects' : '/specialists'
+        router.push(redirect || defaultRedirect)
+      }
+    } catch (err: any) {
+      console.error('Ошибка входа:', err)
+      setError(err?.message || 'Неверный email или пароль')
     } finally {
       setIsSubmitting(false)
     }

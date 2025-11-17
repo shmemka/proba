@@ -19,6 +19,8 @@ CREATE TABLE specialists (
   specialization TEXT NOT NULL,
   bio TEXT DEFAULT '',
   telegram TEXT DEFAULT '',
+  show_in_search BOOLEAN DEFAULT true,
+  portfolio JSONB DEFAULT '[]'::jsonb,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -81,10 +83,16 @@ CREATE TABLE projects (
   company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
   description TEXT NOT NULL,
+  full_description TEXT DEFAULT '',
   specialization TEXT NOT NULL,
-  budget TEXT NOT NULL,
-  timeline TEXT NOT NULL,
-  status TEXT DEFAULT 'open' CHECK (status IN ('open', 'closed')),
+  skills TEXT[] DEFAULT '{}',
+  location TEXT DEFAULT '',
+  deadline DATE,
+  budget TEXT DEFAULT '',
+  timeline TEXT DEFAULT '',
+  requirements TEXT[] DEFAULT '{}',
+  deliverables TEXT[] DEFAULT '{}',
+  status TEXT DEFAULT 'open' CHECK (status IN ('open', 'closed', 'in_progress', 'completed')),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
