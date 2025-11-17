@@ -161,18 +161,18 @@ export default function NewProjectPage() {
 
   if (!isAuthorized) {
     return (
-      <div className="max-w-4xl mx-auto px-6 lg:px-8 py-16">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
         <div className="text-center text-primary-600 font-light">Проверка авторизации...</div>
       </div>
     )
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-6 lg:px-8 py-16 pt-20 lg:pt-16">
-      <div className="bg-white rounded-apple border border-primary-100 p-10">
-        <h1 className="text-4xl font-light text-primary-900 mb-8 tracking-tight">Разместить новый проект</h1>
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16 pt-16 sm:pt-20 lg:pt-16">
+      <div className="bg-white rounded-apple border border-primary-100 p-4 sm:p-6 lg:p-10">
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-light text-primary-900 mb-6 sm:mb-8 tracking-tight">Разместить новый проект</h1>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
           <div>
             <label htmlFor="title" className="block text-sm font-light text-primary-700 mb-2">
               Название проекта *
@@ -182,7 +182,7 @@ export default function NewProjectPage() {
               type="text"
               required
               placeholder="Например: Разработка лендинга для стартапа"
-              className="w-full px-5 py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white"
+              className="w-full px-4 sm:px-5 py-3 sm:py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white text-sm sm:text-base"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
             />
@@ -197,7 +197,7 @@ export default function NewProjectPage() {
               type="text"
               required
               placeholder="Краткое описание для списка проектов"
-              className="w-full px-5 py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white"
+              className="w-full px-4 sm:px-5 py-3 sm:py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white text-sm sm:text-base"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             />
@@ -212,7 +212,7 @@ export default function NewProjectPage() {
               rows={6}
               required
               placeholder="Подробно опишите проект, что нужно сделать, какие задачи решить..."
-              className="w-full px-5 py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white"
+              className="w-full px-4 sm:px-5 py-3 sm:py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white text-sm sm:text-base"
               value={formData.fullDescription}
               onChange={(e) => setFormData({ ...formData, fullDescription: e.target.value })}
             />
@@ -226,7 +226,7 @@ export default function NewProjectPage() {
               <input
                 type="text"
                 placeholder="Добавить навык"
-                className="flex-1 px-5 py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white"
+                className="flex-1 px-4 sm:px-5 py-3 sm:py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white text-sm sm:text-base"
                 value={newSkill}
                 onChange={(e) => setNewSkill(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill())}
@@ -234,9 +234,9 @@ export default function NewProjectPage() {
               <button
                 type="button"
                 onClick={addSkill}
-                className="px-5 py-4 bg-primary-900 text-white rounded-apple hover:bg-primary-800 transition-colors"
+                className="px-4 sm:px-5 py-3 sm:py-4 bg-primary-900 text-white rounded-apple hover:bg-primary-800 transition-colors flex-shrink-0"
               >
-                <PlusIcon className="w-5 h-5" />
+                <PlusIcon className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -268,7 +268,7 @@ export default function NewProjectPage() {
                 type="text"
                 required
                 placeholder="Москва, Санкт-Петербург, Удаленно..."
-                className="w-full px-5 py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white"
+                className="w-full px-4 sm:px-5 py-3 sm:py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white text-sm sm:text-base"
                 value={formData.location}
                 onChange={(e) => setFormData({ ...formData, location: e.target.value })}
               />
@@ -297,7 +297,7 @@ export default function NewProjectPage() {
               <input
                 type="text"
                 placeholder="Добавить требование"
-                className="flex-1 px-5 py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white"
+                className="flex-1 px-4 sm:px-5 py-3 sm:py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white text-sm sm:text-base"
                 value={newRequirement}
                 onChange={(e) => setNewRequirement(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addRequirement())}
@@ -305,9 +305,9 @@ export default function NewProjectPage() {
               <button
                 type="button"
                 onClick={addRequirement}
-                className="px-5 py-4 bg-primary-900 text-white rounded-apple hover:bg-primary-800 transition-colors"
+                className="px-4 sm:px-5 py-3 sm:py-4 bg-primary-900 text-white rounded-apple hover:bg-primary-800 transition-colors flex-shrink-0"
               >
-                <PlusIcon className="w-5 h-5" />
+                <PlusIcon className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
             </div>
             <ul className="space-y-2 text-primary-700 font-light">
@@ -334,7 +334,7 @@ export default function NewProjectPage() {
               <input
                 type="text"
                 placeholder="Добавить результат"
-                className="flex-1 px-5 py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white"
+                className="flex-1 px-4 sm:px-5 py-3 sm:py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white text-sm sm:text-base"
                 value={newDeliverable}
                 onChange={(e) => setNewDeliverable(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addDeliverable())}
@@ -342,9 +342,9 @@ export default function NewProjectPage() {
               <button
                 type="button"
                 onClick={addDeliverable}
-                className="px-5 py-4 bg-primary-900 text-white rounded-apple hover:bg-primary-800 transition-colors"
+                className="px-4 sm:px-5 py-3 sm:py-4 bg-primary-900 text-white rounded-apple hover:bg-primary-800 transition-colors flex-shrink-0"
               >
-                <PlusIcon className="w-5 h-5" />
+                <PlusIcon className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
             </div>
             <ul className="space-y-2 text-primary-700 font-light">
@@ -370,10 +370,10 @@ export default function NewProjectPage() {
             </p>
           </div>
 
-          <div className="flex gap-4 pt-6 border-t border-primary-100">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4 sm:pt-6 border-t border-primary-100">
             <button
               type="submit"
-              className="inline-flex items-center gap-2 bg-primary-900 text-white px-6 py-4 rounded-apple hover:bg-primary-800 transition-colors font-normal tracking-tight"
+              className="inline-flex items-center justify-center gap-2 bg-primary-900 text-white px-6 py-3 sm:py-4 rounded-apple hover:bg-primary-800 transition-colors font-normal tracking-tight"
             >
               <CheckIcon className="w-5 h-5" />
               Разместить проект
@@ -381,7 +381,7 @@ export default function NewProjectPage() {
             <button
               type="button"
               onClick={() => router.back()}
-              className="border border-primary-200 text-primary-700 px-6 py-4 rounded-apple hover:bg-primary-50 transition-colors font-normal tracking-tight"
+              className="border border-primary-200 text-primary-700 px-6 py-3 sm:py-4 rounded-apple hover:bg-primary-50 transition-colors font-normal tracking-tight"
             >
               Отмена
             </button>
