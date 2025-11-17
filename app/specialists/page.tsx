@@ -573,7 +573,7 @@ export default function SpecialistsPage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-4 text-sm font-light text-primary-500 mb-4 flex-shrink-0">
+            <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm font-light text-primary-500 mb-3 sm:mb-4 flex-shrink-0">
               <div className="flex items-center gap-1.5">
                 <span className="text-primary-900 font-normal">★ {specialist.rating}</span>
                 <span className="text-primary-400">Рейтинг</span>
