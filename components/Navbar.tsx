@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { ArrowRightOnRectangleIcon, Cog6ToothIcon, Bars3Icon } from '@heroicons/react/24/outline'
 import { useState, useEffect } from 'react'
 import { getActiveUser } from '@/lib/storage'
+import { getCurrentUser, signOut, isSupabaseAvailable } from '@/lib/supabase'
 
 type NavUser = {
   id: string
@@ -21,17 +22,33 @@ export default function Navbar() {
   const [user, setUser] = useState<NavUser | null>(null)
 
   useEffect(() => {
-    const checkAuth = () => {
-      const storedUser = getActiveUser()
-      if (storedUser) {
-        setUser({
-          id: storedUser.id,
-          email: storedUser.email,
-          name: storedUser.name,
-          type: storedUser.type,
-        })
+    const checkAuth = async () => {
+      if (isSupabaseAvailable()) {
+        // Проверяем Supabase Auth
+        const supabaseUser = await getCurrentUser()
+        if (supabaseUser) {
+          setUser({
+            id: supabaseUser.id,
+            email: supabaseUser.email || '',
+            name: supabaseUser.user_metadata?.displayName || supabaseUser.email || '',
+            type: supabaseUser.user_metadata?.userType || 'specialist',
+          })
+        } else {
+          setUser(null)
+        }
       } else {
-        setUser(null)
+        // Fallback на localStorage
+        const storedUser = getActiveUser()
+        if (storedUser) {
+          setUser({
+            id: storedUser.id,
+            email: storedUser.email,
+            name: storedUser.name,
+            type: storedUser.type,
+          })
+        } else {
+          setUser(null)
+        }
       }
     }
 
@@ -41,19 +58,27 @@ export default function Navbar() {
       checkAuth()
     }
 
+    // Проверяем каждые 2 секунды для обновления состояния
+    const interval = setInterval(checkAuth, 2000)
+
     window.addEventListener('storage', handleStorageChange)
     window.addEventListener('focus', checkAuth)
 
     return () => {
+      clearInterval(interval)
       window.removeEventListener('storage', handleStorageChange)
       window.removeEventListener('focus', checkAuth)
     }
   }, [])
 
-  const handleLogout = () => {
-    localStorage.removeItem('user')
+  const handleLogout = async () => {
+    if (isSupabaseAvailable()) {
+      await signOut()
+    } else {
+      localStorage.removeItem('user')
+      window.dispatchEvent(new Event('storage'))
+    }
     setUser(null)
-    window.dispatchEvent(new Event('storage'))
     router.push('/')
   }
 
@@ -129,6 +154,15 @@ export default function Navbar() {
                         >
                           <Cog6ToothIcon className="w-4 h-4" />
                           Настройки
+                        </Link>
+                      )}
+                      {user.type === 'company' && (
+                        <Link
+                          href="/projects/new"
+                          className="flex items-center gap-3 px-4 py-2 mx-2 text-sm font-normal text-primary-700 hover:bg-primary-50 rounded-apple transition-colors"
+                        >
+                          <Cog6ToothIcon className="w-4 h-4" />
+                          Создать проект
                         </Link>
                       )}
                       <Link
