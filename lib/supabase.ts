@@ -1,6 +1,183 @@
+import type { AuthError, PostgrestError } from '@supabase/supabase-js'
 import { getSupabaseClient, isSupabaseConfigured } from './supabaseClient'
 import { fetchWithCache, invalidateCache } from './cache'
 import type { Database } from './supabaseClient'
+
+const DEFAULT_SPECIALIZATION = 'Дизайн'
+const FALLBACK_DISPLAY_NAMES = {
+  specialist: 'Специалист',
+  company: 'Компания',
+} as const
+
+const normalizeEmail = (value: string) => value.trim().toLowerCase()
+
+const cleanupWhitespace = (value: string) => value.replace(/\s+/g, ' ').trim()
+
+const splitDisplayName = (displayName: string) => {
+  if (!displayName) {
+    return { firstName: '', lastName: '' }
+  }
+  const normalized = cleanupWhitespace(displayName)
+  if (!normalized) {
+    return { firstName: '', lastName: '' }
+  }
+  const [firstName, ...rest] = normalized.split(' ')
+  return {
+    firstName: firstName || '',
+    lastName: rest.join(' '),
+  }
+}
+
+const deriveDisplayName = (
+  email: string,
+  userType: 'specialist' | 'company',
+  provided?: string,
+) => {
+  const trimmedProvided = provided ? cleanupWhitespace(provided) : ''
+  if (trimmedProvided) {
+    return trimmedProvided
+  }
+
+  const [emailNamePart] = normalizeEmail(email).split('@')
+  if (userType === 'company') {
+    return emailNamePart ? `Компания ${emailNamePart}` : FALLBACK_DISPLAY_NAMES.company
+  }
+  return emailNamePart || FALLBACK_DISPLAY_NAMES.specialist
+}
+
+const mapSupabaseError = (error: unknown, fallback: string) => {
+  if (!error) {
+    return fallback
+  }
+
+  if (typeof error === 'string') {
+    return error
+  }
+
+  const typedError = error as Partial<AuthError & PostgrestError & Error> & {
+    status?: number
+  }
+
+  const rawMessage = typedError.message || fallback
+  const normalizedMessage = rawMessage.toLowerCase()
+  const code = typedError.code
+  const status = typedError.status
+
+  if (normalizedMessage.includes('already registered')) {
+    return 'Пользователь с таким email уже зарегистрирован'
+  }
+
+  if (normalizedMessage.includes('invalid login credentials')) {
+    return 'Неверный email или пароль'
+  }
+
+  if (
+    normalizedMessage.includes('email not confirmed') ||
+    normalizedMessage.includes('confirm your email')
+  ) {
+    return 'Подтвердите email, чтобы завершить регистрацию'
+  }
+
+  if (normalizedMessage.includes('password')) {
+    return 'Пароль должен быть не короче 6 символов'
+  }
+
+  if (status === 429 || normalizedMessage.includes('too many requests')) {
+    return 'Слишком много попыток. Попробуйте снова через минуту.'
+  }
+
+  if (code === '23505') {
+    return 'Такие данные уже используются. Попробуйте другой email.'
+  }
+
+  if (code === '42501' || normalizedMessage.includes('row-level security')) {
+    return 'Недостаточно прав для выполнения операции. Войдите заново и попробуйте ещё раз.'
+  }
+
+  return rawMessage || fallback
+}
+
+type EnsureProfileParams = {
+  id: string
+  userType: 'specialist' | 'company'
+  email: string
+  displayName?: string
+}
+
+const ensureProfileRecord = async ({
+  id,
+  userType,
+  email,
+  displayName,
+}: EnsureProfileParams) => {
+  const supabase = getSupabaseClient()
+  if (!supabase) {
+    return
+  }
+
+  const normalizedEmail = normalizeEmail(email)
+
+  if (userType === 'specialist') {
+    const { data: existing, error: lookupError } = await supabase
+      .from('specialists')
+      .select('id')
+      .eq('id', id)
+      .limit(1)
+
+    if (lookupError) {
+      throw lookupError
+    }
+
+    if (existing && existing.length > 0) {
+      return
+    }
+
+    const safeDisplayName = deriveDisplayName(normalizedEmail, 'specialist', displayName)
+    const { firstName, lastName } = splitDisplayName(safeDisplayName)
+
+    const { error: insertError } = await supabase.from('specialists').insert({
+      id,
+      email: normalizedEmail,
+      first_name: firstName || safeDisplayName,
+      last_name: lastName || '',
+      specialization: DEFAULT_SPECIALIZATION,
+    })
+
+    if (insertError) {
+      throw insertError
+    }
+
+    invalidateCache('specialists')
+    invalidateCache(`specialist:${id}`)
+    return
+  }
+
+  const { data: existingCompanies, error: companyLookupError } = await supabase
+    .from('companies')
+    .select('id')
+    .eq('id', id)
+    .limit(1)
+
+  if (companyLookupError) {
+    throw companyLookupError
+  }
+
+  if (existingCompanies && existingCompanies.length > 0) {
+    return
+  }
+
+  const safeCompanyName = deriveDisplayName(normalizedEmail, 'company', displayName)
+
+  const { error: insertCompanyError } = await supabase.from('companies').insert({
+    id,
+    email: normalizedEmail,
+    company_name: safeCompanyName,
+  })
+
+  if (insertCompanyError) {
+    throw insertCompanyError
+  }
+}
 
 type Specialist = Database['public']['Tables']['specialists']['Row']
 type Company = Database['public']['Tables']['companies']['Row']
@@ -17,41 +194,41 @@ export async function signUp(email: string, password: string, userType: 'special
     throw new Error('Supabase не настроен')
   }
 
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: {
-        userType,
-        displayName,
+  const normalizedEmail = normalizeEmail(email)
+  const safeDisplayName = deriveDisplayName(normalizedEmail, userType, displayName)
+
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email: normalizedEmail,
+      password,
+      options: {
+        data: {
+          userType,
+          displayName: safeDisplayName,
+        },
       },
-    },
-  })
-
-  if (error) throw error
-  if (!data.user) throw new Error('Не удалось создать пользователя')
-
-  // Создаем профиль в соответствующей таблице
-  if (userType === 'specialist') {
-    const nameParts = displayName.split(' ')
-    await supabase.from('specialists').insert({
-      id: data.user.id,
-      email: email.toLowerCase(),
-      first_name: nameParts[0] || '',
-      last_name: nameParts.slice(1).join(' ') || '',
-      specialization: 'Дизайн',
-      bio: '',
-      telegram: '',
     })
-  } else {
-    await supabase.from('companies').insert({
-      id: data.user.id,
-      email: email.toLowerCase(),
-      company_name: displayName,
+
+    if (error) {
+      throw error
+    }
+
+    const user = data.user
+    if (!user) {
+      throw new Error('Не удалось создать пользователя')
+    }
+
+    await ensureProfileRecord({
+      id: user.id,
+      userType,
+      email: user.email || normalizedEmail,
+      displayName: safeDisplayName,
     })
+
+    return data
+  } catch (error) {
+    throw new Error(mapSupabaseError(error, 'Не удалось создать аккаунт'))
   }
-
-  return data
 }
 
 export async function signIn(email: string, password: string) {
@@ -60,13 +237,39 @@ export async function signIn(email: string, password: string) {
     throw new Error('Supabase не настроен')
   }
 
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  })
+  const normalizedEmail = normalizeEmail(email)
 
-  if (error) throw error
-  return data
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: normalizedEmail,
+      password,
+    })
+
+    if (error) {
+      throw error
+    }
+
+    const user = data.user
+    if (user) {
+      const userType = user.user_metadata?.userType === 'company' ? 'company' : 'specialist'
+      const safeDisplayName = deriveDisplayName(
+        user.email || normalizedEmail,
+        userType,
+        user.user_metadata?.displayName,
+      )
+
+      await ensureProfileRecord({
+        id: user.id,
+        userType,
+        email: user.email || normalizedEmail,
+        displayName: safeDisplayName,
+      })
+    }
+
+    return data
+  } catch (error) {
+    throw new Error(mapSupabaseError(error, 'Не удалось выполнить вход'))
+  }
 }
 
 export async function signOut() {
@@ -335,37 +538,21 @@ export async function createProject(project: {
     throw new Error('Supabase не настроен')
   }
 
-  // Проверяем, существует ли запись компании, если нет - создаем
-  const { data: existingCompany, error: companyCheckError } = await supabase
-    .from('companies')
-    .select('id')
-    .eq('id', project.company_id)
-    .single()
-
-  if (companyCheckError && companyCheckError.code !== 'PGRST116') {
-    // PGRST116 - это "not found", другие ошибки - реальные проблемы
-    throw companyCheckError
+  const currentUser = await getCurrentUser()
+  if (!currentUser) {
+    throw new Error('Пользователь не найден')
   }
 
-  if (!existingCompany) {
-    // Компания не существует, создаем запись
-    const user = await getCurrentUser()
-    if (!user) {
-      throw new Error('Пользователь не найден')
-    }
-
-    const { error: createCompanyError } = await supabase
-      .from('companies')
-      .insert({
-        id: project.company_id,
-        email: user.email || '',
-        company_name: user.user_metadata?.displayName || 'Компания',
-      })
-
-    if (createCompanyError) {
-      throw new Error(`Не удалось создать запись компании: ${createCompanyError.message}`)
-    }
+  if (!currentUser.email) {
+    throw new Error('У аккаунта компании отсутствует email')
   }
+
+  await ensureProfileRecord({
+    id: project.company_id,
+    userType: 'company',
+    email: currentUser.email,
+    displayName: currentUser.user_metadata?.displayName,
+  })
 
   const { data, error } = await supabase
     .from('projects')

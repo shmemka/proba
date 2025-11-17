@@ -3,98 +3,27 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { ArrowRightOnRectangleIcon, Cog6ToothIcon, Bars3Icon, XMarkIcon, UsersIcon, BriefcaseIcon, BookOpenIcon } from '@heroicons/react/24/outline'
-import { useState, useEffect } from 'react'
-import { getActiveUser } from '@/lib/storage'
-import { getCurrentUser, signOut, isSupabaseAvailable, getSpecialist } from '@/lib/supabase'
+import { useState } from 'react'
+import { useAuthUser } from '@/hooks/useAuthUser'
+import { signOut, isSupabaseAvailable } from '@/lib/supabase'
 
-type NavUser = {
-  id: string
-  email: string
-  name?: string
-  type?: 'specialist' | 'company'
-  avatarUrl?: string
-}
+const SUPABASE_AVAILABLE = isSupabaseAvailable()
 
 export default function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
-  const [user, setUser] = useState<NavUser | null>(null)
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      if (isSupabaseAvailable()) {
-        // Проверяем Supabase Auth
-        const supabaseUser = await getCurrentUser()
-        if (supabaseUser) {
-          const userType = supabaseUser.user_metadata?.userType || 'specialist'
-          let avatarUrl = ''
-          
-          // Если специалист, загружаем аватарку из профиля
-          if (userType === 'specialist') {
-            try {
-              const specialist = await getSpecialist(supabaseUser.id)
-              avatarUrl = specialist?.avatar_url || ''
-            } catch (error) {
-              console.error('Ошибка загрузки профиля специалиста:', error)
-            }
-          }
-          
-          setUser({
-            id: supabaseUser.id,
-            email: supabaseUser.email || '',
-            name: supabaseUser.user_metadata?.displayName || supabaseUser.email || '',
-            type: userType,
-            avatarUrl,
-          })
-        } else {
-          setUser(null)
-        }
-      } else {
-        // Fallback на localStorage
-        const storedUser = getActiveUser()
-        if (storedUser) {
-          setUser({
-            id: storedUser.id,
-            email: storedUser.email,
-            name: storedUser.name,
-            type: storedUser.type,
-            avatarUrl: '',
-          })
-        } else {
-          setUser(null)
-        }
-      }
-    }
-
-    checkAuth()
-
-    const handleStorageChange = () => {
-      checkAuth()
-    }
-
-    // Проверяем каждые 2 секунды для обновления состояния
-    const interval = setInterval(checkAuth, 2000)
-
-    window.addEventListener('storage', handleStorageChange)
-    window.addEventListener('focus', checkAuth)
-
-    return () => {
-      clearInterval(interval)
-      window.removeEventListener('storage', handleStorageChange)
-      window.removeEventListener('focus', checkAuth)
-    }
-  }, [])
+  const { user, refresh } = useAuthUser()
 
   const handleLogout = async () => {
-    if (isSupabaseAvailable()) {
+    if (SUPABASE_AVAILABLE) {
       await signOut()
     } else {
       localStorage.removeItem('user')
       window.dispatchEvent(new Event('storage'))
     }
-    setUser(null)
+    await refresh()
     router.push('/')
     setIsMobileMenuOpen(false)
   }
