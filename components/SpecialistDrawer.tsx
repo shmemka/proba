@@ -66,10 +66,16 @@ export default function SpecialistDrawer({
   const firstName = specialist.firstName || ''
   const lastName = specialist.lastName || ''
   const fullName = `${firstName} ${lastName}`.trim() || 'Специалист'
-  const telegram = specialist.telegram || ''
-  const telegramUrl = telegram.startsWith('@') 
-    ? `https://t.me/${telegram.slice(1)}` 
-    : telegram || '#'
+  const telegram = (specialist.telegram || '').trim()
+  const telegramUrl = telegram 
+    ? (telegram.startsWith('@') 
+        ? `https://t.me/${telegram.slice(1)}` 
+        : telegram.startsWith('http') 
+          ? telegram 
+          : telegram.startsWith('t.me/')
+            ? `https://${telegram}`
+            : `https://t.me/${telegram}`)
+    : '#'
 
   const hasProjects = specialist.projects && specialist.projects.length > 0
   const currentProject = hasProjects ? specialist.projects![currentProjectIndex] : null
@@ -152,7 +158,7 @@ export default function SpecialistDrawer({
 
               {/* Buttons */}
               <div className="flex flex-col gap-3 mb-8">
-                {telegram && (
+                {telegram && telegramUrl !== '#' && (
                   <a
                     href={telegramUrl}
                     target="_blank"
@@ -202,7 +208,7 @@ export default function SpecialistDrawer({
               {/* Contact Info */}
               <div className="mt-auto pt-8 border-t border-primary-100">
                 <div className="space-y-3">
-                  {telegram && (
+                  {telegram && telegramUrl !== '#' && (
                     <div>
                       <p className="text-xs font-light text-primary-500 mb-1">Telegram</p>
                       <a

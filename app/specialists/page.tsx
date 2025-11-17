@@ -55,182 +55,10 @@ interface FullSpecialist {
   }>
 }
 
-// Моковые данные
-const mockSpecialists: Specialist[] = [
-  {
-    id: '1',
-    firstName: 'Анна',
-    lastName: 'Петрова',
-    specialization: 'Веб-разработка',
-    bio: 'Молодой специалист с опытом разработки на React и TypeScript. Ищу интересные проекты для наработки опыта и расширения портфолио.',
-    telegram: '@anna_petrova',
-    email: 'anna@example.com',
-    rating: 4.8,
-    hiredCount: 3,
-    projects: [
-      {
-        id: '1',
-        title: 'Интернет-магазин на React',
-        description: 'Полнофункциональный интернет-магазин с корзиной, фильтрами и поиском',
-        images: [
-          { url: 'https://picsum.photos/800/600?random=1' },
-          { url: 'https://picsum.photos/800/600?random=2' },
-          { url: 'https://picsum.photos/800/600?random=3' },
-        ],
-      },
-    ],
-  },
-  {
-    id: '2',
-    firstName: 'Дмитрий',
-    lastName: 'Смирнов',
-    specialization: 'Дизайн',
-    bio: 'Дизайнер с опытом создания интерфейсов для мобильных и веб-приложений.',
-    telegram: '@dmitry_smirnov',
-    email: 'dmitry@example.com',
-    rating: 4.9,
-    hiredCount: 5,
-    projects: [
-      {
-        id: '1',
-        title: 'Дизайн мобильного приложения',
-        description: 'UI/UX дизайн для приложения доставки еды',
-        images: [
-          { url: 'https://picsum.photos/800/600?random=4' },
-          { url: 'https://picsum.photos/800/600?random=5' },
-        ],
-      },
-    ],
-  },
-  {
-    id: '3',
-    firstName: 'Мария',
-    lastName: 'Козлова',
-    specialization: 'SMM',
-    bio: 'Опытный специалист в области маркетинга и бизнеса.',
-    telegram: '@maria_kozlova',
-    email: 'maria@example.com',
-    rating: 4.7,
-    hiredCount: 2,
-    projects: [
-      {
-        id: '1',
-        title: 'SMM кампания',
-        description: 'Успешная маркетинговая кампания в социальных сетях',
-        images: [
-          { url: 'https://picsum.photos/800/600?random=6' },
-          { url: 'https://picsum.photos/800/600?random=7' },
-          { url: 'https://picsum.photos/800/600?random=8' },
-        ],
-      },
-    ],
-  },
-  {
-    id: '4',
-    firstName: 'Иван',
-    lastName: 'Новиков',
-    specialization: 'Веб-разработка',
-    telegram: '@ivan_novikov',
-    rating: 4.6,
-    hiredCount: 1,
-    projects: [
-      {
-        id: '1',
-        title: 'Веб-приложение',
-        description: 'Современное веб-приложение с использованием современных технологий',
-        images: [
-          { url: 'https://picsum.photos/800/600?random=9' },
-        ],
-      },
-    ],
-  },
-]
-
-// Моковые полные данные специалистов
-const mockFullSpecialists: Record<string, FullSpecialist> = {
-  '1': {
-    id: '1',
-    firstName: 'Анна',
-    lastName: 'Петрова',
-    specialization: 'Веб-разработка',
-    bio: 'Молодой специалист с опытом разработки на React и TypeScript. Ищу интересные проекты для наработки опыта и расширения портфолио.',
-    telegram: '@anna_petrova',
-    email: 'anna@example.com',
-    rating: 4.8,
-    hiredCount: 3,
-    projects: [
-      {
-        id: '1',
-        title: 'Интернет-магазин на React',
-        description: 'Полнофункциональный интернет-магазин с корзиной, фильтрами и поиском',
-        images: [
-          { url: 'https://picsum.photos/800/600?random=1' },
-          { url: 'https://picsum.photos/800/600?random=2' },
-          { url: 'https://picsum.photos/800/600?random=3' },
-        ],
-        link: 'https://github.com/anna/shop',
-      },
-      {
-        id: '2',
-        title: 'Портфолио-сайт',
-        description: 'Персональный сайт-портфолио с анимациями и адаптивным дизайном',
-        images: [
-          { url: 'https://picsum.photos/800/600?random=10' },
-          { url: 'https://picsum.photos/800/600?random=11' },
-        ],
-        link: 'https://anna-portfolio.vercel.app',
-      },
-    ],
-  },
-  '2': {
-    id: '2',
-    firstName: 'Дмитрий',
-    lastName: 'Смирнов',
-    specialization: 'Дизайн',
-    bio: 'Дизайнер с опытом создания интерфейсов для мобильных и веб-приложений.',
-    telegram: '@dmitry_smirnov',
-    email: 'dmitry@example.com',
-    rating: 4.9,
-    hiredCount: 5,
-    projects: [
-      {
-        id: '1',
-        title: 'Дизайн мобильного приложения',
-        description: 'UI/UX дизайн для приложения доставки еды',
-        images: [
-          { url: 'https://picsum.photos/800/600?random=4' },
-          { url: 'https://picsum.photos/800/600?random=5' },
-        ],
-        link: 'https://dribbble.com/dmitry/food-app',
-      },
-    ],
-  },
-  '3': {
-    id: '3',
-    firstName: 'Мария',
-    lastName: 'Козлова',
-    specialization: 'SMM',
-    bio: 'Опытный специалист в области маркетинга и бизнеса.',
-    telegram: '@maria_kozlova',
-    email: 'maria@example.com',
-    rating: 4.7,
-    hiredCount: 2,
-    projects: [],
-  },
-  '4': {
-    id: '4',
-    firstName: 'Иван',
-    lastName: 'Новиков',
-    specialization: 'Веб-разработка',
-    telegram: '@ivan_novikov',
-    rating: 4.6,
-    hiredCount: 1,
-    projects: [],
-  },
-}
 
 export default function SpecialistsPage() {
-  const [specialists, setSpecialists] = useState<Specialist[]>(mockSpecialists)
+  const [specialists, setSpecialists] = useState<Specialist[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedSpecialization, setSelectedSpecialization] = useState<Specialization | ''>('')
   const [sortBy, setSortBy] = useState<'rating' | 'hired' | 'name'>('rating')
@@ -241,6 +69,7 @@ export default function SpecialistsPage() {
   // Загружаем специалистов из Supabase или localStorage
   useEffect(() => {
     const loadSpecialists = async () => {
+      setIsLoading(true)
       try {
         if (isSupabaseAvailable()) {
           // Загружаем из Supabase
@@ -262,15 +91,7 @@ export default function SpecialistsPage() {
               projects: (s.portfolio && Array.isArray(s.portfolio)) ? s.portfolio : [],
             }))
           
-          // Объединяем с моковыми данными
-          const allSpecialists = [...mockSpecialists]
-          formattedSpecialists.forEach((saved: Specialist) => {
-            if (!allSpecialists.find(s => s.id === saved.id)) {
-              allSpecialists.push(saved)
-            }
-          })
-          
-          setSpecialists(allSpecialists)
+          setSpecialists(formattedSpecialists)
         } else {
           // Fallback на localStorage
           loadFromLocalStorage()
@@ -278,12 +99,14 @@ export default function SpecialistsPage() {
       } catch (error) {
         console.error('Ошибка загрузки специалистов:', error)
         loadFromLocalStorage()
+      } finally {
+        setIsLoading(false)
       }
     }
 
     const loadFromLocalStorage = () => {
       const savedSpecialists = readJson<any[]>('specialists', [])
-      const allSpecialists = [...mockSpecialists]
+      const allSpecialists: Specialist[] = []
       
       savedSpecialists.forEach((saved: any) => {
         let migratedSpecialist: Specialist
@@ -412,16 +235,10 @@ export default function SpecialistsPage() {
         }
       }
 
-      // Fallback на моковые данные или localStorage
-      const fullSpecialist = mockFullSpecialists[specialistId]
-      if (fullSpecialist) {
-        setSelectedSpecialist(fullSpecialist)
-        setCurrentProjectIndex(0)
-        setIsDrawerOpen(true)
-      } else {
-        const savedSpecialists = readJson<any[]>('specialists', [])
-        const found = savedSpecialists.find((s: any) => s.id === specialistId)
-        if (found) {
+      // Fallback на localStorage
+      const savedSpecialists = readJson<any[]>('specialists', [])
+      const found = savedSpecialists.find((s: any) => s.id === specialistId)
+      if (found) {
           let migratedSpecialist: FullSpecialist
           if ('name' in found && typeof found.name === 'string') {
             const nameParts = found.name.split(' ')
@@ -471,7 +288,6 @@ export default function SpecialistsPage() {
           setCurrentProjectIndex(0)
           setIsDrawerOpen(true)
         }
-      }
     } catch (error) {
       console.error('Ошибка загрузки специалиста:', error)
     }
@@ -480,6 +296,21 @@ export default function SpecialistsPage() {
   const handleCloseDrawer = () => {
     setIsDrawerOpen(false)
     setSelectedSpecialist(null)
+  }
+
+  if (isLoading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
+        <div className="mb-8 sm:mb-12">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-light text-primary-900 mb-2 sm:mb-3 tracking-tight">Каталог специалистов</h1>
+          <p className="text-base sm:text-lg font-light text-primary-600">Найдите специалиста для вашего проекта</p>
+        </div>
+        <div className="text-center py-12 sm:py-16 lg:py-20">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-900"></div>
+          <p className="text-primary-600 text-base sm:text-lg font-light mt-4">Загрузка специалистов...</p>
+        </div>
+      </div>
+    )
   }
 
   return (

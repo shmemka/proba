@@ -18,56 +18,10 @@ interface Project {
   applicationsCount: number
 }
 
-// Моковые данные
-const mockProjects: Project[] = [
-  {
-    id: '1',
-    title: 'Разработка лендинга для стартапа',
-    description: 'Нужен современный лендинг на React/Next.js для IT-стартапа. Требуется адаптивный дизайн и интеграция с API.',
-    company: 'TechStartup Inc.',
-    skills: ['React', 'Next.js', 'TypeScript', 'Tailwind CSS'],
-    location: 'Москва',
-    deadline: '2024-02-15',
-    status: 'open',
-    applicationsCount: 3,
-  },
-  {
-    id: '2',
-    title: 'Дизайн мобильного приложения',
-    description: 'Требуется UI/UX дизайнер для создания дизайна мобильного приложения для доставки еды. Нужны все экраны и прототипы.',
-    company: 'FoodDelivery Co.',
-    skills: ['Figma', 'UI/UX', 'Mobile Design'],
-    location: 'Санкт-Петербург',
-    deadline: '2024-02-20',
-    status: 'open',
-    applicationsCount: 5,
-  },
-  {
-    id: '3',
-    title: 'Написание контента для блога',
-    description: 'Ищем копирайтера для написания статей на тему маркетинга и бизнеса. Нужно 10 статей по 2000+ слов каждая.',
-    company: 'Marketing Blog',
-    skills: ['Копирайтинг', 'SEO', 'Контент-маркетинг'],
-    location: 'Удаленно',
-    deadline: '2024-03-01',
-    status: 'open',
-    applicationsCount: 2,
-  },
-  {
-    id: '4',
-    title: 'Backend API для веб-приложения',
-    description: 'Разработка REST API на Node.js с использованием PostgreSQL. Нужна аутентификация, CRUD операции, интеграция с платежной системой.',
-    company: 'WebApp Solutions',
-    skills: ['Node.js', 'PostgreSQL', 'REST API', 'JWT'],
-    location: 'Удаленно',
-    deadline: '2024-02-25',
-    status: 'open',
-    applicationsCount: 4,
-  },
-]
 
 export default function ProjectsPage() {
-  const [projects, setProjects] = useState<Project[]>(mockProjects)
+  const [projects, setProjects] = useState<Project[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedSkill, setSelectedSkill] = useState<string>('')
   const [sortBy, setSortBy] = useState<'deadline' | 'applications'>('deadline')
@@ -76,8 +30,9 @@ export default function ProjectsPage() {
   // Загружаем проекты из Supabase или localStorage
   useEffect(() => {
     const loadProjects = async () => {
-      if (isSupabaseAvailable()) {
-        try {
+      setIsLoading(true)
+      try {
+        if (isSupabaseAvailable()) {
           const supabaseProjects = await getProjects()
           // Преобразуем данные из Supabase в формат приложения
           const formattedProjects: Project[] = supabaseProjects.map((p: any) => ({
@@ -92,28 +47,22 @@ export default function ProjectsPage() {
             applicationsCount: p.applicationsCount || 0,
           }))
           
-          // Объединяем с моковыми данными
-          const allProjects = [...mockProjects]
-          formattedProjects.forEach((saved: Project) => {
-            if (!allProjects.find(p => p.id === saved.id)) {
-              allProjects.push(saved)
-            }
-          })
-          
-          setProjects(allProjects)
-        } catch (error) {
-          console.error('Ошибка загрузки проектов:', error)
-          // Fallback на localStorage
+          setProjects(formattedProjects)
+        } else {
           loadFromLocalStorage()
         }
-      } else {
+      } catch (error) {
+        console.error('Ошибка загрузки проектов:', error)
+        // Fallback на localStorage
         loadFromLocalStorage()
+      } finally {
+        setIsLoading(false)
       }
     }
     
     const loadFromLocalStorage = () => {
       const savedProjects = readJson<Project[]>('projects', [])
-      const allProjects = [...mockProjects]
+      const allProjects: Project[] = []
       savedProjects.forEach((saved: Project) => {
         if (!allProjects.find(p => p.id === saved.id)) {
           allProjects.push(saved)
@@ -123,14 +72,7 @@ export default function ProjectsPage() {
       const applications = readJson<any[]>('applications', [])
       allProjects.forEach(project => {
         const projectApplications = applications.filter((app: any) => app.projectId === project.id)
-        const isMockProject = mockProjects.find(p => p.id === project.id)
-        
-        if (isMockProject) {
-          const baseCount = isMockProject.applicationsCount || 0
-          project.applicationsCount = baseCount + projectApplications.length
-        } else {
-          project.applicationsCount = projectApplications.length
-        }
+        project.applicationsCount = projectApplications.length
       })
       
       setProjects(allProjects)
@@ -195,6 +137,23 @@ export default function ProjectsPage() {
     } catch {
       return 'Дата не указана'
     }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
+        <div className="mb-8 sm:mb-12 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+          <div>
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-light text-primary-900 mb-2 sm:mb-3 tracking-tight">Активные проекты</h1>
+            <p className="text-base sm:text-lg font-light text-primary-600">Найдите проект для получения опыта и портфолио</p>
+          </div>
+        </div>
+        <div className="text-center py-12 sm:py-16 lg:py-20">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-900"></div>
+          <p className="text-primary-600 text-base sm:text-lg font-light mt-4">Загрузка проектов...</p>
+        </div>
+      </div>
+    )
   }
 
   return (

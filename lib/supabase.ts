@@ -295,6 +295,38 @@ export async function createProject(project: {
     throw new Error('Supabase не настроен')
   }
 
+  // Проверяем, существует ли запись компании, если нет - создаем
+  const { data: existingCompany, error: companyCheckError } = await supabase
+    .from('companies')
+    .select('id')
+    .eq('id', project.company_id)
+    .single()
+
+  if (companyCheckError && companyCheckError.code !== 'PGRST116') {
+    // PGRST116 - это "not found", другие ошибки - реальные проблемы
+    throw companyCheckError
+  }
+
+  if (!existingCompany) {
+    // Компания не существует, создаем запись
+    const user = await getCurrentUser()
+    if (!user) {
+      throw new Error('Пользователь не найден')
+    }
+
+    const { error: createCompanyError } = await supabase
+      .from('companies')
+      .insert({
+        id: project.company_id,
+        email: user.email || '',
+        company_name: user.user_metadata?.displayName || 'Компания',
+      })
+
+    if (createCompanyError) {
+      throw new Error(`Не удалось создать запись компании: ${createCompanyError.message}`)
+    }
+  }
+
   const { data, error } = await supabase
     .from('projects')
     .insert({
