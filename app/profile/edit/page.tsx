@@ -410,7 +410,7 @@ export default function EditProfilePage() {
           <button
             type="button"
             onClick={() => setActiveTab('card')}
-            className={`relative text-sm font-normal transition-all duration-200 ease-out tracking-tight pb-4 ${
+            className={`relative text-sm font-normal transition-colors tracking-tight pb-4 ${
               activeTab === 'card'
                 ? 'text-[#FF4600]'
                 : 'text-primary-400 hover:text-primary-600'
@@ -418,13 +418,13 @@ export default function EditProfilePage() {
           >
             Моя карточка
             {activeTab === 'card' && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FF4600] animate-[slideInRight_0.3s_ease-out]"></span>
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FF4600]"></span>
             )}
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('portfolio')}
-            className={`relative text-sm font-normal transition-all duration-200 ease-out tracking-tight pb-4 ${
+            className={`relative text-sm font-normal transition-colors tracking-tight pb-4 ${
               activeTab === 'portfolio'
                 ? 'text-[#FF4600]'
                 : 'text-primary-400 hover:text-primary-600'
@@ -432,7 +432,7 @@ export default function EditProfilePage() {
           >
             Портфолио
             {activeTab === 'portfolio' && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FF4600] animate-[slideInRight_0.3s_ease-out]"></span>
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FF4600]"></span>
             )}
           </button>
         </div>
@@ -440,7 +440,7 @@ export default function EditProfilePage() {
 
       <form onSubmit={handleSubmit}>
         {activeTab === 'card' && (
-          <div className="bg-white rounded-apple border border-primary-100 p-6 sm:p-8 lg:p-10 space-y-6 fade-in">
+          <div className="bg-white rounded-apple border border-primary-100 p-6 sm:p-8 lg:p-10 space-y-6">
             {/* Avatar */}
             <div>
               <label className="block text-sm font-light text-primary-700 mb-3">Фото профиля</label>
@@ -501,7 +501,7 @@ export default function EditProfilePage() {
                   id="firstName"
                   type="text"
                   required
-                  className="w-full px-4 py-3 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white text-sm transition-all duration-200 ease-out focus:shadow-sm"
+                  className="w-full px-4 py-3 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white text-sm"
                   value={formData.firstName}
                   onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                 />
@@ -515,7 +515,7 @@ export default function EditProfilePage() {
                   id="lastName"
                   type="text"
                   required
-                  className="w-full px-4 py-3 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white text-sm transition-all duration-200 ease-out focus:shadow-sm"
+                  className="w-full px-4 py-3 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white text-sm"
                   value={formData.lastName}
                   onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                 />
@@ -529,7 +529,7 @@ export default function EditProfilePage() {
               <select
                 id="specialization"
                 required
-                className="w-full px-4 py-3 border border-primary-200 rounded-apple text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white text-sm transition-all duration-200 ease-out focus:shadow-sm"
+                className="w-full px-4 py-3 border border-primary-200 rounded-apple text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white text-sm"
                 value={formData.specialization}
                 onChange={(e) => setFormData({ ...formData, specialization: e.target.value as Specialization })}
               >
@@ -562,7 +562,7 @@ export default function EditProfilePage() {
                 type="text"
                 required
                 placeholder="@username"
-                        className="w-full px-4 py-3 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white text-sm transition-all duration-200 ease-out focus:shadow-sm"
+                className="w-full px-4 py-3 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white text-sm"
                 value={formData.telegram}
                 onChange={(e) => setFormData({ ...formData, telegram: e.target.value })}
               />
@@ -576,7 +576,7 @@ export default function EditProfilePage() {
                 id="email"
                 type="email"
                 placeholder="example@mail.com"
-                        className="w-full px-4 py-3 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white text-sm transition-all duration-200 ease-out focus:shadow-sm"
+                className="w-full px-4 py-3 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white text-sm"
                 value={formData.email || ''}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               />
@@ -614,7 +614,7 @@ export default function EditProfilePage() {
         )}
 
         {activeTab === 'portfolio' && (
-          <div className="space-y-6 fade-in">
+          <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-xl sm:text-2xl font-light text-primary-900 mb-1 tracking-tight">Портфолио</h2>
@@ -624,7 +624,7 @@ export default function EditProfilePage() {
                 <button
                   type="button"
                   onClick={addProject}
-                  className="inline-flex items-center gap-2 bg-primary-900 text-white px-4 py-2 rounded-apple hover:bg-primary-800 transition-all duration-200 ease-out hover:scale-105 active:scale-100 font-normal text-sm"
+                  className="inline-flex items-center gap-2 bg-primary-900 text-white px-4 py-2 rounded-apple hover:bg-primary-800 transition-colors font-normal text-sm"
                 >
                   <PlusIcon className="w-4 h-4" />
                   Добавить проект
@@ -648,13 +648,13 @@ export default function EditProfilePage() {
             ) : (
               <div className="space-y-6">
                 {projects.map((project, projectIndex) => (
-                  <div key={project.id} className="bg-white rounded-apple border border-primary-100 p-6 space-y-6 fade-in-up" style={{ animationDelay: `${projectIndex * 100}ms` }}>
+                  <div key={project.id} className="bg-white rounded-apple border border-primary-100 p-6 space-y-6">
                     <div className="flex items-start justify-between">
                       <h3 className="text-lg font-normal text-primary-900 tracking-tight">Проект {projectIndex + 1}</h3>
                       <button
                         type="button"
                         onClick={() => removeProject(project.id)}
-                        className="p-2 hover:bg-primary-50 rounded-apple transition-all duration-200 ease-out hover:scale-110 active:scale-95"
+                        className="p-2 hover:bg-primary-50 rounded-apple transition-colors"
                         aria-label="Удалить проект"
                       >
                         <TrashIcon className="w-5 h-5 text-primary-500" />
@@ -668,7 +668,7 @@ export default function EditProfilePage() {
                       <input
                         type="text"
                         placeholder="Название проекта"
-                        className="w-full px-4 py-3 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white text-sm transition-all duration-200 ease-out focus:shadow-sm"
+                        className="w-full px-4 py-3 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white text-sm"
                         value={project.title}
                         onChange={(e) => updateProject(project.id, 'title', e.target.value)}
                       />
@@ -708,7 +708,7 @@ export default function EditProfilePage() {
                               <button
                                 type="button"
                                 onClick={() => removeImage(project.id, imageIndex)}
-                                className="absolute top-2 right-2 p-1.5 bg-white/90 backdrop-blur-sm rounded-apple opacity-0 group-hover:opacity-100 transition-all duration-200 ease-out hover:scale-110 active:scale-95"
+                                className="absolute top-2 right-2 p-1.5 bg-white/90 backdrop-blur-sm rounded-apple opacity-0 group-hover:opacity-100 transition-opacity"
                                 aria-label="Удалить фото"
                               >
                                 <XMarkIcon className="w-4 h-4 text-primary-700" />
@@ -719,7 +719,7 @@ export default function EditProfilePage() {
                       )}
 
                       {project.images.length < 3 && (
-                        <label className="block w-full rounded-apple border-2 border-dashed border-primary-300 hover:border-primary-400 transition-all duration-200 ease-out hover:bg-primary-100 cursor-pointer bg-primary-50 p-8 text-center">
+                        <label className="block w-full rounded-apple border-2 border-dashed border-primary-300 hover:border-primary-400 transition-colors cursor-pointer bg-primary-50 p-8 text-center">
                           <input
                             type="file"
                             accept="image/*"

@@ -20,19 +20,18 @@ export default function Home() {
             <Link
               href="/register?type=specialist"
               prefetch={true}
-              className="bg-primary-900 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-apple font-normal hover:bg-primary-800 transition-all duration-200 ease-out hover:scale-105 active:scale-100 inline-flex items-center justify-center gap-2 text-sm sm:text-base tracking-tight fade-in-up"
+              className="bg-primary-900 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-apple font-normal hover:bg-primary-800 transition-colors inline-flex items-center justify-center gap-2 text-sm sm:text-base tracking-tight"
             >
               Я специалист
-              <ArrowRightIcon className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" />
+              <ArrowRightIcon className="w-4 h-4" />
             </Link>
             <Link
               href="/register?type=company"
               prefetch={true}
-              className="bg-white text-primary-900 px-6 sm:px-8 py-3 sm:py-4 rounded-apple font-normal hover:bg-primary-50 transition-all duration-200 ease-out hover:scale-105 active:scale-100 inline-flex items-center justify-center gap-2 border border-primary-200 text-sm sm:text-base tracking-tight fade-in-up"
-              style={{ animationDelay: '100ms' }}
+              className="bg-white text-primary-900 px-6 sm:px-8 py-3 sm:py-4 rounded-apple font-normal hover:bg-primary-50 transition-colors inline-flex items-center justify-center gap-2 border border-primary-200 text-sm sm:text-base tracking-tight"
             >
               Я компания
-              <ArrowRightIcon className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" />
+              <ArrowRightIcon className="w-4 h-4" />
             </Link>
           </div>
         </div>
@@ -45,10 +44,10 @@ export default function Home() {
             Как это работает
           </h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 sm:gap-10 lg:gap-12">
-            <div className="text-center fade-in-up">
+            <div className="text-center">
               <div className="mb-4 sm:mb-6 flex justify-center">
-                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-apple bg-primary-50 flex items-center justify-center transition-all duration-200 ease-out hover:scale-110 hover:bg-primary-100">
-                  <UsersIcon className="w-6 h-6 sm:w-7 sm:h-7 text-primary-700 transition-transform duration-200" />
+                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-apple bg-primary-50 flex items-center justify-center">
+                  <UsersIcon className="w-6 h-6 sm:w-7 sm:h-7 text-primary-700" />
                 </div>
               </div>
               <h3 className="text-lg sm:text-xl font-normal mb-2 sm:mb-3 text-primary-900 tracking-tight">Специалисты</h3>
@@ -56,10 +55,10 @@ export default function Home() {
                 Создайте анкету, покажите свои навыки и начните работать над реальными проектами
               </p>
             </div>
-            <div className="text-center fade-in-up" style={{ animationDelay: '100ms' }}>
+            <div className="text-center">
               <div className="mb-4 sm:mb-6 flex justify-center">
-                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-apple bg-primary-50 flex items-center justify-center transition-all duration-200 ease-out hover:scale-110 hover:bg-primary-100">
-                  <BriefcaseIcon className="w-6 h-6 sm:w-7 sm:h-7 text-primary-700 transition-transform duration-200" />
+                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-apple bg-primary-50 flex items-center justify-center">
+                  <BriefcaseIcon className="w-6 h-6 sm:w-7 sm:h-7 text-primary-700" />
                 </div>
               </div>
               <h3 className="text-lg sm:text-xl font-normal mb-2 sm:mb-3 text-primary-900 tracking-tight">Компании</h3>
@@ -67,10 +66,10 @@ export default function Home() {
                 Разместите проект и получите готовое решение от мотивированных специалистов
               </p>
             </div>
-            <div className="text-center fade-in-up" style={{ animationDelay: '200ms' }}>
+            <div className="text-center">
               <div className="mb-4 sm:mb-6 flex justify-center">
-                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-apple bg-primary-50 flex items-center justify-center transition-all duration-200 ease-out hover:scale-110 hover:bg-primary-100">
-                  <TrophyIcon className="w-6 h-6 sm:w-7 sm:h-7 text-primary-700 transition-transform duration-200" />
+                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-apple bg-primary-50 flex items-center justify-center">
+                  <TrophyIcon className="w-6 h-6 sm:w-7 sm:h-7 text-primary-700" />
                 </div>
               </div>
               <h3 className="text-lg sm:text-xl font-normal mb-2 sm:mb-3 text-primary-900 tracking-tight">Опыт</h3>
@@ -78,10 +77,10 @@ export default function Home() {
                 Получайте практику, кейсы для портфолио и рекомендации от реальных клиентов
               </p>
             </div>
-            <div className="text-center fade-in-up" style={{ animationDelay: '300ms' }}>
+            <div className="text-center">
               <div className="mb-4 sm:mb-6 flex justify-center">
-                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-apple bg-primary-50 flex items-center justify-center transition-all duration-200 ease-out hover:scale-110 hover:bg-primary-100">
-                  <ArrowTrendingUpIcon className="w-6 h-6 sm:w-7 sm:h-7 text-primary-700 transition-transform duration-200" />
+                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-apple bg-primary-50 flex items-center justify-center">
+                  <ArrowTrendingUpIcon className="w-6 h-6 sm:w-7 sm:h-7 text-primary-700" />
                 </div>
               </div>
               <h3 className="text-lg sm:text-xl font-normal mb-2 sm:mb-3 text-primary-900 tracking-tight">Рост</h3>
@@ -106,14 +105,14 @@ export default function Home() {
             <Link
               href="/specialists"
               prefetch={true}
-              className="bg-primary-900 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-apple font-normal hover:bg-primary-800 transition-all duration-200 ease-out hover:scale-105 active:scale-100 text-sm sm:text-base tracking-tight"
+              className="bg-primary-900 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-apple font-normal hover:bg-primary-800 transition-colors text-sm sm:text-base tracking-tight"
             >
               Найти специалиста
             </Link>
             <Link
               href="/projects"
               prefetch={true}
-              className="bg-white text-primary-900 px-6 sm:px-8 py-3 sm:py-4 rounded-apple font-normal hover:bg-primary-100 transition-all duration-200 ease-out hover:scale-105 active:scale-100 border border-primary-200 text-sm sm:text-base tracking-tight"
+              className="bg-white text-primary-900 px-6 sm:px-8 py-3 sm:py-4 rounded-apple font-normal hover:bg-primary-100 transition-colors border border-primary-200 text-sm sm:text-base tracking-tight"
             >
               Найти проект
             </Link>

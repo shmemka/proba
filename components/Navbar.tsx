@@ -139,7 +139,7 @@ export default function Navbar() {
                 key={link.href}
                 href={link.href}
                 prefetch={true}
-                className={`px-3 py-2 text-sm font-normal transition-all duration-200 ease-out tracking-tight relative ${
+                className={`px-3 py-2 text-sm font-normal transition-colors tracking-tight ${
                   pathname === link.href
                     ? 'text-primary-900'
                     : 'text-primary-400 hover:text-primary-600'
@@ -157,7 +157,7 @@ export default function Navbar() {
                 onMouseEnter={() => setIsProfileMenuOpen(true)}
                 onMouseLeave={() => setIsProfileMenuOpen(false)}
               >
-                <button className="flex items-center gap-3 px-3 py-2 rounded-apple hover:bg-primary-50 transition-all duration-200 ease-out hover:scale-105 active:scale-100">
+                <button className="flex items-center gap-3 px-3 py-2 rounded-apple hover:bg-primary-50 transition-colors">
                   {user.avatarUrl ? (
                     <div className="relative w-8 h-8 rounded-apple overflow-hidden">
                       <Image 
