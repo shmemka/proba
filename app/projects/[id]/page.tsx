@@ -1,0 +1,370 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { CalendarIcon, MapPinIcon, TagIcon, UsersIcon, PaperAirplaneIcon } from '@heroicons/react/24/outline'
+
+interface Project {
+  id: string
+  title: string
+  description: string
+  fullDescription: string
+  company: string
+  skills: string[]
+  location: string
+  deadline: string
+  status: 'open' | 'in_progress' | 'completed'
+  applicationsCount: number
+  requirements: string[]
+  deliverables: string[]
+}
+
+const mockProjects: Record<string, Project> = {
+  '1': {
+    id: '1',
+    title: 'Разработка лендинга для стартапа',
+    description: 'Нужен современный лендинг на React/Next.js для IT-стартапа.',
+    fullDescription: 'Мы ищем frontend-разработчика для создания современного лендинга для нашего IT-стартапа. Проект включает в себя разработку адаптивного дизайна, интеграцию с API для формы обратной связи, оптимизацию для SEO и быстрой загрузки. Мы предоставим дизайн-макеты в Figma. Взамен вы получите реальный кейс для портфолио, рекомендацию от нашей компании и возможность использовать проект в своих работах.',
+    company: 'TechStartup Inc.',
+    skills: ['React', 'Next.js', 'TypeScript', 'Tailwind CSS'],
+    location: 'Москва',
+    deadline: '2024-02-15',
+    status: 'open',
+    applicationsCount: 3,
+    requirements: [
+      'Опыт работы с React и Next.js',
+      'Знание TypeScript',
+      'Умение работать с дизайн-макетами',
+      'Готовность к обратной связи и правкам',
+    ],
+    deliverables: [
+      'Адаптивный лендинг на Next.js',
+      'Интеграция формы обратной связи',
+      'SEO-оптимизация',
+      'Документация по развертыванию',
+    ],
+  },
+  '2': {
+    id: '2',
+    title: 'Дизайн мобильного приложения',
+    description: 'Требуется UI/UX дизайнер для создания дизайна мобильного приложения для доставки еды.',
+    fullDescription: 'Нужны все экраны и прототипы для мобильного приложения доставки еды.',
+    company: 'FoodDelivery Co.',
+    skills: ['Figma', 'UI/UX', 'Mobile Design'],
+    location: 'Санкт-Петербург',
+    deadline: '2024-02-20',
+    status: 'open',
+    applicationsCount: 5,
+    requirements: ['Опыт работы с Figma', 'Понимание принципов UI/UX'],
+    deliverables: ['Все экраны приложения', 'Прототипы'],
+  },
+  '3': {
+    id: '3',
+    title: 'Написание контента для блога',
+    description: 'Ищем копирайтера для написания статей на тему маркетинга и бизнеса.',
+    fullDescription: 'Нужно 10 статей по 2000+ слов каждая на тему маркетинга и бизнеса.',
+    company: 'Marketing Blog',
+    skills: ['Копирайтинг', 'SEO', 'Контент-маркетинг'],
+    location: 'Удаленно',
+    deadline: '2024-03-01',
+    status: 'open',
+    applicationsCount: 2,
+    requirements: ['Опыт написания статей', 'Знание SEO'],
+    deliverables: ['10 статей по 2000+ слов'],
+  },
+  '4': {
+    id: '4',
+    title: 'Backend API для веб-приложения',
+    description: 'Разработка REST API на Node.js с использованием PostgreSQL.',
+    fullDescription: 'Нужна аутентификация, CRUD операции, интеграция с платежной системой.',
+    company: 'WebApp Solutions',
+    skills: ['Node.js', 'PostgreSQL', 'REST API', 'JWT'],
+    location: 'Удаленно',
+    deadline: '2024-02-25',
+    status: 'open',
+    applicationsCount: 4,
+    requirements: ['Опыт работы с Node.js', 'Знание PostgreSQL'],
+    deliverables: ['REST API', 'Документация'],
+  },
+}
+
+export default function ProjectPage({ params }: { params: { id: string } }) {
+  const router = useRouter()
+  const [project, setProject] = useState<Project | null>(null)
+  const [applicationText, setApplicationText] = useState('')
+  const [showApplicationForm, setShowApplicationForm] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    // Загружаем проект из моковых данных или localStorage
+    const mockProject = mockProjects[params.id]
+    if (mockProject) {
+      // Проверяем, есть ли заявки на этот проект
+      const applications = JSON.parse(localStorage.getItem('applications') || '[]')
+      const projectApplications = applications.filter((app: any) => app.projectId === params.id)
+      setProject({ ...mockProject, applicationsCount: mockProject.applicationsCount + projectApplications.length })
+      
+      // Проверяем, не подал ли уже пользователь заявку
+      const user = JSON.parse(localStorage.getItem('user') || '{}')
+      const userEmail = user.email || 'guest'
+      const userApplication = applications.find(
+        (app: any) => app.projectId === params.id && app.applicantEmail === userEmail
+      )
+      if (userApplication) {
+        setSubmitted(true)
+      }
+      
+      setLoading(false)
+      return
+    }
+
+    // Ищем в сохраненных проектах
+    const savedProjects = JSON.parse(localStorage.getItem('projects') || '[]')
+    const foundProject = savedProjects.find((p: Project) => p.id === params.id)
+    
+    if (foundProject) {
+      // Проверяем, не подал ли уже пользователь заявку
+      const user = JSON.parse(localStorage.getItem('user') || '{}')
+      const applications = JSON.parse(localStorage.getItem('applications') || '[]')
+      const userEmail = user.email || 'guest'
+      const userApplication = applications.find(
+        (app: any) => app.projectId === params.id && app.applicantEmail === userEmail
+      )
+      if (userApplication) {
+        setSubmitted(true)
+      }
+      
+      setProject(foundProject)
+    } else {
+      // Если не найден, перенаправляем на список
+      router.push('/projects')
+    }
+    setLoading(false)
+  }, [params.id, router])
+
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString)
+      if (isNaN(date.getTime())) {
+        return 'Дата не указана'
+      }
+      return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
+    } catch {
+      return 'Дата не указана'
+    }
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!applicationText.trim()) {
+      alert('Заполните текст заявки')
+      return
+    }
+
+    // Проверяем, не подавал ли уже пользователь заявку на этот проект
+    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    const applications = JSON.parse(localStorage.getItem('applications') || '[]')
+    const userEmail = user.email || 'guest'
+    
+    const existingApplication = applications.find(
+      (app: any) => app.projectId === params.id && app.applicantEmail === userEmail
+    )
+    
+    if (existingApplication) {
+      alert('Вы уже подали заявку на этот проект')
+      return
+    }
+
+    // Сохраняем заявку
+    applications.push({
+      id: Date.now().toString(),
+      projectId: params.id,
+      projectTitle: project?.title,
+      applicantEmail: userEmail,
+      applicantName: user.name || 'Гость',
+      text: applicationText,
+      date: new Date().toISOString(),
+    })
+    
+    localStorage.setItem('applications', JSON.stringify(applications))
+    
+    // Обновляем счетчик заявок
+    if (project) {
+      // Для сохраненных проектов обновляем в localStorage
+      const projects = JSON.parse(localStorage.getItem('projects') || '[]')
+      const projectIndex = projects.findIndex((p: Project) => p.id === params.id)
+      if (projectIndex >= 0) {
+        // Пересчитываем все заявки
+        const allApplications = JSON.parse(localStorage.getItem('applications') || '[]')
+        const projectApplications = allApplications.filter((app: any) => app.projectId === params.id)
+        projects[projectIndex].applicationsCount = projectApplications.length
+        localStorage.setItem('projects', JSON.stringify(projects))
+      }
+      
+      // Обновляем счетчик в текущем проекте
+      const allApplications = JSON.parse(localStorage.getItem('applications') || '[]')
+      const projectApplications = allApplications.filter((app: any) => app.projectId === params.id)
+      const isMockProject = mockProjects[params.id]
+      if (isMockProject) {
+        // Для моковых: базовый + заявки
+        setProject({ ...project, applicationsCount: isMockProject.applicationsCount + projectApplications.length })
+      } else {
+        // Для сохраненных: только заявки
+        setProject({ ...project, applicationsCount: projectApplications.length })
+      }
+    }
+    
+    setSubmitted(true)
+    setShowApplicationForm(false)
+    setApplicationText('')
+  }
+
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto px-6 lg:px-8 py-16">
+        <div className="text-center text-primary-600 font-light">Загрузка...</div>
+      </div>
+    )
+  }
+
+  if (!project) {
+    return null
+  }
+
+  return (
+    <div className="max-w-4xl mx-auto px-6 lg:px-8 py-16 pt-20 lg:pt-16">
+      <div className="bg-white rounded-apple border border-primary-100 p-10 mb-6">
+        <div className="mb-8">
+          <div className="flex justify-between items-start mb-6">
+            <div className="flex-1">
+              <h1 className="text-4xl font-light text-primary-900 mb-4 tracking-tight">{project.title}</h1>
+              <div className="flex items-center gap-2 text-primary-600 mb-4">
+                <TagIcon className="w-5 h-5" />
+                <span className="font-normal">{project.company}</span>
+              </div>
+            </div>
+            <span className="px-4 py-2 bg-primary-50 text-primary-700 rounded-apple text-xs font-light">
+              Открыт
+            </span>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-6 text-sm font-light text-primary-500 mb-8">
+            <div className="flex items-center gap-1.5">
+              <MapPinIcon className="w-4 h-4" />
+              <span>{project.location}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <CalendarIcon className="w-4 h-4" />
+              <span>До {formatDate(project.deadline)}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <UsersIcon className="w-4 h-4" />
+              <span>{project.applicationsCount} {project.applicationsCount === 1 ? 'отклик' : 'откликов'}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="mb-8">
+          <h2 className="text-2xl font-light text-primary-900 mb-4 tracking-tight">Описание проекта</h2>
+          <p className="text-base font-light text-primary-700 leading-relaxed whitespace-pre-line">{project.fullDescription}</p>
+        </div>
+
+        <div className="mb-8">
+          <h2 className="text-2xl font-light text-primary-900 mb-4 tracking-tight">Требуемые навыки</h2>
+          <div className="flex flex-wrap gap-2">
+            {project.skills.map((skill) => (
+              <span
+                key={skill}
+                className="inline-flex items-center px-4 py-2 bg-primary-50 text-primary-700 rounded-apple text-sm font-light"
+              >
+                {skill}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {project.requirements && project.requirements.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-2xl font-light text-primary-900 mb-4 tracking-tight">Требования</h2>
+            <ul className="space-y-2 text-primary-700 font-light">
+              {project.requirements.map((req, index) => (
+                <li key={index} className="flex items-start gap-2">
+                  <span className="text-primary-400 mt-1">•</span>
+                  <span>{req}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {project.deliverables && project.deliverables.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-2xl font-light text-primary-900 mb-4 tracking-tight">Результат работы</h2>
+            <ul className="space-y-2 text-primary-700 font-light">
+              {project.deliverables.map((deliverable, index) => (
+                <li key={index} className="flex items-start gap-2">
+                  <span className="text-primary-400 mt-1">•</span>
+                  <span>{deliverable}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {submitted ? (
+          <div className="bg-primary-50 border border-primary-200 text-primary-700 px-5 py-4 rounded-apple text-sm font-light">
+            Ваша заявка успешно отправлена! Компания свяжется с вами в ближайшее время.
+          </div>
+        ) : showApplicationForm ? (
+          <form onSubmit={handleSubmit} className="border-t border-primary-100 pt-8">
+            <h3 className="text-xl font-light text-primary-900 mb-4 tracking-tight">Подать заявку</h3>
+            <div className="mb-6">
+              <label htmlFor="application" className="block text-sm font-light text-primary-700 mb-2">
+                Расскажите о себе и почему вы подходите для этого проекта
+              </label>
+              <textarea
+                id="application"
+                rows={6}
+                className="w-full px-5 py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white"
+                placeholder="Опишите ваш опыт, навыки и мотивацию..."
+                value={applicationText}
+                onChange={(e) => setApplicationText(e.target.value)}
+                required
+              />
+            </div>
+            <div className="flex gap-4">
+              <button
+                type="submit"
+                className="inline-flex items-center gap-2 bg-primary-900 text-white px-6 py-4 rounded-apple hover:bg-primary-800 transition-colors font-normal tracking-tight"
+              >
+                <PaperAirplaneIcon className="w-5 h-5" />
+                Отправить заявку
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowApplicationForm(false)}
+                className="border border-primary-200 text-primary-700 px-6 py-4 rounded-apple hover:bg-primary-50 transition-colors font-normal tracking-tight"
+              >
+                Отмена
+              </button>
+            </div>
+          </form>
+        ) : (
+          <div className="border-t border-primary-100 pt-8">
+            <button
+              onClick={() => setShowApplicationForm(true)}
+              className="inline-flex items-center gap-2 bg-primary-900 text-white px-6 py-4 rounded-apple hover:bg-primary-800 transition-colors font-normal tracking-tight"
+            >
+              <PaperAirplaneIcon className="w-5 h-5" />
+              Подать заявку на проект
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
