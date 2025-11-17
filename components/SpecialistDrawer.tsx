@@ -125,10 +125,10 @@ export default function SpecialistDrawer({
 
         {/* Content */}
         <div className="flex-1 flex flex-col lg:flex-row h-full overflow-hidden">
-          {/* Left side - Profile (scrollable) */}
+          {/* Left side - Profile (scrollable, full width on mobile) */}
           <div 
             ref={leftScrollRef}
-            className="lg:w-1/2 p-4 sm:p-6 lg:p-8 xl:p-12 border-r border-primary-100 flex flex-col overflow-y-auto scrollbar-hide"
+            className="w-full lg:w-1/2 p-4 sm:p-6 lg:p-8 xl:p-12 lg:border-r border-primary-100 flex flex-col overflow-y-auto scrollbar-hide"
           >
               {/* Avatar */}
               <div className="mb-4 sm:mb-6">
@@ -206,7 +206,7 @@ export default function SpecialistDrawer({
               </div>
 
               {/* Contact Info */}
-              <div className="mt-auto pt-8 border-t border-primary-100">
+              <div className="mt-auto pt-8 border-t border-primary-100 lg:mb-0 mb-8">
                 <div className="space-y-3">
                   {telegram && telegramUrl !== '#' && (
                     <div>
@@ -234,12 +234,63 @@ export default function SpecialistDrawer({
                   )}
                 </div>
               </div>
+
+              {/* Portfolio section for mobile - shown below contact info */}
+              <div className="lg:hidden mt-8 pt-8 border-t border-primary-100">
+                {hasProjects && specialist.projects && specialist.projects.length > 0 ? (
+                  <div className="space-y-6">
+                    {specialist.projects.map((project, projectIdx) => (
+                      <div key={project.id || projectIdx}>
+                        <h3 className="text-xl font-normal text-primary-900 tracking-tight mb-4">
+                          {project.title}
+                        </h3>
+                        {project.description && (
+                          <p className="text-sm font-light text-primary-600 mb-4 leading-relaxed">
+                            {project.description}
+                          </p>
+                        )}
+                        {project.images && project.images.length > 0 && (
+                          <div className="space-y-3">
+                            {project.images.map((image, imgIdx) => (
+                              <div key={imgIdx} className="w-full rounded-apple overflow-hidden border border-primary-100 bg-primary-50" style={{ aspectRatio: '4/3' }}>
+                                <img
+                                  src={image.url}
+                                  alt={`${project.title} - фото ${imgIdx + 1}`}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {project.link && (
+                          <a
+                            href={project.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 text-sm font-normal text-primary-700 hover:text-primary-900 transition-colors mt-4"
+                          >
+                            <ArrowTopRightOnSquareIcon className="w-4 h-4" />
+                            Посмотреть проект
+                          </a>
+                        )}
+                        {projectIdx < specialist.projects!.length - 1 && (
+                          <div className="mt-6 pt-6 border-t border-primary-100"></div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-primary-500 font-light">Портфолио пока пусто</p>
+                  </div>
+                )}
+              </div>
             </div>
 
-          {/* Right side - Portfolio (fixed) */}
+          {/* Right side - Portfolio (fixed, desktop only) */}
           <div 
             ref={rightSectionRef}
-            className="lg:w-1/2 lg:sticky lg:top-0 lg:h-screen relative bg-primary-50 flex flex-col min-h-[300px] sm:min-h-[400px] lg:min-h-0 overflow-hidden"
+            className="hidden lg:flex lg:w-1/2 lg:sticky lg:top-0 lg:h-screen relative bg-primary-50 flex-col overflow-hidden"
           >
             {hasProjects && currentProject ? (
               <>

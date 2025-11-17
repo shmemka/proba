@@ -417,16 +417,15 @@ export default function SpecialistsPage() {
 
             {/* Галерея изображений из проектов */}
             {specialist.projects && specialist.projects.length > 0 && (
-              <div className="flex gap-2 sm:gap-3 overflow-x-auto -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 scrollbar-hide">
+              <div className="flex gap-2 sm:gap-3 overflow-x-auto -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 scrollbar-hide snap-x snap-mandatory">
                 {specialist.projects
                   .flatMap(project => project.images || [])
                   .map((image, index) => (
-                    <div key={index} className="flex-shrink-0 w-48 sm:w-56 lg:w-64 h-36 sm:h-44 lg:h-48 rounded-apple overflow-hidden border border-primary-100 bg-primary-50">
+                    <div key={index} className="flex-shrink-0 w-32 sm:w-48 md:w-56 lg:w-64 h-24 sm:h-36 md:h-44 lg:h-48 rounded-apple overflow-hidden border border-primary-100 bg-primary-50 snap-start">
                       <img
                         src={image.url}
                         alt={`Портфолио ${index + 1}`}
                         className="w-full h-full object-cover"
-                        style={{ aspectRatio: '4/3' }}
                       />
                     </div>
                   ))}
