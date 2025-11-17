@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { CalendarIcon, MapPinIcon, TagIcon, UsersIcon, PaperAirplaneIcon } from '@heroicons/react/24/outline'
+import { getProject, createApplication, getApplications, getCurrentUser, isSupabaseAvailable } from '@/lib/supabase'
+import { getActiveUser } from '@/lib/storage'
 
 interface Project {
   id: string
@@ -98,50 +100,93 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Загружаем проект из моковых данных или localStorage
-    const mockProject = mockProjects[params.id]
-    if (mockProject) {
-      // Проверяем, есть ли заявки на этот проект
-      const applications = JSON.parse(localStorage.getItem('applications') || '[]')
-      const projectApplications = applications.filter((app: any) => app.projectId === params.id)
-      setProject({ ...mockProject, applicationsCount: mockProject.applicationsCount + projectApplications.length })
-      
-      // Проверяем, не подал ли уже пользователь заявку
-      const user = JSON.parse(localStorage.getItem('user') || '{}')
-      const userEmail = user.email || 'guest'
-      const userApplication = applications.find(
-        (app: any) => app.projectId === params.id && app.applicantEmail === userEmail
-      )
-      if (userApplication) {
-        setSubmitted(true)
+    const loadProject = async () => {
+      try {
+        if (isSupabaseAvailable()) {
+          // Загружаем из Supabase
+          const supabaseProject = await getProject(params.id)
+          if (supabaseProject) {
+            const formattedProject: Project = {
+              id: supabaseProject.id,
+              title: supabaseProject.title,
+              description: supabaseProject.description,
+              fullDescription: supabaseProject.full_description || supabaseProject.description,
+              company: supabaseProject.company || 'Компания',
+              skills: supabaseProject.skills || [],
+              location: supabaseProject.location || '',
+              deadline: supabaseProject.deadline || '',
+              status: supabaseProject.status as any,
+              applicationsCount: supabaseProject.applicationsCount || 0,
+              requirements: supabaseProject.requirements || [],
+              deliverables: supabaseProject.deliverables || [],
+            }
+            setProject(formattedProject)
+
+            // Проверяем, подал ли пользователь заявку
+            const user = await getCurrentUser()
+            if (user) {
+              const applications = await getApplications(params.id, user.id)
+              if (applications.length > 0) {
+                setSubmitted(true)
+              }
+            }
+          } else {
+            // Fallback на моковые данные
+            loadFromMock()
+          }
+        } else {
+          // Fallback на localStorage
+          loadFromLocalStorage()
+        }
+      } catch (error) {
+        console.error('Ошибка загрузки проекта:', error)
+        loadFromLocalStorage()
+      } finally {
+        setLoading(false)
       }
-      
-      setLoading(false)
-      return
     }
 
-    // Ищем в сохраненных проектах
-    const savedProjects = JSON.parse(localStorage.getItem('projects') || '[]')
-    const foundProject = savedProjects.find((p: Project) => p.id === params.id)
-    
-    if (foundProject) {
-      // Проверяем, не подал ли уже пользователь заявку
-      const user = JSON.parse(localStorage.getItem('user') || '{}')
-      const applications = JSON.parse(localStorage.getItem('applications') || '[]')
-      const userEmail = user.email || 'guest'
-      const userApplication = applications.find(
-        (app: any) => app.projectId === params.id && app.applicantEmail === userEmail
-      )
-      if (userApplication) {
-        setSubmitted(true)
+    const loadFromMock = () => {
+      const mockProject = mockProjects[params.id]
+      if (mockProject) {
+        const applications = JSON.parse(localStorage.getItem('applications') || '[]')
+        const projectApplications = applications.filter((app: any) => app.projectId === params.id)
+        setProject({ ...mockProject, applicationsCount: mockProject.applicationsCount + projectApplications.length })
+        
+        const user = getActiveUser()
+        const userEmail = user?.email || 'guest'
+        const userApplication = applications.find(
+          (app: any) => app.projectId === params.id && app.applicantEmail === userEmail
+        )
+        if (userApplication) {
+          setSubmitted(true)
+        }
+      } else {
+        router.push('/projects')
       }
-      
-      setProject(foundProject)
-    } else {
-      // Если не найден, перенаправляем на список
-      router.push('/projects')
     }
-    setLoading(false)
+
+    const loadFromLocalStorage = () => {
+      const savedProjects = JSON.parse(localStorage.getItem('projects') || '[]')
+      const foundProject = savedProjects.find((p: Project) => p.id === params.id)
+      
+      if (foundProject) {
+        const user = getActiveUser()
+        const applications = JSON.parse(localStorage.getItem('applications') || '[]')
+        const userEmail = user?.email || 'guest'
+        const userApplication = applications.find(
+          (app: any) => app.projectId === params.id && app.applicantEmail === userEmail
+        )
+        if (userApplication) {
+          setSubmitted(true)
+        }
+        setProject(foundProject)
+      } else {
+        loadFromMock()
+      }
+    }
+
+    loadProject()
   }, [params.id, router])
 
   const formatDate = (dateString: string) => {
@@ -156,7 +201,7 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
     }
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
     if (!applicationText.trim()) {
@@ -164,62 +209,93 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
       return
     }
 
-    // Проверяем, не подавал ли уже пользователь заявку на этот проект
-    const user = JSON.parse(localStorage.getItem('user') || '{}')
-    const applications = JSON.parse(localStorage.getItem('applications') || '[]')
-    const userEmail = user.email || 'guest'
-    
-    const existingApplication = applications.find(
-      (app: any) => app.projectId === params.id && app.applicantEmail === userEmail
-    )
-    
-    if (existingApplication) {
-      alert('Вы уже подали заявку на этот проект')
-      return
-    }
+    try {
+      if (isSupabaseAvailable()) {
+        // Используем Supabase
+        const user = await getCurrentUser()
+        if (!user) {
+          alert('Необходимо войти в систему')
+          router.push('/login?redirect=' + encodeURIComponent(`/projects/${params.id}`))
+          return
+        }
 
-    // Сохраняем заявку
-    applications.push({
-      id: Date.now().toString(),
-      projectId: params.id,
-      projectTitle: project?.title,
-      applicantEmail: userEmail,
-      applicantName: user.name || 'Гость',
-      text: applicationText,
-      date: new Date().toISOString(),
-    })
-    
-    localStorage.setItem('applications', JSON.stringify(applications))
-    
-    // Обновляем счетчик заявок
-    if (project) {
-      // Для сохраненных проектов обновляем в localStorage
-      const projects = JSON.parse(localStorage.getItem('projects') || '[]')
-      const projectIndex = projects.findIndex((p: Project) => p.id === params.id)
-      if (projectIndex >= 0) {
-        // Пересчитываем все заявки
-        const allApplications = JSON.parse(localStorage.getItem('applications') || '[]')
-        const projectApplications = allApplications.filter((app: any) => app.projectId === params.id)
-        projects[projectIndex].applicationsCount = projectApplications.length
-        localStorage.setItem('projects', JSON.stringify(projects))
-      }
-      
-      // Обновляем счетчик в текущем проекте
-      const allApplications = JSON.parse(localStorage.getItem('applications') || '[]')
-      const projectApplications = allApplications.filter((app: any) => app.projectId === params.id)
-      const isMockProject = mockProjects[params.id]
-      if (isMockProject) {
-        // Для моковых: базовый + заявки
-        setProject({ ...project, applicationsCount: isMockProject.applicationsCount + projectApplications.length })
+        // Проверяем, не подал ли уже заявку
+        const existingApplications = await getApplications(params.id, user.id)
+        if (existingApplications.length > 0) {
+          alert('Вы уже подали заявку на этот проект')
+          return
+        }
+
+        // Создаем заявку
+        await createApplication({
+          project_id: params.id,
+          specialist_id: user.id,
+          message: applicationText.trim(),
+        })
+
+        // Обновляем счетчик заявок
+        if (project) {
+          setProject({ ...project, applicationsCount: (project.applicationsCount || 0) + 1 })
+        }
+
+        setSubmitted(true)
+        setShowApplicationForm(false)
+        setApplicationText('')
       } else {
-        // Для сохраненных: только заявки
-        setProject({ ...project, applicationsCount: projectApplications.length })
+        // Fallback на localStorage
+        const user = getActiveUser()
+        const applications = JSON.parse(localStorage.getItem('applications') || '[]')
+        const userEmail = user?.email || 'guest'
+        
+        const existingApplication = applications.find(
+          (app: any) => app.projectId === params.id && app.applicantEmail === userEmail
+        )
+        
+        if (existingApplication) {
+          alert('Вы уже подали заявку на этот проект')
+          return
+        }
+
+        applications.push({
+          id: Date.now().toString(),
+          projectId: params.id,
+          projectTitle: project?.title,
+          applicantEmail: userEmail,
+          applicantName: user?.name || 'Гость',
+          text: applicationText,
+          date: new Date().toISOString(),
+        })
+        
+        localStorage.setItem('applications', JSON.stringify(applications))
+        
+        if (project) {
+          const projects = JSON.parse(localStorage.getItem('projects') || '[]')
+          const projectIndex = projects.findIndex((p: Project) => p.id === params.id)
+          if (projectIndex >= 0) {
+            const allApplications = JSON.parse(localStorage.getItem('applications') || '[]')
+            const projectApplications = allApplications.filter((app: any) => app.projectId === params.id)
+            projects[projectIndex].applicationsCount = projectApplications.length
+            localStorage.setItem('projects', JSON.stringify(projects))
+          }
+          
+          const allApplications = JSON.parse(localStorage.getItem('applications') || '[]')
+          const projectApplications = allApplications.filter((app: any) => app.projectId === params.id)
+          const isMockProject = mockProjects[params.id]
+          if (isMockProject) {
+            setProject({ ...project, applicationsCount: isMockProject.applicationsCount + projectApplications.length })
+          } else {
+            setProject({ ...project, applicationsCount: projectApplications.length })
+          }
+        }
+        
+        setSubmitted(true)
+        setShowApplicationForm(false)
+        setApplicationText('')
       }
+    } catch (error: any) {
+      console.error('Ошибка подачи заявки:', error)
+      alert(error?.message || 'Не удалось отправить заявку. Попробуйте снова.')
     }
-    
-    setSubmitted(true)
-    setShowApplicationForm(false)
-    setApplicationText('')
   }
 
   if (loading) {

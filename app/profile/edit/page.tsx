@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { CheckIcon, PlusIcon, XMarkIcon, PhotoIcon } from '@heroicons/react/24/outline'
 import { getActiveUser, loadSpecialistProfile, readJson, saveSpecialistProfile, type StoredUser, writeJson } from '@/lib/storage'
+import { getCurrentUser, getSpecialist, updateSpecialist, isSupabaseAvailable } from '@/lib/supabase'
 
 type Specialization = 'Дизайн' | 'SMM' | 'Веб-разработка'
 
@@ -46,54 +47,105 @@ export default function EditProfilePage() {
   
   useEffect(() => {
     // Проверяем авторизацию
-    const user = getActiveUser()
-    if (user?.type === 'specialist' && user.email) {
-      setCurrentUser(user)
-      setIsAuthorized(true)
-    } else {
-      router.push('/login?redirect=/profile/edit')
+    const checkAuth = async () => {
+      if (isSupabaseAvailable()) {
+        const user = await getCurrentUser()
+        if (user) {
+          const userType = user.user_metadata?.userType
+          if (userType === 'specialist') {
+            setCurrentUser({
+              id: user.id,
+              email: user.email || '',
+              name: user.user_metadata?.displayName || '',
+              password: '',
+              type: 'specialist',
+            })
+            setIsAuthorized(true)
+          } else {
+            router.push('/login?redirect=/profile/edit')
+          }
+        } else {
+          router.push('/login?redirect=/profile/edit')
+        }
+      } else {
+        const user = getActiveUser()
+        if (user?.type === 'specialist' && user.email) {
+          setCurrentUser(user)
+          setIsAuthorized(true)
+        } else {
+          router.push('/login?redirect=/profile/edit')
+        }
+      }
     }
+    checkAuth()
   }, [router])
   
   const [formData, setFormData] = useState<ProfileData>(createEmptyProfile)
   const [projects, setProjects] = useState<Project[]>([])
   const [activeTab, setActiveTab] = useState<'card' | 'portfolio'>('card')
 
-  // Загружаем данные профиля из localStorage
+  // Загружаем данные профиля из Supabase или localStorage
   useEffect(() => {
     if (!isAuthorized || !currentUser) return
 
-    try {
-      const savedProfile = loadSpecialistProfile<ProfileData | null>(currentUser.id, null)
-      if (savedProfile) {
-        // Миграция старых данных
-        if ('name' in savedProfile && typeof savedProfile.name === 'string') {
-          const nameParts = savedProfile.name.split(' ')
-          setFormData({
-            firstName: nameParts[0] || '',
-            lastName: nameParts.slice(1).join(' ') || '',
-            specialization: (savedProfile as any).specialization || 'Дизайн',
-            bio: savedProfile.bio || '',
-            telegram: (savedProfile as any).telegram || '',
-            email: savedProfile.email || currentUser.email || '',
-          })
+    const loadProfile = async () => {
+      try {
+        if (isSupabaseAvailable()) {
+          // Загружаем из Supabase
+          const specialist = await getSpecialist(currentUser.id)
+          if (specialist) {
+            setFormData({
+              firstName: specialist.first_name || '',
+              lastName: specialist.last_name || '',
+              specialization: (specialist.specialization as Specialization) || 'Дизайн',
+              bio: specialist.bio || '',
+              telegram: specialist.telegram || '',
+              email: specialist.email || currentUser.email || '',
+              showInSearch: specialist.show_in_search !== undefined ? specialist.show_in_search : true,
+            })
+            
+            // Загружаем портфолио
+            if (specialist.portfolio && Array.isArray(specialist.portfolio)) {
+              setProjects(specialist.portfolio as Project[])
+            }
+          } else {
+            setFormData(prev => ({ ...prev, email: currentUser.email || '' }))
+          }
         } else {
-          setFormData({
-            ...savedProfile,
-            email: savedProfile.email || currentUser.email || '',
-            showInSearch: savedProfile.showInSearch !== undefined ? savedProfile.showInSearch : true,
-          })
-          if (savedProfile.projects) {
-            setProjects(savedProfile.projects)
+          // Fallback на localStorage
+          const savedProfile = loadSpecialistProfile<ProfileData | null>(currentUser.id, null)
+          if (savedProfile) {
+            if ('name' in savedProfile && typeof savedProfile.name === 'string') {
+              const nameParts = savedProfile.name.split(' ')
+              setFormData({
+                firstName: nameParts[0] || '',
+                lastName: nameParts.slice(1).join(' ') || '',
+                specialization: (savedProfile as any).specialization || 'Дизайн',
+                bio: savedProfile.bio || '',
+                telegram: (savedProfile as any).telegram || '',
+                email: savedProfile.email || currentUser.email || '',
+              })
+            } else {
+              setFormData({
+                ...savedProfile,
+                email: savedProfile.email || currentUser.email || '',
+                showInSearch: savedProfile.showInSearch !== undefined ? savedProfile.showInSearch : true,
+              })
+              if (savedProfile.projects) {
+                setProjects(savedProfile.projects)
+              }
+            }
+          } else {
+            setFormData(prev => ({ ...prev, email: currentUser.email || '' }))
           }
         }
-      } else {
+      } catch (error) {
+        console.error('Ошибка загрузки профиля:', error)
         setFormData(prev => ({ ...prev, email: currentUser.email || '' }))
       }
-    } catch (error) {
-      console.error('Ошибка загрузки профиля:', error)
-      setFormData(prev => ({ ...prev, email: currentUser.email || '' }))
     }
+
+    loadProfile()
   }, [isAuthorized, currentUser])
 
   // Функция для обрезки изображения в формат 4:3 (альбомная ориентация)
@@ -201,7 +253,7 @@ export default function EditProfilePage() {
     ))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
     // Валидация
@@ -215,46 +267,66 @@ export default function EditProfilePage() {
       return
     }
 
-    // Сохраняем профиль с проектами
-    const profileDataWithProjects = {
-      ...formData,
-      projects: projects.map(p => ({
-        id: p.id,
-        title: p.title,
-        description: p.description,
-        images: p.images.map(img => ({ url: img.url }))
-      }))
+    try {
+      if (isSupabaseAvailable()) {
+        // Сохраняем в Supabase
+        const portfolioData = projects.map(p => ({
+          id: p.id,
+          title: p.title,
+          description: p.description,
+          images: p.images.map(img => ({ url: img.url }))
+        }))
+
+        await updateSpecialist(currentUser.id, {
+          first_name: formData.firstName.trim(),
+          last_name: formData.lastName.trim(),
+          specialization: formData.specialization,
+          bio: formData.bio || '',
+          telegram: formData.telegram.trim(),
+          email: formData.email || currentUser.email,
+          show_in_search: formData.showInSearch !== false,
+          portfolio: portfolioData,
+        })
+
+        router.push('/specialists')
+      } else {
+        // Fallback на localStorage
+        const profileDataWithProjects = {
+          ...formData,
+          projects: projects.map(p => ({
+            id: p.id,
+            title: p.title,
+            description: p.description,
+            images: p.images.map(img => ({ url: img.url }))
+          }))
+        }
+        saveSpecialistProfile(currentUser.id, profileDataWithProjects)
+        
+        const specialists = readJson<any[]>('specialists', [])
+        const existingIndex = specialists.findIndex((s: any) => s.id === currentUser.id)
+        const specialistId = currentUser.id || Date.now().toString()
+        
+        const specialistData = {
+          id: specialistId,
+          ...profileDataWithProjects,
+          rating: existingIndex >= 0 ? specialists[existingIndex].rating || 0 : 0,
+          hiredCount: existingIndex >= 0 ? specialists[existingIndex].hiredCount || 0 : 0,
+        }
+        
+        if (existingIndex >= 0) {
+          specialists[existingIndex] = specialistData
+        } else {
+          specialists.push(specialistData)
+        }
+        
+        writeJson('specialists', specialists)
+        window.dispatchEvent(new Event('storage'))
+        router.push('/specialists')
+      }
+    } catch (error: any) {
+      console.error('Ошибка сохранения профиля:', error)
+      alert(error?.message || 'Не удалось сохранить профиль. Попробуйте снова.')
     }
-    saveSpecialistProfile(currentUser.id, profileDataWithProjects)
-    
-    // Обновляем или добавляем специалиста в список
-    const specialists = readJson<any[]>('specialists', [])
-    
-    // Ищем существующего специалиста по ID
-    const existingIndex = specialists.findIndex((s: any) => s.id === currentUser.id)
-    const specialistId = currentUser.id || Date.now().toString()
-    
-    const specialistData = {
-      id: specialistId,
-      ...profileDataWithProjects,
-      rating: existingIndex >= 0 ? specialists[existingIndex].rating || 0 : 0,
-      hiredCount: existingIndex >= 0 ? specialists[existingIndex].hiredCount || 0 : 0,
-    }
-    
-    if (existingIndex >= 0) {
-      // Обновляем существующего
-      specialists[existingIndex] = specialistData
-    } else {
-      // Добавляем нового
-      specialists.push(specialistData)
-    }
-    
-    writeJson('specialists', specialists)
-    
-    // Триггерим событие для обновления списка на других вкладках
-    window.dispatchEvent(new Event('storage'))
-    
-    router.push('/specialists')
   }
 
   if (!isAuthorized) {

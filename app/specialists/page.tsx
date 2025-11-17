@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { MagnifyingGlassIcon, StarIcon } from '@heroicons/react/24/outline'
 import { readJson } from '@/lib/storage'
 import SpecialistDrawer from '@/components/SpecialistDrawer'
+import { getSpecialists, getSpecialist, isSupabaseAvailable } from '@/lib/supabase'
 
 type Specialization = 'Дизайн' | 'SMM' | 'Веб-разработка'
 
@@ -235,17 +236,55 @@ export default function SpecialistsPage() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [currentProjectIndex, setCurrentProjectIndex] = useState(0)
 
-  // Загружаем специалистов из localStorage и объединяем с моковыми
+  // Загружаем специалистов из Supabase или localStorage
   useEffect(() => {
-    const loadSpecialists = () => {
+    const loadSpecialists = async () => {
+      try {
+        if (isSupabaseAvailable()) {
+          // Загружаем из Supabase
+          const supabaseSpecialists = await getSpecialists()
+          const formattedSpecialists: Specialist[] = supabaseSpecialists
+            .filter(s => s.show_in_search !== false) // Фильтруем по настройке показа
+            .map((s: any) => ({
+              id: s.id,
+              firstName: s.first_name || '',
+              lastName: s.last_name || '',
+              specialization: s.specialization as Specialization,
+              bio: s.bio || '',
+              telegram: s.telegram || '',
+              email: s.email || '',
+              rating: 0, // Пока нет рейтинга в БД
+              hiredCount: 0, // Пока нет счетчика в БД
+              showInSearch: s.show_in_search !== false,
+              projects: (s.portfolio && Array.isArray(s.portfolio)) ? s.portfolio : [],
+            }))
+          
+          // Объединяем с моковыми данными
+          const allSpecialists = [...mockSpecialists]
+          formattedSpecialists.forEach((saved: Specialist) => {
+            if (!allSpecialists.find(s => s.id === saved.id)) {
+              allSpecialists.push(saved)
+            }
+          })
+          
+          setSpecialists(allSpecialists)
+        } else {
+          // Fallback на localStorage
+          loadFromLocalStorage()
+        }
+      } catch (error) {
+        console.error('Ошибка загрузки специалистов:', error)
+        loadFromLocalStorage()
+      }
+    }
+
+    const loadFromLocalStorage = () => {
       const savedSpecialists = readJson<any[]>('specialists', [])
       const allSpecialists = [...mockSpecialists]
       
       savedSpecialists.forEach((saved: any) => {
-        // Миграция старых данных
         let migratedSpecialist: Specialist
         if ('name' in saved && typeof saved.name === 'string') {
-          // Старая структура - мигрируем
           const nameParts = saved.name.split(' ')
           migratedSpecialist = {
             id: saved.id,
@@ -261,7 +300,6 @@ export default function SpecialistsPage() {
             projects: saved.projects || [],
           }
         } else {
-          // Новая структура или уже мигрированная
           migratedSpecialist = {
             id: saved.id,
             firstName: saved.firstName || '',
@@ -291,11 +329,10 @@ export default function SpecialistsPage() {
     }
     
     window.addEventListener('storage', handleStorageChange)
-    window.addEventListener('focus', loadSpecialists)
+    window.addEventListener('focus', () => loadSpecialists())
     
     return () => {
       window.removeEventListener('storage', handleStorageChange)
-      window.removeEventListener('focus', loadSpecialists)
     }
   }, [])
 
@@ -335,66 +372,100 @@ export default function SpecialistsPage() {
       })
   }, [specialists, searchQuery, selectedSpecialization, sortBy])
 
-  const handleSpecialistClick = (specialistId: string) => {
-    // Загружаем полные данные специалиста
-    const fullSpecialist = mockFullSpecialists[specialistId]
-    if (fullSpecialist) {
-      setSelectedSpecialist(fullSpecialist)
-      setCurrentProjectIndex(0)
-      setIsDrawerOpen(true)
-    } else {
-      // Пытаемся загрузить из localStorage
-      const savedSpecialists = readJson<any[]>('specialists', [])
-      const found = savedSpecialists.find((s: any) => s.id === specialistId)
-      if (found) {
-        // Миграция старых данных
-        let migratedSpecialist: FullSpecialist
-        if ('name' in found && typeof found.name === 'string') {
-          const nameParts = found.name.split(' ')
-          migratedSpecialist = {
-            id: found.id,
-            firstName: nameParts[0] || '',
-            lastName: nameParts.slice(1).join(' ') || '',
-            specialization: found.specialization || 'Дизайн',
-            bio: found.bio || '',
-            telegram: found.telegram || '',
-            email: found.email || '',
-            rating: found.rating || 0,
-            hiredCount: found.hiredCount || 0,
-            showInSearch: found.showInSearch !== undefined ? found.showInSearch : true,
-            projects: (found.projects || []).map((p: any, idx: number) => ({
-              id: p.id || `project-${idx}`,
-              title: p.title || '',
-              description: p.description || '',
-              images: p.images || [],
-              link: p.link,
-            })),
+  const handleSpecialistClick = async (specialistId: string) => {
+    try {
+      if (isSupabaseAvailable()) {
+        // Загружаем из Supabase
+        const specialist = await getSpecialist(specialistId)
+        if (specialist) {
+          const fullSpecialist: FullSpecialist = {
+            id: specialist.id,
+            firstName: specialist.first_name || '',
+            lastName: specialist.last_name || '',
+            specialization: specialist.specialization as Specialization,
+            bio: specialist.bio || '',
+            telegram: specialist.telegram || '',
+            email: specialist.email || '',
+            rating: 0,
+            hiredCount: 0,
+            showInSearch: specialist.show_in_search !== false,
+            projects: (specialist.portfolio && Array.isArray(specialist.portfolio)) 
+              ? specialist.portfolio.map((p: any, idx: number) => ({
+                  id: p.id || `project-${idx}`,
+                  title: p.title || '',
+                  description: p.description || '',
+                  images: p.images || [],
+                  link: p.link,
+                }))
+              : [],
           }
-        } else {
-          migratedSpecialist = {
-            id: found.id,
-            firstName: found.firstName || '',
-            lastName: found.lastName || '',
-            specialization: found.specialization || 'Дизайн',
-            bio: found.bio,
-            telegram: found.telegram || '',
-            email: found.email,
-            rating: found.rating || 0,
-            hiredCount: found.hiredCount || 0,
-            showInSearch: found.showInSearch !== undefined ? found.showInSearch : true,
-            projects: (found.projects || []).map((p: any, idx: number) => ({
-              id: p.id || `project-${idx}`,
-              title: p.title || '',
-              description: p.description || '',
-              images: p.images || [],
-              link: p.link,
-            })),
-          }
+          setSelectedSpecialist(fullSpecialist)
+          setCurrentProjectIndex(0)
+          setIsDrawerOpen(true)
+          return
         }
-        setSelectedSpecialist(migratedSpecialist)
+      }
+
+      // Fallback на моковые данные или localStorage
+      const fullSpecialist = mockFullSpecialists[specialistId]
+      if (fullSpecialist) {
+        setSelectedSpecialist(fullSpecialist)
         setCurrentProjectIndex(0)
         setIsDrawerOpen(true)
+      } else {
+        const savedSpecialists = readJson<any[]>('specialists', [])
+        const found = savedSpecialists.find((s: any) => s.id === specialistId)
+        if (found) {
+          let migratedSpecialist: FullSpecialist
+          if ('name' in found && typeof found.name === 'string') {
+            const nameParts = found.name.split(' ')
+            migratedSpecialist = {
+              id: found.id,
+              firstName: nameParts[0] || '',
+              lastName: nameParts.slice(1).join(' ') || '',
+              specialization: found.specialization || 'Дизайн',
+              bio: found.bio || '',
+              telegram: found.telegram || '',
+              email: found.email || '',
+              rating: found.rating || 0,
+              hiredCount: found.hiredCount || 0,
+              showInSearch: found.showInSearch !== undefined ? found.showInSearch : true,
+              projects: (found.projects || []).map((p: any, idx: number) => ({
+                id: p.id || `project-${idx}`,
+                title: p.title || '',
+                description: p.description || '',
+                images: p.images || [],
+                link: p.link,
+              })),
+            }
+          } else {
+            migratedSpecialist = {
+              id: found.id,
+              firstName: found.firstName || '',
+              lastName: found.lastName || '',
+              specialization: found.specialization || 'Дизайн',
+              bio: found.bio,
+              telegram: found.telegram || '',
+              email: found.email,
+              rating: found.rating || 0,
+              hiredCount: found.hiredCount || 0,
+              showInSearch: found.showInSearch !== undefined ? found.showInSearch : true,
+              projects: (found.projects || []).map((p: any, idx: number) => ({
+                id: p.id || `project-${idx}`,
+                title: p.title || '',
+                description: p.description || '',
+                images: p.images || [],
+                link: p.link,
+              })),
+            }
+          }
+          setSelectedSpecialist(migratedSpecialist)
+          setCurrentProjectIndex(0)
+          setIsDrawerOpen(true)
+        }
       }
+    } catch (error) {
+      console.error('Ошибка загрузки специалиста:', error)
     }
   }
 
