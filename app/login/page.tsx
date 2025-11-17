@@ -106,18 +106,18 @@ function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white py-20 px-6">
-      <div className="max-w-md w-full space-y-10">
+    <div className="min-h-screen flex items-center justify-center bg-white py-12 sm:py-16 lg:py-20 px-4 sm:px-6">
+      <div className="max-w-md w-full space-y-8 sm:space-y-10">
         <div>
           <div className="flex justify-center mb-8">
             <div className="w-16 h-16 rounded-apple bg-primary-50 flex items-center justify-center">
               <ArrowRightOnRectangleIcon className="w-8 h-8 text-primary-700" />
             </div>
           </div>
-          <h2 className="text-center text-4xl font-light text-primary-900 mb-3 tracking-tight">
+          <h2 className="text-center text-3xl sm:text-4xl font-light text-primary-900 mb-2 sm:mb-3 tracking-tight">
             Вход в аккаунт
           </h2>
-          <p className="text-center text-base font-light text-primary-600">
+          <p className="text-center text-sm sm:text-base font-light text-primary-600">
             Или{' '}
             <Link href="/register" className="font-normal text-primary-700 hover:text-primary-900">
               зарегистрируйтесь

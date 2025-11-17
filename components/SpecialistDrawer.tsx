@@ -122,25 +122,25 @@ export default function SpecialistDrawer({
           {/* Left side - Profile (scrollable) */}
           <div 
             ref={leftScrollRef}
-            className="lg:w-1/2 p-8 lg:p-12 border-r border-primary-100 flex flex-col overflow-y-auto scrollbar-hide"
+            className="lg:w-1/2 p-4 sm:p-6 lg:p-8 xl:p-12 border-r border-primary-100 flex flex-col overflow-y-auto scrollbar-hide"
           >
               {/* Avatar */}
-              <div className="mb-6">
+              <div className="mb-4 sm:mb-6">
                 {specialist.avatarUrl ? (
                   <img
                     src={specialist.avatarUrl}
                     alt={fullName}
-                    className="w-24 h-24 rounded-full object-cover mb-4 border border-primary-200"
+                    className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover mb-3 sm:mb-4 border border-primary-200"
                   />
                 ) : (
-                  <div className="w-24 h-24 rounded-full bg-primary-50 flex items-center justify-center text-primary-700 text-3xl font-normal mb-4">
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-primary-50 flex items-center justify-center text-primary-700 text-2xl sm:text-3xl font-normal mb-3 sm:mb-4">
                     {(firstName?.[0] || '')}{(lastName?.[0] || '')}
                   </div>
                 )}
-                <h1 className="text-3xl font-light text-primary-900 mb-2 tracking-tight">
+                <h1 className="text-2xl sm:text-3xl font-light text-primary-900 mb-2 tracking-tight">
                   {fullName}
                 </h1>
-                <p className="text-lg font-light text-primary-600 mb-6">
+                <p className="text-base sm:text-lg font-light text-primary-600 mb-4 sm:mb-6">
                   {specialist.specialization || 'Специалист'}
                 </p>
                 {specialist.bio && (
@@ -233,17 +233,17 @@ export default function SpecialistDrawer({
           {/* Right side - Portfolio (fixed) */}
           <div 
             ref={rightSectionRef}
-            className="lg:w-1/2 lg:sticky lg:top-0 lg:h-screen relative bg-primary-50 flex flex-col min-h-[400px] lg:min-h-0 overflow-hidden"
+            className="lg:w-1/2 lg:sticky lg:top-0 lg:h-screen relative bg-primary-50 flex flex-col min-h-[300px] sm:min-h-[400px] lg:min-h-0 overflow-hidden"
           >
             {hasProjects && currentProject ? (
               <>
                 {/* Заголовок проекта (фиксированный) */}
-                <div className="relative z-20 pt-8 pl-8 pr-20 pb-4 bg-gradient-to-b from-primary-50 via-primary-50/95 to-transparent backdrop-blur-sm">
-                  <h3 className="text-2xl font-normal text-primary-900 tracking-tight break-words">
+                <div className="relative z-20 pt-4 sm:pt-6 lg:pt-8 pl-4 sm:pl-6 lg:pl-8 pr-16 sm:pr-20 pb-3 sm:pb-4 bg-gradient-to-b from-primary-50 via-primary-50/95 to-transparent backdrop-blur-sm">
+                  <h3 className="text-xl sm:text-2xl font-normal text-primary-900 tracking-tight break-words">
                     {currentProject.title}
                   </h3>
                   {specialist.projects && specialist.projects.length > 1 && (
-                    <div className="mt-2 text-sm font-light text-primary-500">
+                    <div className="mt-2 text-xs sm:text-sm font-light text-primary-500">
                       {currentProjectIndex + 1} / {specialist.projects.length}
                     </div>
                   )}
@@ -255,7 +255,7 @@ export default function SpecialistDrawer({
                 {/* Галерея изображений (скроллируемая) */}
                 <div className="flex-1 overflow-y-auto scrollbar-hide relative">
                   {currentProject.images && currentProject.images.length > 0 ? (
-                    <div className="px-8 py-4 space-y-4">
+                    <div className="px-4 sm:px-6 lg:px-8 py-3 sm:py-4 space-y-3 sm:space-y-4">
                       {currentProject.images.map((image, index) => (
                         <div key={index} className="w-full rounded-apple overflow-hidden border border-primary-100 bg-primary-50" style={{ aspectRatio: '4/3' }}>
                           <img

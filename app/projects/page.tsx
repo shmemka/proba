@@ -198,35 +198,35 @@ export default function ProjectsPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-6 lg:px-8 py-16">
-      <div className="mb-12 flex justify-between items-start">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
+      <div className="mb-8 sm:mb-12 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
         <div>
-          <h1 className="text-5xl font-light text-primary-900 mb-3 tracking-tight">Активные проекты</h1>
-          <p className="text-lg font-light text-primary-600">Найдите проект для получения опыта и портфолио</p>
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-light text-primary-900 mb-2 sm:mb-3 tracking-tight">Активные проекты</h1>
+          <p className="text-base sm:text-lg font-light text-primary-600">Найдите проект для получения опыта и портфолио</p>
         </div>
         <Link
           href="/projects/new"
-          className="inline-flex items-center gap-2 bg-primary-900 text-white px-5 py-3 rounded-apple hover:bg-primary-800 transition-colors font-normal tracking-tight"
+          className="inline-flex items-center justify-center gap-2 bg-primary-900 text-white px-4 sm:px-5 py-2 sm:py-3 rounded-apple hover:bg-primary-800 transition-colors font-normal tracking-tight"
         >
           <PlusIcon className="w-4 h-4" />
-          Разместить проект
+          <span className="whitespace-nowrap">Разместить проект</span>
         </Link>
       </div>
 
-      <div className="mb-10 flex gap-4">
+      <div className="mb-6 sm:mb-10 flex flex-col sm:flex-row gap-3 sm:gap-4">
         <div className="flex-1 relative">
           <MagnifyingGlassIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 text-primary-400 w-5 h-5" />
           <input
             type="text"
             placeholder="Поиск по названию, описанию или навыкам..."
-            className="w-full pl-12 pr-4 py-3 border border-primary-200 rounded-apple focus:ring-1 focus:ring-primary-900 focus:border-primary-900 bg-white text-primary-900 placeholder-primary-400 font-light"
+            className="w-full pl-12 pr-4 py-3 border border-primary-200 rounded-apple focus:ring-1 focus:ring-primary-900 focus:border-primary-900 bg-white text-primary-900 placeholder-primary-400 font-light text-sm sm:text-base"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
         <button
           onClick={() => setIsFilterModalOpen(true)}
-          className="px-5 py-3 border border-primary-200 rounded-apple hover:bg-primary-50 transition-colors flex items-center gap-2 text-primary-700 font-normal"
+          className="px-4 sm:px-5 py-3 border border-primary-200 rounded-apple hover:bg-primary-50 transition-colors flex items-center justify-center gap-2 text-primary-700 font-normal"
         >
           <FunnelIcon className="w-5 h-5" />
           Фильтры
@@ -296,19 +296,19 @@ export default function ProjectsPage() {
           <Link
             key={project.id}
             href={`/projects/${project.id}`}
-            className="block bg-white rounded-apple border border-primary-100 hover:border-primary-200 transition-colors p-8"
+            className="block bg-white rounded-apple border border-primary-100 hover:border-primary-200 transition-colors p-4 sm:p-6 lg:p-8"
           >
-            <div className="flex justify-between items-start mb-4">
-              <div className="flex-1">
-                <h3 className="text-2xl font-normal text-primary-900 mb-3 tracking-tight">{project.title}</h3>
-                <p className="text-base font-light text-primary-600 mb-6 line-clamp-2 leading-relaxed">{project.description}</p>
+            <div className="flex justify-between items-start mb-3 sm:mb-4 gap-3">
+              <div className="flex-1 min-w-0">
+                <h3 className="text-xl sm:text-2xl font-normal text-primary-900 mb-2 sm:mb-3 tracking-tight">{project.title}</h3>
+                <p className="text-sm sm:text-base font-light text-primary-600 mb-4 sm:mb-6 line-clamp-2 leading-relaxed">{project.description}</p>
               </div>
-              <span className="ml-6 px-3 py-1.5 bg-primary-50 text-primary-700 rounded-apple text-xs font-light">
+              <span className="ml-2 sm:ml-6 px-2 sm:px-3 py-1 sm:py-1.5 bg-primary-50 text-primary-700 rounded-apple text-xs font-light whitespace-nowrap flex-shrink-0">
                 Открыт
               </span>
             </div>
 
-            <div className="flex flex-wrap items-center gap-6 text-sm font-light text-primary-500 mb-6">
+            <div className="flex flex-wrap items-center gap-3 sm:gap-4 lg:gap-6 text-xs sm:text-sm font-light text-primary-500 mb-4 sm:mb-6">
               <div className="flex items-center gap-1.5">
                 <TagIcon className="w-4 h-4" />
                 <span className="font-normal">{project.company}</span>

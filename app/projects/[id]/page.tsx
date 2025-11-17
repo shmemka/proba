@@ -300,7 +300,7 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
 
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto px-6 lg:px-8 py-16">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
         <div className="text-center text-primary-600 font-light">Загрузка...</div>
       </div>
     )
@@ -311,23 +311,23 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-6 lg:px-8 py-16 pt-20 lg:pt-16">
-      <div className="bg-white rounded-apple border border-primary-100 p-10 mb-6">
-        <div className="mb-8">
-          <div className="flex justify-between items-start mb-6">
-            <div className="flex-1">
-              <h1 className="text-4xl font-light text-primary-900 mb-4 tracking-tight">{project.title}</h1>
-              <div className="flex items-center gap-2 text-primary-600 mb-4">
-                <TagIcon className="w-5 h-5" />
-                <span className="font-normal">{project.company}</span>
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16 pt-16 sm:pt-20 lg:pt-16">
+      <div className="bg-white rounded-apple border border-primary-100 p-4 sm:p-6 lg:p-10 mb-4 sm:mb-6">
+        <div className="mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 sm:gap-4 mb-4 sm:mb-6">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-light text-primary-900 mb-3 sm:mb-4 tracking-tight">{project.title}</h1>
+              <div className="flex items-center gap-2 text-primary-600 mb-3 sm:mb-4">
+                <TagIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="font-normal text-sm sm:text-base">{project.company}</span>
               </div>
             </div>
-            <span className="px-4 py-2 bg-primary-50 text-primary-700 rounded-apple text-xs font-light">
+            <span className="px-3 sm:px-4 py-1.5 sm:py-2 bg-primary-50 text-primary-700 rounded-apple text-xs font-light whitespace-nowrap self-start sm:self-auto">
               Открыт
             </span>
           </div>
 
-          <div className="flex flex-wrap items-center gap-6 text-sm font-light text-primary-500 mb-8">
+          <div className="flex flex-wrap items-center gap-3 sm:gap-4 lg:gap-6 text-xs sm:text-sm font-light text-primary-500 mb-6 sm:mb-8">
             <div className="flex items-center gap-1.5">
               <MapPinIcon className="w-4 h-4" />
               <span>{project.location}</span>
@@ -343,18 +343,18 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
           </div>
         </div>
 
-        <div className="mb-8">
-          <h2 className="text-2xl font-light text-primary-900 mb-4 tracking-tight">Описание проекта</h2>
-          <p className="text-base font-light text-primary-700 leading-relaxed whitespace-pre-line">{project.fullDescription}</p>
+        <div className="mb-6 sm:mb-8">
+          <h2 className="text-xl sm:text-2xl font-light text-primary-900 mb-3 sm:mb-4 tracking-tight">Описание проекта</h2>
+          <p className="text-sm sm:text-base font-light text-primary-700 leading-relaxed whitespace-pre-line">{project.fullDescription}</p>
         </div>
 
-        <div className="mb-8">
-          <h2 className="text-2xl font-light text-primary-900 mb-4 tracking-tight">Требуемые навыки</h2>
+        <div className="mb-6 sm:mb-8">
+          <h2 className="text-xl sm:text-2xl font-light text-primary-900 mb-3 sm:mb-4 tracking-tight">Требуемые навыки</h2>
           <div className="flex flex-wrap gap-2">
             {project.skills.map((skill) => (
               <span
                 key={skill}
-                className="inline-flex items-center px-4 py-2 bg-primary-50 text-primary-700 rounded-apple text-sm font-light"
+                className="inline-flex items-center px-3 sm:px-4 py-1.5 sm:py-2 bg-primary-50 text-primary-700 rounded-apple text-xs sm:text-sm font-light"
               >
                 {skill}
               </span>
@@ -363,8 +363,8 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
         </div>
 
         {project.requirements && project.requirements.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-2xl font-light text-primary-900 mb-4 tracking-tight">Требования</h2>
+          <div className="mb-6 sm:mb-8">
+            <h2 className="text-xl sm:text-2xl font-light text-primary-900 mb-3 sm:mb-4 tracking-tight">Требования</h2>
             <ul className="space-y-2 text-primary-700 font-light">
               {project.requirements.map((req, index) => (
                 <li key={index} className="flex items-start gap-2">
@@ -377,8 +377,8 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
         )}
 
         {project.deliverables && project.deliverables.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-2xl font-light text-primary-900 mb-4 tracking-tight">Результат работы</h2>
+          <div className="mb-6 sm:mb-8">
+            <h2 className="text-xl sm:text-2xl font-light text-primary-900 mb-3 sm:mb-4 tracking-tight">Результат работы</h2>
             <ul className="space-y-2 text-primary-700 font-light">
               {project.deliverables.map((deliverable, index) => (
                 <li key={index} className="flex items-start gap-2">
@@ -395,26 +395,26 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
             Ваша заявка успешно отправлена! Компания свяжется с вами в ближайшее время.
           </div>
         ) : showApplicationForm ? (
-          <form onSubmit={handleSubmit} className="border-t border-primary-100 pt-8">
-            <h3 className="text-xl font-light text-primary-900 mb-4 tracking-tight">Подать заявку</h3>
-            <div className="mb-6">
+          <form onSubmit={handleSubmit} className="border-t border-primary-100 pt-6 sm:pt-8">
+            <h3 className="text-lg sm:text-xl font-light text-primary-900 mb-3 sm:mb-4 tracking-tight">Подать заявку</h3>
+            <div className="mb-4 sm:mb-6">
               <label htmlFor="application" className="block text-sm font-light text-primary-700 mb-2">
                 Расскажите о себе и почему вы подходите для этого проекта
               </label>
               <textarea
                 id="application"
                 rows={6}
-                className="w-full px-5 py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white"
+                className="w-full px-4 sm:px-5 py-3 sm:py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white text-sm sm:text-base"
                 placeholder="Опишите ваш опыт, навыки и мотивацию..."
                 value={applicationText}
                 onChange={(e) => setApplicationText(e.target.value)}
                 required
               />
             </div>
-            <div className="flex gap-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               <button
                 type="submit"
-                className="inline-flex items-center gap-2 bg-primary-900 text-white px-6 py-4 rounded-apple hover:bg-primary-800 transition-colors font-normal tracking-tight"
+                className="inline-flex items-center justify-center gap-2 bg-primary-900 text-white px-6 py-3 sm:py-4 rounded-apple hover:bg-primary-800 transition-colors font-normal tracking-tight"
               >
                 <PaperAirplaneIcon className="w-5 h-5" />
                 Отправить заявку
@@ -422,17 +422,17 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
               <button
                 type="button"
                 onClick={() => setShowApplicationForm(false)}
-                className="border border-primary-200 text-primary-700 px-6 py-4 rounded-apple hover:bg-primary-50 transition-colors font-normal tracking-tight"
+                className="border border-primary-200 text-primary-700 px-6 py-3 sm:py-4 rounded-apple hover:bg-primary-50 transition-colors font-normal tracking-tight"
               >
                 Отмена
               </button>
             </div>
           </form>
         ) : (
-          <div className="border-t border-primary-100 pt-8">
+          <div className="border-t border-primary-100 pt-6 sm:pt-8">
             <button
               onClick={() => setShowApplicationForm(true)}
-              className="inline-flex items-center gap-2 bg-primary-900 text-white px-6 py-4 rounded-apple hover:bg-primary-800 transition-colors font-normal tracking-tight"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-primary-900 text-white px-6 py-3 sm:py-4 rounded-apple hover:bg-primary-800 transition-colors font-normal tracking-tight"
             >
               <PaperAirplaneIcon className="w-5 h-5" />
               Подать заявку на проект

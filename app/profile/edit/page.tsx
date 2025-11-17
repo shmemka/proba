@@ -398,10 +398,10 @@ export default function EditProfilePage() {
   const specializations: Specialization[] = ['Дизайн', 'SMM', 'Веб-разработка']
 
   return (
-    <div className="max-w-4xl mx-auto px-6 lg:px-8 py-16">
-      <div className="mb-8">
-        <h1 className="text-4xl font-light text-primary-900 mb-3 tracking-tight">Настройки профиля</h1>
-        <p className="text-lg font-light text-primary-600">Управляйте информацией о себе и портфолио</p>
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-light text-primary-900 mb-2 sm:mb-3 tracking-tight">Настройки профиля</h1>
+        <p className="text-base sm:text-lg font-light text-primary-600">Управляйте информацией о себе и портфолио</p>
       </div>
 
       {/* Tabs */}
@@ -440,15 +440,15 @@ export default function EditProfilePage() {
 
       <form onSubmit={handleSubmit}>
         {activeTab === 'card' && (
-          <div className="bg-white rounded-apple border border-primary-100 p-10 space-y-6">
+          <div className="bg-white rounded-apple border border-primary-100 p-4 sm:p-6 lg:p-10 space-y-4 sm:space-y-6">
             {/* Загрузка аватарки */}
             <div>
               <label className="block text-sm font-light text-primary-700 mb-2">
                 Фото профиля
               </label>
-              <div className="flex items-center gap-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
                 <div className="relative">
-                  <div className="w-24 h-24 rounded-apple overflow-hidden border border-primary-200 bg-primary-50 flex items-center justify-center">
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-apple overflow-hidden border border-primary-200 bg-primary-50 flex items-center justify-center">
                     {avatarPreview ? (
                       <img
                         src={avatarPreview}
@@ -456,42 +456,44 @@ export default function EditProfilePage() {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-primary-400 text-2xl font-light">
+                      <div className="w-full h-full flex items-center justify-center text-primary-400 text-xl sm:text-2xl font-light">
                         {(formData.firstName?.[0] || '') + (formData.lastName?.[0] || '') || '?'}
                       </div>
                     )}
                   </div>
                 </div>
-                <div className="flex-1">
-                  <label className="inline-block cursor-pointer">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0]
-                        if (file) {
-                          handleAvatarUpload(file)
-                        }
-                      }}
-                    />
-                    <span className="inline-flex items-center gap-2 px-4 py-2 border border-primary-200 rounded-apple text-sm font-normal text-primary-700 hover:bg-primary-50 transition-colors">
-                      <PhotoIcon className="w-4 h-4" />
-                      {avatarPreview ? 'Изменить фото' : 'Загрузить фото'}
-                    </span>
-                  </label>
-                  {avatarPreview && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAvatarPreview('')
-                        setFormData({ ...formData, avatarUrl: '' })
-                      }}
-                      className="ml-3 text-sm font-light text-primary-500 hover:text-primary-700"
-                    >
-                      Удалить
-                    </button>
-                  )}
+                <div className="flex-1 w-full sm:w-auto">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
+                    <label className="inline-block cursor-pointer">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0]
+                          if (file) {
+                            handleAvatarUpload(file)
+                          }
+                        }}
+                      />
+                      <span className="inline-flex items-center gap-2 px-4 py-2 border border-primary-200 rounded-apple text-sm font-normal text-primary-700 hover:bg-primary-50 transition-colors">
+                        <PhotoIcon className="w-4 h-4" />
+                        {avatarPreview ? 'Изменить фото' : 'Загрузить фото'}
+                      </span>
+                    </label>
+                    {avatarPreview && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAvatarPreview('')
+                          setFormData({ ...formData, avatarUrl: '' })
+                        }}
+                        className="text-sm font-light text-primary-500 hover:text-primary-700"
+                      >
+                        Удалить
+                      </button>
+                    )}
+                  </div>
                   <p className="text-xs font-light text-primary-500 mt-2">
                     Рекомендуемый размер: квадрат, минимум 400x400px
                   </p>
@@ -603,10 +605,10 @@ export default function EditProfilePage() {
               </label>
             </div>
 
-            <div className="flex gap-4 pt-6 border-t border-primary-100">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4 sm:pt-6 border-t border-primary-100">
               <button
                 type="submit"
-                className="inline-flex items-center gap-2 bg-primary-900 text-white px-6 py-4 rounded-apple hover:bg-primary-800 transition-colors font-normal tracking-tight"
+                className="inline-flex items-center justify-center gap-2 bg-primary-900 text-white px-6 py-3 sm:py-4 rounded-apple hover:bg-primary-800 transition-colors font-normal tracking-tight"
               >
                 <CheckIcon className="w-5 h-5" />
                 Сохранить изменения
@@ -614,7 +616,7 @@ export default function EditProfilePage() {
               <button
                 type="button"
                 onClick={() => router.back()}
-                className="border border-primary-200 text-primary-700 px-6 py-4 rounded-apple hover:bg-primary-50 transition-colors font-normal tracking-tight"
+                className="border border-primary-200 text-primary-700 px-6 py-3 sm:py-4 rounded-apple hover:bg-primary-50 transition-colors font-normal tracking-tight"
               >
                 Отмена
               </button>
@@ -623,27 +625,27 @@ export default function EditProfilePage() {
         )}
 
         {activeTab === 'portfolio' && (
-          <div className="bg-white rounded-apple border border-primary-100 p-10">
-            <div className="flex items-center justify-between mb-6">
+          <div className="bg-white rounded-apple border border-primary-100 p-4 sm:p-6 lg:p-10">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6 mb-4 sm:mb-6">
               <div>
-                <h2 className="text-2xl font-light text-primary-900 mb-1 tracking-tight">Портфолио</h2>
-                <p className="text-sm font-light text-primary-600">Добавьте до 3 проектов с фотографиями</p>
+                <h2 className="text-xl sm:text-2xl font-light text-primary-900 mb-1 tracking-tight">Портфолио</h2>
+                <p className="text-xs sm:text-sm font-light text-primary-600">Добавьте до 3 проектов с фотографиями</p>
               </div>
               {projects.length < 3 && (
                 <button
                   type="button"
                   onClick={addProject}
-                  className="inline-flex items-center gap-2 bg-primary-900 text-white px-5 py-3 rounded-apple hover:bg-primary-800 transition-colors font-normal tracking-tight"
+                  className="inline-flex items-center justify-center gap-2 bg-primary-900 text-white px-4 sm:px-5 py-2 sm:py-3 rounded-apple hover:bg-primary-800 transition-colors font-normal tracking-tight"
                 >
-                  <PlusIcon className="w-5 h-5" />
+                  <PlusIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                   Добавить проект
                 </button>
               )}
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               {projects.map((project, projectIndex) => (
-                <div key={project.id} className="border border-primary-200 rounded-apple p-8 space-y-6">
+                <div key={project.id} className="border border-primary-200 rounded-apple p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6">
                   <div className="flex items-start justify-between">
                     <h3 className="text-xl font-normal text-primary-900 tracking-tight">Проект {projectIndex + 1}</h3>
                     <button
@@ -685,7 +687,7 @@ export default function EditProfilePage() {
                     <label className="block text-sm font-light text-primary-700 mb-2">
                       Фотографии (до 3, формат 4:3)
                     </label>
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                       {project.images.map((image, imageIndex) => (
                         <div key={imageIndex} className="relative group">
                           <div className="rounded-apple overflow-hidden border border-primary-200 bg-primary-50" style={{ aspectRatio: '4/3' }}>
@@ -737,10 +739,10 @@ export default function EditProfilePage() {
               )}
             </div>
 
-            <div className="flex gap-4 pt-6 border-t border-primary-100 mt-8">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4 sm:pt-6 border-t border-primary-100 mt-6 sm:mt-8">
               <button
                 type="submit"
-                className="inline-flex items-center gap-2 bg-primary-900 text-white px-6 py-4 rounded-apple hover:bg-primary-800 transition-colors font-normal tracking-tight"
+                className="inline-flex items-center justify-center gap-2 bg-primary-900 text-white px-6 py-3 sm:py-4 rounded-apple hover:bg-primary-800 transition-colors font-normal tracking-tight"
               >
                 <CheckIcon className="w-5 h-5" />
                 Сохранить изменения
@@ -748,7 +750,7 @@ export default function EditProfilePage() {
               <button
                 type="button"
                 onClick={() => router.back()}
-                className="border border-primary-200 text-primary-700 px-6 py-4 rounded-apple hover:bg-primary-50 transition-colors font-normal tracking-tight"
+                className="border border-primary-200 text-primary-700 px-6 py-3 sm:py-4 rounded-apple hover:bg-primary-50 transition-colors font-normal tracking-tight"
               >
                 Отмена
               </button>

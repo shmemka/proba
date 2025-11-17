@@ -483,19 +483,33 @@ export default function SpecialistsPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-6 lg:px-8 py-16">
-      <div className="mb-12">
-        <h1 className="text-5xl font-light text-primary-900 mb-3 tracking-tight">Каталог специалистов</h1>
-        <p className="text-lg font-light text-primary-600">Найдите специалиста для вашего проекта</p>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
+      <div className="mb-8 sm:mb-12">
+        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-light text-primary-900 mb-2 sm:mb-3 tracking-tight">Каталог специалистов</h1>
+        <p className="text-base sm:text-lg font-light text-primary-600">Найдите специалиста для вашего проекта</p>
       </div>
 
-      <div className="mb-10">
-        <div className="flex flex-row items-center justify-between gap-6 pb-4 border-b border-primary-200">
+      <div className="mb-6 sm:mb-10">
+        {/* Search - Mobile First */}
+        <div className="mb-4 sm:mb-0 sm:hidden">
+          <div className="relative">
+            <MagnifyingGlassIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 text-primary-400 w-5 h-5" />
+            <input
+              type="text"
+              placeholder="Поиск"
+              className="w-full pl-12 pr-4 py-2.5 border border-primary-200 rounded-apple focus:ring-1 focus:ring-primary-900 focus:border-primary-900 bg-white text-primary-900 placeholder-primary-400 font-light text-sm"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6 pb-4 border-b border-primary-200">
           {/* Segmented Controls */}
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3 sm:gap-6 overflow-x-auto scrollbar-hide -mx-4 sm:mx-0 px-4 sm:px-0">
             <button
               onClick={() => setSelectedSpecialization('')}
-              className={`text-sm font-normal transition-colors tracking-tight ${
+              className={`text-sm font-normal transition-colors tracking-tight whitespace-nowrap ${
                 selectedSpecialization === ''
                   ? 'text-[#FF4600]'
                   : 'text-primary-400 hover:text-primary-600'
@@ -507,7 +521,7 @@ export default function SpecialistsPage() {
               <button
                 key={spec}
                 onClick={() => setSelectedSpecialization(spec)}
-                className={`text-sm font-normal transition-colors tracking-tight ${
+                className={`text-sm font-normal transition-colors tracking-tight whitespace-nowrap ${
                   selectedSpecialization === spec
                     ? 'text-[#FF4600]'
                     : 'text-primary-400 hover:text-primary-600'
@@ -518,8 +532,8 @@ export default function SpecialistsPage() {
             ))}
           </div>
           
-          {/* Search */}
-          <div className="relative flex-shrink-0">
+          {/* Search - Desktop */}
+          <div className="relative flex-shrink-0 hidden sm:block">
             <MagnifyingGlassIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 text-primary-400 w-5 h-5" />
             <input
               type="text"
@@ -532,30 +546,30 @@ export default function SpecialistsPage() {
         </div>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid sm:grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         {filteredSpecialists.map((specialist) => (
           <button
             key={specialist.id}
             onClick={() => handleSpecialistClick(specialist.id)}
-            className="bg-white rounded-apple border border-primary-100 hover:border-primary-200 transition-colors p-8 text-left w-full flex flex-col"
+            className="bg-white rounded-apple border border-primary-100 hover:border-primary-200 transition-colors p-4 sm:p-6 lg:p-8 text-left w-full flex flex-col"
           >
-            <div className="flex items-start gap-5 mb-4 flex-shrink-0">
+            <div className="flex items-start gap-3 sm:gap-5 mb-3 sm:mb-4 flex-shrink-0">
               {specialist.avatarUrl ? (
                 <img
                   src={specialist.avatarUrl}
                   alt={`${specialist.firstName} ${specialist.lastName}`}
-                  className="w-14 h-14 rounded-apple object-cover flex-shrink-0 border border-primary-100"
+                  className="w-12 h-12 sm:w-14 sm:h-14 rounded-apple object-cover flex-shrink-0 border border-primary-100"
                 />
               ) : (
-                <div className="w-14 h-14 rounded-apple bg-primary-50 flex items-center justify-center text-primary-700 text-base font-normal flex-shrink-0">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-apple bg-primary-50 flex items-center justify-center text-primary-700 text-sm sm:text-base font-normal flex-shrink-0">
                   {(specialist.firstName?.[0] || '')}{(specialist.lastName?.[0] || '')}
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <h3 className="text-lg font-normal text-primary-900 mb-1 tracking-tight">
+                <h3 className="text-base sm:text-lg font-normal text-primary-900 mb-1 tracking-tight">
                   {specialist.firstName || ''} {specialist.lastName || ''}
                 </h3>
-                <p className="text-sm font-light text-primary-600">{specialist.specialization || 'Специалист'}</p>
+                <p className="text-xs sm:text-sm font-light text-primary-600">{specialist.specialization || 'Специалист'}</p>
               </div>
             </div>
 
@@ -572,11 +586,11 @@ export default function SpecialistsPage() {
 
             {/* Галерея изображений из проектов */}
             {specialist.projects && specialist.projects.length > 0 && (
-              <div className="flex gap-3 overflow-x-auto -mx-8 px-8 scrollbar-hide">
+              <div className="flex gap-2 sm:gap-3 overflow-x-auto -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 scrollbar-hide">
                 {specialist.projects
                   .flatMap(project => project.images || [])
                   .map((image, index) => (
-                    <div key={index} className="flex-shrink-0 w-64 h-48 rounded-apple overflow-hidden border border-primary-100 bg-primary-50">
+                    <div key={index} className="flex-shrink-0 w-48 sm:w-56 lg:w-64 h-36 sm:h-42 lg:h-48 rounded-apple overflow-hidden border border-primary-100 bg-primary-50">
                       <img
                         src={image.url}
                         alt={`Портфолио ${index + 1}`}

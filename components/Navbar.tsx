@@ -113,7 +113,7 @@ export default function Navbar() {
 
   return (
     <nav className="bg-white/80 backdrop-blur-md border-b border-primary-100 sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16 relative">
           <Link 
             href={user ? '/specialists' : '/'} 
@@ -231,7 +231,7 @@ export default function Navbar() {
 
       {isMenuOpen && (
         <div className="md:hidden border-t border-primary-100">
-          <div className="px-6 pt-4 pb-6 space-y-2">
+          <div className="px-4 sm:px-6 pt-4 pb-6 space-y-2">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
