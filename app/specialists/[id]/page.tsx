@@ -118,7 +118,7 @@ export default function SpecialistProfilePage({ params }: { params: { id: string
 
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto px-6 lg:px-8 py-16">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
         <div className="text-center text-primary-600 font-light">Загрузка...</div>
       </div>
     )
@@ -129,16 +129,16 @@ export default function SpecialistProfilePage({ params }: { params: { id: string
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-6 lg:px-8 py-16 pt-20 lg:pt-16">
-      <div className="bg-white rounded-apple border border-primary-100 p-10 mb-6">
-        <div className="flex flex-col md:flex-row gap-8 mb-8">
-          <div className="w-24 h-24 rounded-apple bg-primary-50 flex items-center justify-center text-primary-700 text-2xl font-normal flex-shrink-0">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16 pt-16 sm:pt-20 lg:pt-16">
+      <div className="bg-white rounded-apple border border-primary-100 p-4 sm:p-6 lg:p-10 mb-4 sm:mb-6">
+        <div className="flex flex-col md:flex-row gap-6 sm:gap-8 mb-6 sm:mb-8">
+          <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-apple bg-primary-50 flex items-center justify-center text-primary-700 text-xl sm:text-2xl font-normal flex-shrink-0">
             {specialist.name.split(' ').map(n => n[0]).join('')}
           </div>
           <div className="flex-1">
-            <h1 className="text-4xl font-light text-primary-900 mb-3 tracking-tight">{specialist.name}</h1>
-            <p className="text-xl font-light text-primary-600 mb-4">{specialist.title}</p>
-            <div className="flex flex-wrap items-center gap-4 text-sm font-light text-primary-500">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-light text-primary-900 mb-2 sm:mb-3 tracking-tight">{specialist.name}</h1>
+            <p className="text-lg sm:text-xl font-light text-primary-600 mb-3 sm:mb-4">{specialist.title}</p>
+            <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm font-light text-primary-500">
               <div className="flex items-center gap-1.5">
                 <MapPinIcon className="w-4 h-4" />
                 <span>{specialist.location}</span>
@@ -150,72 +150,72 @@ export default function SpecialistProfilePage({ params }: { params: { id: string
           </div>
         </div>
 
-        <div className="mb-8">
-          <h2 className="text-2xl font-light text-primary-900 mb-4 tracking-tight">О себе</h2>
-          <p className="text-base font-light text-primary-700 leading-relaxed">{specialist.bio || 'Информация отсутствует'}</p>
+        <div className="mb-6 sm:mb-8">
+          <h2 className="text-xl sm:text-2xl font-light text-primary-900 mb-3 sm:mb-4 tracking-tight">О себе</h2>
+          <p className="text-sm sm:text-base font-light text-primary-700 leading-relaxed">{specialist.bio || 'Информация отсутствует'}</p>
         </div>
 
-        <div className="mb-8">
-          <h2 className="text-2xl font-light text-primary-900 mb-4 tracking-tight">Навыки</h2>
+        <div className="mb-6 sm:mb-8">
+          <h2 className="text-xl sm:text-2xl font-light text-primary-900 mb-3 sm:mb-4 tracking-tight">Навыки</h2>
           <div className="flex flex-wrap gap-2">
             {specialist.skills.length > 0 ? (
               specialist.skills.map((skill) => (
                 <span
                   key={skill}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary-50 text-primary-700 rounded-apple text-sm font-light"
+                  className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 bg-primary-50 text-primary-700 rounded-apple text-xs sm:text-sm font-light"
                 >
-                  <CodeBracketIcon className="w-4 h-4" />
+                  <CodeBracketIcon className="w-3 h-3 sm:w-4 sm:h-4" />
                   {skill}
                 </span>
               ))
             ) : (
-              <span className="text-primary-500 font-light">Навыки не указаны</span>
+              <span className="text-primary-500 font-light text-sm sm:text-base">Навыки не указаны</span>
             )}
           </div>
         </div>
 
         {specialist.projects && specialist.projects.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-2xl font-light text-primary-900 mb-4 tracking-tight">Портфолио</h2>
-            <div className="space-y-4">
+          <div className="mb-6 sm:mb-8">
+            <h2 className="text-xl sm:text-2xl font-light text-primary-900 mb-3 sm:mb-4 tracking-tight">Портфолио</h2>
+            <div className="space-y-3 sm:space-y-4">
               {specialist.projects.map((project, index) => (
-                <div key={index} className="border border-primary-100 rounded-apple p-5">
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-normal text-primary-900 text-lg">{project.title}</h3>
+                <div key={index} className="border border-primary-100 rounded-apple p-4 sm:p-5">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 sm:gap-0 mb-2">
+                    <h3 className="font-normal text-primary-900 text-base sm:text-lg">{project.title}</h3>
                     {project.link && (
                       <a
                         href={project.link}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-primary-600 hover:text-primary-900 flex items-center gap-1.5 text-sm font-light"
+                        className="text-primary-600 hover:text-primary-900 active:text-primary-900 flex items-center gap-1.5 text-xs sm:text-sm font-light"
                       >
-                        <ArrowTopRightOnSquareIcon className="w-4 h-4" />
+                        <ArrowTopRightOnSquareIcon className="w-3 h-3 sm:w-4 sm:h-4" />
                         Посмотреть
                       </a>
                     )}
                   </div>
-                  <p className="text-sm font-light text-primary-600 leading-relaxed">{project.description}</p>
+                  <p className="text-xs sm:text-sm font-light text-primary-600 leading-relaxed">{project.description}</p>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t border-primary-100">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4 sm:pt-6 border-t border-primary-100">
           {!showContact ? (
             <button
               onClick={() => setShowContact(true)}
-              className="bg-primary-900 text-white px-6 py-4 rounded-apple hover:bg-primary-800 transition-colors font-normal tracking-tight"
+              className="w-full sm:w-auto bg-primary-900 text-white px-6 py-3 sm:py-4 rounded-apple hover:bg-primary-800 active:bg-primary-800 transition-colors font-normal tracking-tight"
             >
               Связаться со специалистом
             </button>
           ) : (
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-3 w-full sm:w-auto">
               <a
                 href={`mailto:${specialist.email}`}
-                className="inline-flex items-center justify-center gap-2 bg-primary-900 text-white px-6 py-4 rounded-apple hover:bg-primary-800 transition-colors font-normal tracking-tight"
+                className="inline-flex items-center justify-center gap-2 bg-primary-900 text-white px-6 py-3 sm:py-4 rounded-apple hover:bg-primary-800 active:bg-primary-800 transition-colors font-normal tracking-tight"
               >
-                <EnvelopeIcon className="w-5 h-5" />
+                <EnvelopeIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                 Написать на email
               </a>
               {specialist.github && (
@@ -223,9 +223,9 @@ export default function SpecialistProfilePage({ params }: { params: { id: string
                   href={`https://${specialist.github}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 border border-primary-200 text-primary-700 px-6 py-4 rounded-apple hover:bg-primary-50 transition-colors font-normal tracking-tight"
+                  className="inline-flex items-center justify-center gap-2 border border-primary-200 text-primary-700 px-6 py-3 sm:py-4 rounded-apple hover:bg-primary-50 active:bg-primary-50 transition-colors font-normal tracking-tight"
                 >
-                  <CodeBracketIcon className="w-5 h-5" />
+                  <CodeBracketIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                   GitHub профиль
                 </a>
               )}
@@ -233,7 +233,7 @@ export default function SpecialistProfilePage({ params }: { params: { id: string
           )}
           <Link
             href="/projects"
-            className="border border-primary-200 text-primary-700 px-6 py-4 rounded-apple hover:bg-primary-50 transition-colors font-normal tracking-tight text-center"
+            className="w-full sm:w-auto border border-primary-200 text-primary-700 px-6 py-3 sm:py-4 rounded-apple hover:bg-primary-50 active:bg-primary-50 transition-colors font-normal tracking-tight text-center"
           >
             Предложить проект
           </Link>
