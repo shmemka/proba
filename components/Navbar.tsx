@@ -32,7 +32,7 @@ export default function Navbar() {
           const userType = supabaseUser.user_metadata?.userType || 'specialist'
           let avatarUrl = ''
           
-          // Если специалист, загружаем аватарку из профиля
+          // Если специалист, загружаем аватарку из профиля (с кэшированием)
           if (userType === 'specialist') {
             try {
               const specialist = await getSpecialist(supabaseUser.id)
@@ -138,6 +138,7 @@ export default function Navbar() {
               <Link
                 key={link.href}
                 href={link.href}
+                prefetch={true}
                 className={`px-3 py-2 text-sm font-normal transition-colors tracking-tight ${
                   pathname === link.href
                     ? 'text-primary-900'
@@ -247,6 +248,7 @@ export default function Navbar() {
               <Link
                 key={link.href}
                 href={link.href}
+                prefetch={true}
                 className={`block px-3 py-3 text-base font-normal tracking-tight ${
                   pathname === link.href
                     ? 'text-primary-900'

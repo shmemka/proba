@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { CalendarIcon, MapPinIcon, TagIcon, UsersIcon, PaperAirplaneIcon } from '@heroicons/react/24/outline'
-import { getProject, createApplication, getApplications, getCurrentUser, isSupabaseAvailable } from '@/lib/supabase'
+import { getProject, createApplication, getCurrentUser, isSupabaseAvailable, hasApplication } from '@/lib/supabase'
 import { getActiveUser } from '@/lib/storage'
 
 interface Project {
@@ -103,8 +103,11 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
     const loadProject = async () => {
       try {
         if (isSupabaseAvailable()) {
-          // Загружаем из Supabase
-          const supabaseProject = await getProject(params.id)
+          const [supabaseProject, user] = await Promise.all([
+            getProject(params.id),
+            getCurrentUser(),
+          ])
+
           if (supabaseProject) {
             const formattedProject: Project = {
               id: supabaseProject.id,
@@ -122,11 +125,9 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
             }
             setProject(formattedProject)
 
-            // Проверяем, подал ли пользователь заявку
-            const user = await getCurrentUser()
             if (user) {
-              const applications = await getApplications(params.id, user.id)
-              if (applications.length > 0) {
+              const alreadyApplied = await hasApplication(params.id, user.id)
+              if (alreadyApplied) {
                 setSubmitted(true)
               }
             }
@@ -219,9 +220,8 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
           return
         }
 
-        // Проверяем, не подал ли уже заявку
-        const existingApplications = await getApplications(params.id, user.id)
-        if (existingApplications.length > 0) {
+        const alreadyApplied = await hasApplication(params.id, user.id)
+        if (alreadyApplied) {
           alert('Вы уже подали заявку на этот проект')
           return
         }

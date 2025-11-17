@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, memo, useCallback } from 'react'
+import { useEffect, useRef, useCallback, useMemo } from 'react'
 import Image from 'next/image'
 import { XMarkIcon, EnvelopeIcon, PaperAirplaneIcon, ChevronLeftIcon, ChevronRightIcon, ArrowTopRightOnSquareIcon, InformationCircleIcon } from '@heroicons/react/24/outline'
 import { StarIcon } from '@heroicons/react/24/solid'
@@ -62,7 +62,28 @@ export default function SpecialistDrawer({
 
 
 
-  if (!specialist) return null
+  const projects = useMemo(() => specialist?.projects ?? [], [specialist?.projects])
+  const projectsCount = projects.length
+  const hasProjects = projectsCount > 0
+  const currentProject = useMemo(() => hasProjects ? projects[currentProjectIndex] : null, [hasProjects, projects, currentProjectIndex])
+
+  const handlePrevious = useCallback(() => {
+    if (hasProjects && onProjectChange) {
+      const newIndex = currentProjectIndex > 0 ? currentProjectIndex - 1 : projectsCount - 1
+      onProjectChange(newIndex)
+    }
+  }, [hasProjects, projectsCount, currentProjectIndex, onProjectChange])
+
+  const handleNext = useCallback(() => {
+    if (hasProjects && onProjectChange) {
+      const newIndex = currentProjectIndex < projectsCount - 1 ? currentProjectIndex + 1 : 0
+      onProjectChange(newIndex)
+    }
+  }, [hasProjects, projectsCount, currentProjectIndex, onProjectChange])
+
+  if (!specialist) {
+    return null
+  }
 
   const firstName = specialist.firstName || ''
   const lastName = specialist.lastName || ''
@@ -77,23 +98,6 @@ export default function SpecialistDrawer({
             ? `https://${telegram}`
             : `https://t.me/${telegram}`)
     : '#'
-
-  const hasProjects = specialist.projects && specialist.projects.length > 0
-  const currentProject = hasProjects ? specialist.projects![currentProjectIndex] : null
-
-  const handlePrevious = useCallback(() => {
-    if (hasProjects && specialist.projects && specialist.projects.length > 0 && onProjectChange) {
-      const newIndex = currentProjectIndex > 0 ? currentProjectIndex - 1 : specialist.projects.length - 1
-      onProjectChange(newIndex)
-    }
-  }, [hasProjects, specialist.projects, currentProjectIndex, onProjectChange])
-
-  const handleNext = useCallback(() => {
-    if (hasProjects && specialist.projects && specialist.projects.length > 0 && onProjectChange) {
-      const newIndex = currentProjectIndex < specialist.projects.length - 1 ? currentProjectIndex + 1 : 0
-      onProjectChange(newIndex)
-    }
-  }, [hasProjects, specialist.projects, currentProjectIndex, onProjectChange])
 
   return (
     <>

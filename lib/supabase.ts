@@ -1,4 +1,5 @@
 import { getSupabaseClient, isSupabaseConfigured } from './supabaseClient'
+import { fetchWithCache, invalidateCache } from './cache'
 import type { Database } from './supabaseClient'
 
 type Specialist = Database['public']['Tables']['specialists']['Row']
@@ -101,12 +102,15 @@ export async function getCurrentSession() {
 // Специалисты
 // ============================================
 
-export async function getSpecialists() {
+export async function getSpecialists(options?: { force?: boolean }) {
   const supabase = getSupabaseClient()
   if (!supabase) {
     return []
   }
 
+  return fetchWithCache(
+    'specialists',
+    async () => {
   const { data, error } = await supabase
     .from('specialists')
     .select('*')
@@ -118,14 +122,21 @@ export async function getSpecialists() {
   }
 
   return data || []
+    },
+    60_000,
+    options?.force,
+  )
 }
 
-export async function getSpecialist(id: string) {
+export async function getSpecialist(id: string, options?: { force?: boolean }) {
   const supabase = getSupabaseClient()
   if (!supabase) {
     return null
   }
 
+  return fetchWithCache(
+    `specialist:${id}`,
+    async () => {
   const { data, error } = await supabase
     .from('specialists')
     .select('*')
@@ -138,6 +149,10 @@ export async function getSpecialist(id: string) {
   }
 
   return data
+    },
+    60_000,
+    options?.force,
+  )
 }
 
 export async function updateSpecialist(id: string, updates: Partial<Specialist>) {
@@ -154,6 +169,8 @@ export async function updateSpecialist(id: string, updates: Partial<Specialist>)
     .single()
 
   if (error) throw error
+  invalidateCache('specialists')
+  invalidateCache(`specialist:${id}`)
   return data
 }
 
@@ -202,12 +219,15 @@ export async function updateCompany(id: string, updates: Partial<Company>) {
 // Проекты
 // ============================================
 
-export async function getProjects() {
+export async function getProjects(options?: { force?: boolean }) {
   const supabase = getSupabaseClient()
   if (!supabase) {
     return []
   }
 
+  return fetchWithCache(
+    'projects',
+    async () => {
   const { data, error } = await supabase
     .from('projects')
     .select(`
@@ -243,21 +263,26 @@ export async function getProjects() {
   }
 
   // Формируем результат
-  const projectsWithApplications = data.map((project) => ({
+      return data.map((project) => ({
     ...project,
     applicationsCount: applicationsCountMap.get(project.id) || 0,
     company: (project.companies as any)?.company_name || 'Компания',
   }))
-
-  return projectsWithApplications
+    },
+    30_000,
+    options?.force,
+  )
 }
 
-export async function getProject(id: string) {
+export async function getProject(id: string, options?: { force?: boolean }) {
   const supabase = getSupabaseClient()
   if (!supabase) {
     return null
   }
 
+  return fetchWithCache(
+    `project:${id}`,
+    async () => {
   const { data, error } = await supabase
     .from('projects')
     .select(`
@@ -285,6 +310,10 @@ export async function getProject(id: string) {
     applicationsCount: count || 0,
     company: (data.companies as any)?.company_name || 'Компания',
   }
+    },
+    30_000,
+    options?.force,
+  )
 }
 
 export async function createProject(project: {
@@ -354,6 +383,7 @@ export async function createProject(project: {
     .single()
 
   if (error) throw error
+  invalidateCache('projects')
   return data
 }
 
@@ -371,6 +401,8 @@ export async function updateProject(id: string, updates: Partial<Project>) {
     .single()
 
   if (error) throw error
+  invalidateCache('projects')
+  invalidateCache(`project:${id}`)
   return data
 }
 
@@ -421,6 +453,8 @@ export async function createApplication(application: {
     .single()
 
   if (error) throw error
+  invalidateCache('projects')
+  invalidateCache(`project:${application.project_id}`)
   return data
 }
 
@@ -438,7 +472,28 @@ export async function updateApplication(id: string, updates: Partial<Application
     .single()
 
   if (error) throw error
+  invalidateCache('projects')
   return data
+}
+
+export async function hasApplication(projectId: string, specialistId: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) {
+    return false
+  }
+
+  const { count, error } = await supabase
+    .from('applications')
+    .select('id', { count: 'exact', head: true })
+    .eq('project_id', projectId)
+    .eq('specialist_id', specialistId)
+
+  if (error) {
+    console.error('Ошибка проверки заявки:', error)
+    return false
+  }
+
+  return (count || 0) > 0
 }
 
 // ============================================

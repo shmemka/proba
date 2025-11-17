@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef, memo } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { MagnifyingGlassIcon, StarIcon } from '@heroicons/react/24/outline'
@@ -8,6 +8,7 @@ import { readJson } from '@/lib/storage'
 import SpecialistDrawer from '@/components/SpecialistDrawer'
 import { getSpecialists, getSpecialist, isSupabaseAvailable } from '@/lib/supabase'
 import { formatSpecialistFromStorage } from '@/lib/utils'
+import { SpecialistCardSkeleton } from '@/components/SkeletonLoader'
 
 type Specialization = 'Дизайн' | 'SMM' | 'Веб-разработка'
 
@@ -58,6 +59,10 @@ interface FullSpecialist {
 }
 
 
+const SUPABASE_AVAILABLE = isSupabaseAvailable()
+
+const specializations: Specialization[] = ['Дизайн', 'SMM', 'Веб-разработка']
+
 export default function SpecialistsPage() {
   const [specialists, setSpecialists] = useState<Specialist[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -68,6 +73,7 @@ export default function SpecialistsPage() {
   const [selectedSpecialist, setSelectedSpecialist] = useState<FullSpecialist | null>(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [currentProjectIndex, setCurrentProjectIndex] = useState(0)
+  const specialistDetailsCache = useRef<Map<string, FullSpecialist>>(new Map())
 
   // Debounce для поиска
   useEffect(() => {
@@ -82,7 +88,7 @@ export default function SpecialistsPage() {
     const loadSpecialists = async () => {
       setIsLoading(true)
       try {
-        if (isSupabaseAvailable()) {
+        if (SUPABASE_AVAILABLE) {
           // Загружаем из Supabase
           const supabaseSpecialists = await getSpecialists()
           const formattedSpecialists: Specialist[] = supabaseSpecialists
@@ -132,27 +138,26 @@ export default function SpecialistsPage() {
     
     loadSpecialists()
     
-    const handleStorageChange = () => {
-      loadSpecialists()
-    }
-    
-    window.addEventListener('storage', handleStorageChange)
-    // Убираем частую перезагрузку при focus - только при storage change
-    const handleFocus = () => {
-      // Проверяем только если данные могли измениться в другой вкладке
-      if (document.visibilityState === 'visible') {
+    if (!SUPABASE_AVAILABLE) {
+      const handleStorageChange = () => {
         loadSpecialists()
       }
-    }
-    document.addEventListener('visibilitychange', handleFocus)
-    
-    return () => {
-      window.removeEventListener('storage', handleStorageChange)
-      document.removeEventListener('visibilitychange', handleFocus)
+      
+      const handleFocus = () => {
+        if (document.visibilityState === 'visible') {
+          loadSpecialists()
+        }
+      }
+
+      window.addEventListener('storage', handleStorageChange)
+      document.addEventListener('visibilitychange', handleFocus)
+
+      return () => {
+        window.removeEventListener('storage', handleStorageChange)
+        document.removeEventListener('visibilitychange', handleFocus)
+      }
     }
   }, [])
-
-  const specializations: Specialization[] = ['Дизайн', 'SMM', 'Веб-разработка']
 
   const filteredSpecialists = useMemo(() => {
     const normalizedQuery = debouncedSearchQuery.trim().toLowerCase()
@@ -188,13 +193,38 @@ export default function SpecialistsPage() {
       })
   }, [specialists, debouncedSearchQuery, selectedSpecialization, sortBy])
 
-  const handleSpecialistClick = useCallback(async (specialistId: string) => {
+  const handleSpecialistClick = useCallback(async (specialistSummary: Specialist) => {
     try {
-      if (isSupabaseAvailable()) {
-        // Загружаем из Supabase
-        const specialist = await getSpecialist(specialistId)
+      const openDrawer = (spec: FullSpecialist) => {
+        setSelectedSpecialist(spec)
+        setCurrentProjectIndex(0)
+        setIsDrawerOpen(true)
+        specialistDetailsCache.current.set(spec.id, spec)
+      }
+
+      const projects =
+        specialistSummary.projects && Array.isArray(specialistSummary.projects)
+          ? specialistSummary.projects
+          : []
+
+      const cached = specialistDetailsCache.current.get(specialistSummary.id)
+      if (cached) {
+        openDrawer(cached)
+        return
+      }
+
+      if (projects.length > 0 || !SUPABASE_AVAILABLE) {
+        openDrawer({
+          ...specialistSummary,
+          projects,
+        })
+        return
+      }
+
+      if (SUPABASE_AVAILABLE) {
+        const specialist = await getSpecialist(specialistSummary.id)
         if (specialist) {
-          const fullSpecialist: FullSpecialist = {
+          const normalizedSpecialist: FullSpecialist = {
             id: specialist.id,
             firstName: specialist.first_name || '',
             lastName: specialist.last_name || '',
@@ -203,10 +233,10 @@ export default function SpecialistsPage() {
             telegram: specialist.telegram || '',
             email: specialist.email || '',
             avatarUrl: specialist.avatar_url || '',
-            rating: 0,
-            hiredCount: 0,
+            rating: specialistSummary.rating,
+            hiredCount: specialistSummary.hiredCount,
             showInSearch: specialist.show_in_search !== false,
-            projects: (specialist.portfolio && Array.isArray(specialist.portfolio)) 
+            projects: (specialist.portfolio && Array.isArray(specialist.portfolio))
               ? specialist.portfolio.map((p: any, idx: number) => ({
                   id: p.id || `project-${idx}`,
                   title: p.title || '',
@@ -216,16 +246,14 @@ export default function SpecialistsPage() {
                 }))
               : [],
           }
-          setSelectedSpecialist(fullSpecialist)
-          setCurrentProjectIndex(0)
-          setIsDrawerOpen(true)
+          openDrawer(normalizedSpecialist)
           return
         }
       }
 
       // Fallback на localStorage
       const savedSpecialists = readJson<any[]>('specialists', [])
-      const found = savedSpecialists.find((s: any) => s.id === specialistId)
+      const found = savedSpecialists.find((s: any) => s.id === specialistSummary.id)
       if (found) {
         const migratedSpecialist = formatSpecialistFromStorage(found) as FullSpecialist
         // Форматируем проекты
@@ -236,19 +264,87 @@ export default function SpecialistsPage() {
           images: p.images || [],
           link: p.link,
         }))
-        setSelectedSpecialist(migratedSpecialist)
-        setCurrentProjectIndex(0)
-        setIsDrawerOpen(true)
+        openDrawer(migratedSpecialist)
       }
     } catch (error) {
       console.error('Ошибка загрузки специалиста:', error)
     }
-  }, [])
+  }, [specialistDetailsCache])
 
   const handleCloseDrawer = () => {
     setIsDrawerOpen(false)
     setSelectedSpecialist(null)
   }
+
+  const SpecialistCard = memo(({ specialist, onClick }: { specialist: Specialist; onClick: () => void }) => {
+    const portfolioImages = useMemo(() => {
+      if (!specialist.projects || specialist.projects.length === 0) return []
+      return specialist.projects
+        .flatMap(project => project.images || [])
+        .slice(0, 5)
+    }, [specialist.projects])
+
+    return (
+      <button
+        onClick={onClick}
+        className="bg-white rounded-apple border border-primary-100 hover:border-primary-200 transition-colors p-4 sm:p-6 lg:p-8 text-left w-full flex flex-col"
+      >
+        <div className="flex items-start gap-3 sm:gap-5 mb-3 sm:mb-4 flex-shrink-0">
+          {specialist.avatarUrl ? (
+            <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-apple overflow-hidden flex-shrink-0 border border-primary-100">
+              <Image
+                src={specialist.avatarUrl}
+                alt={`${specialist.firstName} ${specialist.lastName}`}
+                fill
+                className="object-cover"
+                sizes="(max-width: 640px) 48px, 56px"
+                loading="lazy"
+              />
+            </div>
+          ) : (
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-apple bg-primary-50 flex items-center justify-center text-primary-700 text-sm sm:text-base font-normal flex-shrink-0">
+              {(specialist.firstName?.[0] || '')}{(specialist.lastName?.[0] || '')}
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <h3 className="text-base sm:text-lg font-normal text-primary-900 mb-1 tracking-tight">
+              {specialist.firstName || ''} {specialist.lastName || ''}
+            </h3>
+            <p className="text-xs sm:text-sm font-light text-primary-600">{specialist.specialization || 'Специалист'}</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm font-light text-primary-500 mb-3 sm:mb-4 flex-shrink-0">
+          <div className="flex items-center gap-1.5">
+            <span className="text-primary-900 font-normal">★ {specialist.rating}</span>
+            <span className="text-primary-400">Рейтинг</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-primary-900 font-normal">{specialist.hiredCount}</span>
+            <span className="text-primary-400">Нанят</span>
+          </div>
+        </div>
+
+        {portfolioImages.length > 0 && (
+          <div className="flex gap-2 sm:gap-3 overflow-x-auto -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 scrollbar-hide">
+            {portfolioImages.map((image, index) => (
+              <div key={index} className="relative flex-shrink-0 w-48 sm:w-56 lg:w-64 h-36 sm:h-44 lg:h-48 rounded-apple overflow-hidden border border-primary-100 bg-primary-50">
+                <Image
+                  src={image.url}
+                  alt={`Портфолио ${index + 1}`}
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 640px) 192px, (max-width: 1024px) 224px, 256px"
+                  loading="lazy"
+                />
+              </div>
+            ))}
+          </div>
+        )}
+      </button>
+    )
+  })
+  SpecialistCard.displayName = 'SpecialistCard'
 
   if (isLoading) {
     return (
@@ -257,9 +353,10 @@ export default function SpecialistsPage() {
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-light text-primary-900 mb-2 sm:mb-3 tracking-tight">Каталог специалистов</h1>
           <p className="text-base sm:text-lg font-light text-primary-600">Найдите специалиста для вашего проекта</p>
         </div>
-        <div className="text-center py-12 sm:py-16 lg:py-20">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-900"></div>
-          <p className="text-primary-600 text-base sm:text-lg font-light mt-4">Загрузка специалистов...</p>
+        <div className="grid sm:grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <SpecialistCardSkeleton key={i} />
+          ))}
         </div>
       </div>
     )
@@ -331,67 +428,11 @@ export default function SpecialistsPage() {
 
       <div className="grid sm:grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         {filteredSpecialists.map((specialist) => (
-          <button
+          <SpecialistCard
             key={specialist.id}
-            onClick={() => handleSpecialistClick(specialist.id)}
-            className="bg-white rounded-apple border border-primary-100 hover:border-primary-200 transition-colors p-4 sm:p-6 lg:p-8 text-left w-full flex flex-col"
-          >
-            <div className="flex items-start gap-3 sm:gap-5 mb-3 sm:mb-4 flex-shrink-0">
-              {specialist.avatarUrl ? (
-                <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-apple overflow-hidden flex-shrink-0 border border-primary-100">
-                  <Image
-                    src={specialist.avatarUrl}
-                    alt={`${specialist.firstName} ${specialist.lastName}`}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 640px) 48px, 56px"
-                  />
-                </div>
-              ) : (
-                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-apple bg-primary-50 flex items-center justify-center text-primary-700 text-sm sm:text-base font-normal flex-shrink-0">
-                  {(specialist.firstName?.[0] || '')}{(specialist.lastName?.[0] || '')}
-                </div>
-              )}
-              <div className="flex-1 min-w-0">
-                <h3 className="text-base sm:text-lg font-normal text-primary-900 mb-1 tracking-tight">
-                  {specialist.firstName || ''} {specialist.lastName || ''}
-                </h3>
-                <p className="text-xs sm:text-sm font-light text-primary-600">{specialist.specialization || 'Специалист'}</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm font-light text-primary-500 mb-3 sm:mb-4 flex-shrink-0">
-              <div className="flex items-center gap-1.5">
-                <span className="text-primary-900 font-normal">★ {specialist.rating}</span>
-                <span className="text-primary-400">Рейтинг</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-primary-900 font-normal">{specialist.hiredCount}</span>
-                <span className="text-primary-400">Нанят</span>
-              </div>
-            </div>
-
-            {/* Галерея изображений из проектов */}
-            {specialist.projects && specialist.projects.length > 0 && (
-              <div className="flex gap-2 sm:gap-3 overflow-x-auto -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 scrollbar-hide">
-                {specialist.projects
-                  .flatMap(project => project.images || [])
-                  .slice(0, 5) // Ограничиваем количество для производительности
-                  .map((image, index) => (
-                    <div key={index} className="relative flex-shrink-0 w-48 sm:w-56 lg:w-64 h-36 sm:h-44 lg:h-48 rounded-apple overflow-hidden border border-primary-100 bg-primary-50">
-                      <Image
-                        src={image.url}
-                        alt={`Портфолио ${index + 1}`}
-                        fill
-                        className="object-cover"
-                        sizes="(max-width: 640px) 192px, (max-width: 1024px) 224px, 256px"
-                        loading="lazy"
-                      />
-                    </div>
-                  ))}
-              </div>
-            )}
-          </button>
+            specialist={specialist}
+            onClick={() => handleSpecialistClick(specialist)}
+          />
         ))}
       </div>
 

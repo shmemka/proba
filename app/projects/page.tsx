@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, memo } from 'react'
 import Link from 'next/link'
 import { MagnifyingGlassIcon, PlusIcon, CalendarIcon, MapPinIcon, TagIcon, FunnelIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import { readJson } from '@/lib/storage'
 import { getProjects, isSupabaseAvailable } from '@/lib/supabase'
+import { ProjectCardSkeleton } from '@/components/SkeletonLoader'
 
 interface Project {
   id: string
@@ -18,6 +19,8 @@ interface Project {
   applicationsCount: number
 }
 
+
+const SUPABASE_AVAILABLE = isSupabaseAvailable()
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([])
@@ -41,7 +44,7 @@ export default function ProjectsPage() {
     const loadProjects = async () => {
       setIsLoading(true)
       try {
-        if (isSupabaseAvailable()) {
+        if (SUPABASE_AVAILABLE) {
           const supabaseProjects = await getProjects()
           // Преобразуем данные из Supabase в формат приложения
           const formattedProjects: Project[] = supabaseProjects.map((p: any) => ({
@@ -89,21 +92,24 @@ export default function ProjectsPage() {
     
     loadProjects()
     
-    const handleStorageChange = () => {
-      loadProjects()
-    }
-    
-    window.addEventListener('storage', handleStorageChange)
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
+    if (!SUPABASE_AVAILABLE) {
+      const handleStorageChange = () => {
         loadProjects()
       }
-    }
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    
-    return () => {
-      window.removeEventListener('storage', handleStorageChange)
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === 'visible') {
+          loadProjects()
+        }
+      }
+
+      window.addEventListener('storage', handleStorageChange)
+      document.addEventListener('visibilitychange', handleVisibilityChange)
+
+      return () => {
+        window.removeEventListener('storage', handleStorageChange)
+        document.removeEventListener('visibilitychange', handleVisibilityChange)
+      }
     }
   }, [])
 
@@ -154,6 +160,60 @@ export default function ProjectsPage() {
     }
   }
 
+  const ProjectCard = memo(({ project }: { project: Project }) => {
+    const formattedDeadline = useMemo(() => formatDate(project.deadline), [project.deadline])
+    
+    return (
+      <Link
+        href={`/projects/${project.id}`}
+        prefetch={true}
+        className="block bg-white rounded-apple border border-primary-100 hover:border-primary-200 transition-colors p-4 sm:p-6 lg:p-8"
+      >
+        <div className="flex justify-between items-start mb-3 sm:mb-4 gap-3">
+          <div className="flex-1 min-w-0">
+            <h3 className="text-xl sm:text-2xl font-normal text-primary-900 mb-2 sm:mb-3 tracking-tight">{project.title}</h3>
+            <p className="text-sm sm:text-base font-light text-primary-600 mb-4 sm:mb-6 line-clamp-2 leading-relaxed">{project.description}</p>
+          </div>
+          <span className="ml-2 sm:ml-6 px-2 sm:px-3 py-1 sm:py-1.5 bg-primary-50 text-primary-700 rounded-apple text-xs font-light whitespace-nowrap flex-shrink-0">
+            Открыт
+          </span>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4 lg:gap-6 text-xs sm:text-sm font-light text-primary-500 mb-4 sm:mb-6">
+          <div className="flex items-center gap-1.5">
+            <TagIcon className="w-4 h-4" />
+            <span className="font-normal">{project.company}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <MapPinIcon className="w-4 h-4" />
+            <span>{project.location}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <CalendarIcon className="w-4 h-4" />
+            <span>До {formattedDeadline}</span>
+          </div>
+          <div className="ml-auto">
+            <span className="text-primary-700 font-normal">
+              {project.applicationsCount} {project.applicationsCount === 1 ? 'отклик' : 'откликов'}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {project.skills.map((skill) => (
+            <span
+              key={skill}
+              className="inline-flex items-center px-3 py-1.5 bg-primary-50 text-primary-700 rounded-apple text-xs font-light"
+            >
+              {skill}
+            </span>
+          ))}
+        </div>
+      </Link>
+    )
+  })
+  ProjectCard.displayName = 'ProjectCard'
+
   if (isLoading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
@@ -163,9 +223,10 @@ export default function ProjectsPage() {
             <p className="text-base sm:text-lg font-light text-primary-600">Найдите проект для получения опыта и портфолио</p>
           </div>
         </div>
-        <div className="text-center py-12 sm:py-16 lg:py-20">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-900"></div>
-          <p className="text-primary-600 text-base sm:text-lg font-light mt-4">Загрузка проектов...</p>
+        <div className="space-y-4">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <ProjectCardSkeleton key={i} />
+          ))}
         </div>
       </div>
     )
@@ -267,6 +328,20 @@ export default function ProjectsPage() {
 
       <div className="space-y-4">
         {filteredProjects.map((project) => (
+          <ProjectCard key={project.id} project={project} />
+        ))}
+      </div>
+
+      {filteredProjects.length === 0 && (
+        <div className="text-center py-12 sm:py-16 lg:py-20">
+          <p className="text-primary-600 text-base sm:text-lg font-light mb-2">Проекты не найдены</p>
+          <p className="text-primary-500 text-sm sm:text-base font-light">Попробуйте изменить параметры поиска</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
           <Link
             key={project.id}
             href={`/projects/${project.id}`}

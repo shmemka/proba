@@ -19,6 +19,7 @@ export default function Home() {
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center px-4 sm:px-0">
             <Link
               href="/register?type=specialist"
+              prefetch={true}
               className="bg-primary-900 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-apple font-normal hover:bg-primary-800 transition-colors inline-flex items-center justify-center gap-2 text-sm sm:text-base tracking-tight"
             >
               Я специалист
@@ -26,6 +27,7 @@ export default function Home() {
             </Link>
             <Link
               href="/register?type=company"
+              prefetch={true}
               className="bg-white text-primary-900 px-6 sm:px-8 py-3 sm:py-4 rounded-apple font-normal hover:bg-primary-50 transition-colors inline-flex items-center justify-center gap-2 border border-primary-200 text-sm sm:text-base tracking-tight"
             >
               Я компания
@@ -102,12 +104,14 @@ export default function Home() {
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
             <Link
               href="/specialists"
+              prefetch={true}
               className="bg-primary-900 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-apple font-normal hover:bg-primary-800 transition-colors text-sm sm:text-base tracking-tight"
             >
               Найти специалиста
             </Link>
             <Link
               href="/projects"
+              prefetch={true}
               className="bg-white text-primary-900 px-6 sm:px-8 py-3 sm:py-4 rounded-apple font-normal hover:bg-primary-100 transition-colors border border-primary-200 text-sm sm:text-base tracking-tight"
             >
               Найти проект
