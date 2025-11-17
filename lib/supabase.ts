@@ -222,21 +222,32 @@ export async function getProjects() {
     return []
   }
 
-  // Получаем количество заявок для каждого проекта
-  const projectsWithApplications = await Promise.all(
-    (data || []).map(async (project) => {
-      const { count } = await supabase
-        .from('applications')
-        .select('*', { count: 'exact', head: true })
-        .eq('project_id', project.id)
-      
-      return {
-        ...project,
-        applicationsCount: count || 0,
-        company: (project.companies as any)?.company_name || 'Компания',
-      }
+  if (!data || data.length === 0) {
+    return []
+  }
+
+  // Оптимизация: получаем все заявки одним запросом вместо N+1
+  const projectIds = data.map(p => p.id)
+  const { data: applicationsData } = await supabase
+    .from('applications')
+    .select('project_id')
+    .in('project_id', projectIds)
+
+  // Подсчитываем заявки для каждого проекта
+  const applicationsCountMap = new Map<string, number>()
+  if (applicationsData) {
+    applicationsData.forEach(app => {
+      const count = applicationsCountMap.get(app.project_id) || 0
+      applicationsCountMap.set(app.project_id, count + 1)
     })
-  )
+  }
+
+  // Формируем результат
+  const projectsWithApplications = data.map((project) => ({
+    ...project,
+    applicationsCount: applicationsCountMap.get(project.id) || 0,
+    company: (project.companies as any)?.company_name || 'Компания',
+  }))
 
   return projectsWithApplications
 }

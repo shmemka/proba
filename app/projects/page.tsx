@@ -23,9 +23,18 @@ export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('')
   const [selectedSkill, setSelectedSkill] = useState<string>('')
   const [sortBy, setSortBy] = useState<'deadline' | 'applications'>('deadline')
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false)
+
+  // Debounce для поиска
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [searchQuery])
 
   // Загружаем проекты из Supabase или localStorage
   useEffect(() => {
@@ -85,10 +94,16 @@ export default function ProjectsPage() {
     }
     
     window.addEventListener('storage', handleStorageChange)
-    window.addEventListener('focus', () => loadProjects())
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        loadProjects()
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
     
     return () => {
       window.removeEventListener('storage', handleStorageChange)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
   }, [])
 
@@ -97,7 +112,7 @@ export default function ProjectsPage() {
   }, [projects])
 
   const filteredProjects = useMemo(() => {
-    const normalizedQuery = searchQuery.trim().toLowerCase()
+    const normalizedQuery = debouncedSearchQuery.trim().toLowerCase()
     const now = new Date()
 
     const matches = projects.filter(project => {
@@ -125,7 +140,7 @@ export default function ProjectsPage() {
       if (isNaN(bTime)) return -1
       return aTime - bTime
     })
-  }, [projects, searchQuery, selectedSkill, sortBy])
+  }, [projects, debouncedSearchQuery, selectedSkill, sortBy])
 
   const formatDate = (dateString: string) => {
     try {

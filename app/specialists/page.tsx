@@ -1,11 +1,13 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { MagnifyingGlassIcon, StarIcon } from '@heroicons/react/24/outline'
 import { readJson } from '@/lib/storage'
 import SpecialistDrawer from '@/components/SpecialistDrawer'
 import { getSpecialists, getSpecialist, isSupabaseAvailable } from '@/lib/supabase'
+import { formatSpecialistFromStorage } from '@/lib/utils'
 
 type Specialization = 'Дизайн' | 'SMM' | 'Веб-разработка'
 
@@ -60,11 +62,20 @@ export default function SpecialistsPage() {
   const [specialists, setSpecialists] = useState<Specialist[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('')
   const [selectedSpecialization, setSelectedSpecialization] = useState<Specialization | ''>('')
   const [sortBy, setSortBy] = useState<'rating' | 'hired' | 'name'>('rating')
   const [selectedSpecialist, setSelectedSpecialist] = useState<FullSpecialist | null>(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [currentProjectIndex, setCurrentProjectIndex] = useState(0)
+
+  // Debounce для поиска
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [searchQuery])
 
   // Загружаем специалистов из Supabase или localStorage
   useEffect(() => {
@@ -107,45 +118,14 @@ export default function SpecialistsPage() {
     const loadFromLocalStorage = () => {
       const savedSpecialists = readJson<any[]>('specialists', [])
       const allSpecialists: Specialist[] = []
+      const seenIds = new Set<string>()
       
       savedSpecialists.forEach((saved: any) => {
-        let migratedSpecialist: Specialist
-        if ('name' in saved && typeof saved.name === 'string') {
-          const nameParts = saved.name.split(' ')
-          migratedSpecialist = {
-            id: saved.id,
-            firstName: nameParts[0] || '',
-            lastName: nameParts.slice(1).join(' ') || '',
-            specialization: saved.specialization || 'Дизайн',
-            bio: saved.bio || '',
-            telegram: saved.telegram || '',
-            email: saved.email || '',
-            avatarUrl: saved.avatarUrl || '',
-            rating: saved.rating || 0,
-            hiredCount: saved.hiredCount || 0,
-            showInSearch: saved.showInSearch !== undefined ? saved.showInSearch : true,
-            projects: saved.projects || [],
-          }
-        } else {
-          migratedSpecialist = {
-            id: saved.id,
-            firstName: saved.firstName || '',
-            lastName: saved.lastName || '',
-            specialization: saved.specialization || 'Дизайн',
-            bio: saved.bio,
-            telegram: saved.telegram || '',
-            email: saved.email,
-            avatarUrl: saved.avatarUrl || '',
-            rating: saved.rating || 0,
-            hiredCount: saved.hiredCount || 0,
-            showInSearch: saved.showInSearch !== undefined ? saved.showInSearch : true,
-            projects: saved.projects || [],
-          }
-        }
+        if (seenIds.has(saved.id)) return
+        seenIds.add(saved.id)
         
-        if (!allSpecialists.find(s => s.id === migratedSpecialist.id)) {
-          allSpecialists.push(migratedSpecialist)
-        }
+        const migratedSpecialist = formatSpecialistFromStorage(saved)
+        allSpecialists.push(migratedSpecialist)
       })
       setSpecialists(allSpecialists)
     }
@@ -157,17 +137,25 @@ export default function SpecialistsPage() {
     }
     
     window.addEventListener('storage', handleStorageChange)
-    window.addEventListener('focus', () => loadSpecialists())
+    // Убираем частую перезагрузку при focus - только при storage change
+    const handleFocus = () => {
+      // Проверяем только если данные могли измениться в другой вкладке
+      if (document.visibilityState === 'visible') {
+        loadSpecialists()
+      }
+    }
+    document.addEventListener('visibilitychange', handleFocus)
     
     return () => {
       window.removeEventListener('storage', handleStorageChange)
+      document.removeEventListener('visibilitychange', handleFocus)
     }
   }, [])
 
   const specializations: Specialization[] = ['Дизайн', 'SMM', 'Веб-разработка']
 
   const filteredSpecialists = useMemo(() => {
-    const normalizedQuery = searchQuery.trim().toLowerCase()
+    const normalizedQuery = debouncedSearchQuery.trim().toLowerCase()
 
     return specialists
       .filter(specialist => {
@@ -198,9 +186,9 @@ export default function SpecialistsPage() {
         }
         return (b.hiredCount || 0) - (a.hiredCount || 0)
       })
-  }, [specialists, searchQuery, selectedSpecialization, sortBy])
+  }, [specialists, debouncedSearchQuery, selectedSpecialization, sortBy])
 
-  const handleSpecialistClick = async (specialistId: string) => {
+  const handleSpecialistClick = useCallback(async (specialistId: string) => {
     try {
       if (isSupabaseAvailable()) {
         // Загружаем из Supabase
@@ -239,59 +227,23 @@ export default function SpecialistsPage() {
       const savedSpecialists = readJson<any[]>('specialists', [])
       const found = savedSpecialists.find((s: any) => s.id === specialistId)
       if (found) {
-          let migratedSpecialist: FullSpecialist
-          if ('name' in found && typeof found.name === 'string') {
-            const nameParts = found.name.split(' ')
-            migratedSpecialist = {
-              id: found.id,
-              firstName: nameParts[0] || '',
-              lastName: nameParts.slice(1).join(' ') || '',
-              specialization: found.specialization || 'Дизайн',
-              bio: found.bio || '',
-              telegram: found.telegram || '',
-              email: found.email || '',
-              avatarUrl: found.avatarUrl || '',
-              rating: found.rating || 0,
-              hiredCount: found.hiredCount || 0,
-              showInSearch: found.showInSearch !== undefined ? found.showInSearch : true,
-              projects: (found.projects || []).map((p: any, idx: number) => ({
-                id: p.id || `project-${idx}`,
-                title: p.title || '',
-                description: p.description || '',
-                images: p.images || [],
-                link: p.link,
-              })),
-            }
-          } else {
-            migratedSpecialist = {
-              id: found.id,
-              firstName: found.firstName || '',
-              lastName: found.lastName || '',
-              specialization: found.specialization || 'Дизайн',
-              bio: found.bio,
-              telegram: found.telegram || '',
-              email: found.email,
-              avatarUrl: found.avatarUrl || '',
-              rating: found.rating || 0,
-              hiredCount: found.hiredCount || 0,
-              showInSearch: found.showInSearch !== undefined ? found.showInSearch : true,
-              projects: (found.projects || []).map((p: any, idx: number) => ({
-                id: p.id || `project-${idx}`,
-                title: p.title || '',
-                description: p.description || '',
-                images: p.images || [],
-                link: p.link,
-              })),
-            }
-          }
-          setSelectedSpecialist(migratedSpecialist)
-          setCurrentProjectIndex(0)
-          setIsDrawerOpen(true)
-        }
+        const migratedSpecialist = formatSpecialistFromStorage(found) as FullSpecialist
+        // Форматируем проекты
+        migratedSpecialist.projects = (found.projects || []).map((p: any, idx: number) => ({
+          id: p.id || `project-${idx}`,
+          title: p.title || '',
+          description: p.description || '',
+          images: p.images || [],
+          link: p.link,
+        }))
+        setSelectedSpecialist(migratedSpecialist)
+        setCurrentProjectIndex(0)
+        setIsDrawerOpen(true)
+      }
     } catch (error) {
       console.error('Ошибка загрузки специалиста:', error)
     }
-  }
+  }, [])
 
   const handleCloseDrawer = () => {
     setIsDrawerOpen(false)
@@ -386,11 +338,15 @@ export default function SpecialistsPage() {
           >
             <div className="flex items-start gap-3 sm:gap-5 mb-3 sm:mb-4 flex-shrink-0">
               {specialist.avatarUrl ? (
-                <img
-                  src={specialist.avatarUrl}
-                  alt={`${specialist.firstName} ${specialist.lastName}`}
-                  className="w-12 h-12 sm:w-14 sm:h-14 rounded-apple object-cover flex-shrink-0 border border-primary-100"
-                />
+                <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-apple overflow-hidden flex-shrink-0 border border-primary-100">
+                  <Image
+                    src={specialist.avatarUrl}
+                    alt={`${specialist.firstName} ${specialist.lastName}`}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 640px) 48px, 56px"
+                  />
+                </div>
               ) : (
                 <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-apple bg-primary-50 flex items-center justify-center text-primary-700 text-sm sm:text-base font-normal flex-shrink-0">
                   {(specialist.firstName?.[0] || '')}{(specialist.lastName?.[0] || '')}
@@ -417,15 +373,19 @@ export default function SpecialistsPage() {
 
             {/* Галерея изображений из проектов */}
             {specialist.projects && specialist.projects.length > 0 && (
-              <div className="flex gap-2 sm:gap-3 overflow-x-auto -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 scrollbar-hide snap-x snap-mandatory">
+              <div className="flex gap-2 sm:gap-3 overflow-x-auto -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 scrollbar-hide">
                 {specialist.projects
                   .flatMap(project => project.images || [])
+                  .slice(0, 5) // Ограничиваем количество для производительности
                   .map((image, index) => (
-                    <div key={index} className="flex-shrink-0 w-32 sm:w-48 md:w-56 lg:w-64 h-24 sm:h-36 md:h-44 lg:h-48 rounded-apple overflow-hidden border border-primary-100 bg-primary-50 snap-start">
-                      <img
+                    <div key={index} className="relative flex-shrink-0 w-48 sm:w-56 lg:w-64 h-36 sm:h-44 lg:h-48 rounded-apple overflow-hidden border border-primary-100 bg-primary-50">
+                      <Image
                         src={image.url}
                         alt={`Портфолио ${index + 1}`}
-                        className="w-full h-full object-cover"
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 640px) 192px, (max-width: 1024px) 224px, 256px"
+                        loading="lazy"
                       />
                     </div>
                   ))}

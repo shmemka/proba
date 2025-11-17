@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { ArrowRightOnRectangleIcon, Cog6ToothIcon, Bars3Icon } from '@heroicons/react/24/outline'
 import { useState, useEffect } from 'react'
@@ -74,16 +75,19 @@ export default function Navbar() {
       checkAuth()
     }
 
-    // Проверяем каждые 2 секунды для обновления состояния
-    const interval = setInterval(checkAuth, 2000)
+    // Оптимизация: проверяем только при изменении видимости страницы, а не каждые 2 секунды
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        checkAuth()
+      }
+    }
 
     window.addEventListener('storage', handleStorageChange)
-    window.addEventListener('focus', checkAuth)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
 
     return () => {
-      clearInterval(interval)
       window.removeEventListener('storage', handleStorageChange)
-      window.removeEventListener('focus', checkAuth)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
   }, [])
 
@@ -119,10 +123,13 @@ export default function Navbar() {
             href={user ? '/specialists' : '/'} 
             className="flex items-center gap-2 text-primary-900 font-normal text-lg tracking-tight"
           >
-            <img 
+            <Image 
               src="/logo.svg" 
               alt="Logo" 
+              width={120}
+              height={24}
               className="h-6 w-auto"
+              priority
             />
           </Link>
 
@@ -151,11 +158,15 @@ export default function Navbar() {
               >
                 <button className="flex items-center gap-3 px-3 py-2 rounded-apple hover:bg-primary-50 transition-colors">
                   {user.avatarUrl ? (
-                    <img 
-                      src={user.avatarUrl} 
-                      alt={user.name || user.email}
-                      className="w-8 h-8 rounded-apple object-cover"
-                    />
+                    <div className="relative w-8 h-8 rounded-apple overflow-hidden">
+                      <Image 
+                        src={user.avatarUrl} 
+                        alt={user.name || user.email}
+                        fill
+                        className="object-cover"
+                        sizes="32px"
+                      />
+                    </div>
                   ) : (
                     <div className="w-8 h-8 rounded-apple bg-primary-50 flex items-center justify-center text-primary-700 text-xs font-normal">
                       {(user.name?.[0] || user.email?.[0] || '?').toUpperCase()}
@@ -251,11 +262,15 @@ export default function Navbar() {
                 <>
                   <div className="px-3 py-3 flex items-center gap-3">
                     {user.avatarUrl ? (
-                      <img 
-                        src={user.avatarUrl} 
-                        alt={user.name || user.email}
-                        className="w-10 h-10 rounded-apple object-cover"
-                      />
+                      <div className="relative w-10 h-10 rounded-apple overflow-hidden">
+                        <Image 
+                          src={user.avatarUrl} 
+                          alt={user.name || user.email}
+                          fill
+                          className="object-cover"
+                          sizes="40px"
+                        />
+                      </div>
                     ) : (
                       <div className="w-10 h-10 rounded-apple bg-primary-50 flex items-center justify-center text-primary-700 text-sm font-normal">
                         {(user.name?.[0] || user.email?.[0] || '?').toUpperCase()}

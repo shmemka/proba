@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, memo, useCallback } from 'react'
+import Image from 'next/image'
 import { XMarkIcon, EnvelopeIcon, PaperAirplaneIcon, ChevronLeftIcon, ChevronRightIcon, ArrowTopRightOnSquareIcon, InformationCircleIcon } from '@heroicons/react/24/outline'
 import { StarIcon } from '@heroicons/react/24/solid'
 
@@ -80,19 +81,19 @@ export default function SpecialistDrawer({
   const hasProjects = specialist.projects && specialist.projects.length > 0
   const currentProject = hasProjects ? specialist.projects![currentProjectIndex] : null
 
-  const handlePrevious = () => {
+  const handlePrevious = useCallback(() => {
     if (hasProjects && specialist.projects && specialist.projects.length > 0 && onProjectChange) {
       const newIndex = currentProjectIndex > 0 ? currentProjectIndex - 1 : specialist.projects.length - 1
       onProjectChange(newIndex)
     }
-  }
+  }, [hasProjects, specialist.projects, currentProjectIndex, onProjectChange])
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     if (hasProjects && specialist.projects && specialist.projects.length > 0 && onProjectChange) {
       const newIndex = currentProjectIndex < specialist.projects.length - 1 ? currentProjectIndex + 1 : 0
       onProjectChange(newIndex)
     }
-  }
+  }, [hasProjects, specialist.projects, currentProjectIndex, onProjectChange])
 
   return (
     <>
@@ -124,20 +125,24 @@ export default function SpecialistDrawer({
         </button>
 
         {/* Content */}
-        <div className="flex-1 flex flex-col lg:flex-row h-full overflow-hidden">
-          {/* Left side - Profile (scrollable, full width on mobile) */}
+        <div className="flex-1 flex flex-col lg:flex-row h-full overflow-y-auto lg:overflow-hidden">
+          {/* Left side - Profile (scrollable) */}
           <div 
             ref={leftScrollRef}
-            className="w-full lg:w-1/2 p-4 sm:p-6 lg:p-8 xl:p-12 lg:border-r border-primary-100 flex flex-col overflow-y-auto scrollbar-hide"
+            className="lg:w-1/2 p-4 sm:p-6 lg:p-8 xl:p-12 lg:border-r border-primary-100 flex flex-col lg:overflow-y-auto scrollbar-hide"
           >
               {/* Avatar */}
               <div className="mb-4 sm:mb-6">
                 {specialist.avatarUrl ? (
-                  <img
-                    src={specialist.avatarUrl}
-                    alt={fullName}
-                    className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover mb-3 sm:mb-4 border border-primary-200"
-                  />
+                  <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden mb-3 sm:mb-4 border border-primary-200">
+                    <Image
+                      src={specialist.avatarUrl}
+                      alt={fullName}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 640px) 80px, 96px"
+                    />
+                  </div>
                 ) : (
                   <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-primary-50 flex items-center justify-center text-primary-700 text-2xl sm:text-3xl font-normal mb-3 sm:mb-4">
                     {(firstName?.[0] || '')}{(lastName?.[0] || '')}
@@ -206,7 +211,7 @@ export default function SpecialistDrawer({
               </div>
 
               {/* Contact Info */}
-              <div className="mt-auto pt-8 border-t border-primary-100 lg:mb-0 mb-8">
+              <div className="lg:mt-auto pt-8 border-t border-primary-100 lg:border-b-0 border-b border-primary-100">
                 <div className="space-y-3">
                   {telegram && telegramUrl !== '#' && (
                     <div>
@@ -234,63 +239,12 @@ export default function SpecialistDrawer({
                   )}
                 </div>
               </div>
-
-              {/* Portfolio section for mobile - shown below contact info */}
-              <div className="lg:hidden mt-8 pt-8 border-t border-primary-100">
-                {hasProjects && specialist.projects && specialist.projects.length > 0 ? (
-                  <div className="space-y-6">
-                    {specialist.projects.map((project, projectIdx) => (
-                      <div key={project.id || projectIdx}>
-                        <h3 className="text-xl font-normal text-primary-900 tracking-tight mb-4">
-                          {project.title}
-                        </h3>
-                        {project.description && (
-                          <p className="text-sm font-light text-primary-600 mb-4 leading-relaxed">
-                            {project.description}
-                          </p>
-                        )}
-                        {project.images && project.images.length > 0 && (
-                          <div className="space-y-3">
-                            {project.images.map((image, imgIdx) => (
-                              <div key={imgIdx} className="w-full rounded-apple overflow-hidden border border-primary-100 bg-primary-50" style={{ aspectRatio: '4/3' }}>
-                                <img
-                                  src={image.url}
-                                  alt={`${project.title} - фото ${imgIdx + 1}`}
-                                  className="w-full h-full object-cover"
-                                />
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        {project.link && (
-                          <a
-                            href={project.link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 text-sm font-normal text-primary-700 hover:text-primary-900 transition-colors mt-4"
-                          >
-                            <ArrowTopRightOnSquareIcon className="w-4 h-4" />
-                            Посмотреть проект
-                          </a>
-                        )}
-                        {projectIdx < specialist.projects!.length - 1 && (
-                          <div className="mt-6 pt-6 border-t border-primary-100"></div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <p className="text-primary-500 font-light">Портфолио пока пусто</p>
-                  </div>
-                )}
-              </div>
             </div>
 
-          {/* Right side - Portfolio (fixed, desktop only) */}
+          {/* Right side - Portfolio (fixed on desktop, scrollable on mobile) */}
           <div 
             ref={rightSectionRef}
-            className="hidden lg:flex lg:w-1/2 lg:sticky lg:top-0 lg:h-screen relative bg-primary-50 flex-col overflow-hidden"
+            className="lg:w-1/2 lg:sticky lg:top-0 lg:h-screen relative bg-primary-50 flex flex-col min-h-[300px] sm:min-h-[400px] lg:min-h-0 lg:overflow-hidden"
           >
             {hasProjects && currentProject ? (
               <>
@@ -306,20 +260,22 @@ export default function SpecialistDrawer({
                   )}
                 </div>
                 
-                {/* Размытие сверху для читаемости */}
-                <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-b from-primary-50 via-primary-50/80 to-transparent backdrop-blur-sm pointer-events-none z-10"></div>
+                {/* Размытие сверху для читаемости (только на desktop) */}
+                <div className="hidden lg:block absolute top-0 left-0 right-0 h-24 bg-gradient-to-b from-primary-50 via-primary-50/80 to-transparent backdrop-blur-sm pointer-events-none z-10"></div>
 
-                {/* Галерея изображений (скроллируемая) */}
-                <div className="flex-1 overflow-y-auto scrollbar-hide relative">
+                {/* Галерея изображений (скроллируемая на desktop, обычная на mobile) */}
+                <div className="flex-1 lg:overflow-y-auto scrollbar-hide relative">
                   {currentProject.images && currentProject.images.length > 0 ? (
                     <div className="px-4 sm:px-6 lg:px-8 py-3 sm:py-4 space-y-3 sm:space-y-4">
                       {currentProject.images.map((image, index) => (
-                        <div key={index} className="w-full rounded-apple overflow-hidden border border-primary-100 bg-primary-50" style={{ aspectRatio: '4/3' }}>
-                          <img
+                        <div key={index} className="relative w-full rounded-apple overflow-hidden border border-primary-100 bg-primary-50" style={{ aspectRatio: '4/3' }}>
+                          <Image
                             src={image.url}
                             alt={`${currentProject.title} - фото ${index + 1}`}
-                            className="w-full h-full object-cover"
-                            style={{ aspectRatio: '4/3' }}
+                            fill
+                            className="object-cover"
+                            sizes="(max-width: 1024px) 100vw, 50vw"
+                            loading={index < 2 ? 'eager' : 'lazy'}
                           />
                         </div>
                       ))}
@@ -330,8 +286,8 @@ export default function SpecialistDrawer({
                     </div>
                   )}
                   
-                  {/* Размытие снизу */}
-                  <div className="sticky bottom-0 h-20 bg-gradient-to-t from-primary-50 via-primary-50/95 to-transparent pointer-events-none"></div>
+                  {/* Размытие снизу (только на desktop) */}
+                  <div className="hidden lg:block sticky bottom-0 h-20 bg-gradient-to-t from-primary-50 via-primary-50/95 to-transparent pointer-events-none"></div>
                 </div>
 
                 {/* Navigation arrows */}
