@@ -343,9 +343,9 @@ export default function ProjectsPage() {
       </div>
 
       {filteredProjects.length === 0 && (
-        <div className="text-center py-20">
-          <p className="text-primary-600 text-lg font-light mb-2">Проекты не найдены</p>
-          <p className="text-primary-500 text-base font-light">Попробуйте изменить параметры поиска</p>
+        <div className="text-center py-12 sm:py-16 lg:py-20">
+          <p className="text-primary-600 text-base sm:text-lg font-light mb-2">Проекты не найдены</p>
+          <p className="text-primary-500 text-sm sm:text-base font-light">Попробуйте изменить параметры поиска</p>
         </div>
       )}
     </div>

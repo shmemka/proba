@@ -590,7 +590,7 @@ export default function SpecialistsPage() {
                 {specialist.projects
                   .flatMap(project => project.images || [])
                   .map((image, index) => (
-                    <div key={index} className="flex-shrink-0 w-48 sm:w-56 lg:w-64 h-36 sm:h-42 lg:h-48 rounded-apple overflow-hidden border border-primary-100 bg-primary-50">
+                    <div key={index} className="flex-shrink-0 w-48 sm:w-56 lg:w-64 h-36 sm:h-44 lg:h-48 rounded-apple overflow-hidden border border-primary-100 bg-primary-50">
                       <img
                         src={image.url}
                         alt={`Портфолио ${index + 1}`}
