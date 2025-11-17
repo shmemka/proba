@@ -17,6 +17,7 @@ interface Specialist {
   bio?: string
   telegram: string
   email?: string
+  avatarUrl?: string
   rating: number
   hiredCount: number
   showInSearch?: boolean
@@ -39,6 +40,7 @@ interface FullSpecialist {
   bio?: string
   telegram: string
   email?: string
+  avatarUrl?: string
   rating: number
   hiredCount: number
   showInSearch?: boolean
@@ -253,6 +255,7 @@ export default function SpecialistsPage() {
               bio: s.bio || '',
               telegram: s.telegram || '',
               email: s.email || '',
+              avatarUrl: s.avatar_url || '',
               rating: 0, // Пока нет рейтинга в БД
               hiredCount: 0, // Пока нет счетчика в БД
               showInSearch: s.show_in_search !== false,
@@ -294,6 +297,7 @@ export default function SpecialistsPage() {
             bio: saved.bio || '',
             telegram: saved.telegram || '',
             email: saved.email || '',
+            avatarUrl: saved.avatarUrl || '',
             rating: saved.rating || 0,
             hiredCount: saved.hiredCount || 0,
             showInSearch: saved.showInSearch !== undefined ? saved.showInSearch : true,
@@ -308,6 +312,7 @@ export default function SpecialistsPage() {
             bio: saved.bio,
             telegram: saved.telegram || '',
             email: saved.email,
+            avatarUrl: saved.avatarUrl || '',
             rating: saved.rating || 0,
             hiredCount: saved.hiredCount || 0,
             showInSearch: saved.showInSearch !== undefined ? saved.showInSearch : true,
@@ -386,6 +391,7 @@ export default function SpecialistsPage() {
             bio: specialist.bio || '',
             telegram: specialist.telegram || '',
             email: specialist.email || '',
+            avatarUrl: specialist.avatar_url || '',
             rating: 0,
             hiredCount: 0,
             showInSearch: specialist.show_in_search !== false,
@@ -427,6 +433,7 @@ export default function SpecialistsPage() {
               bio: found.bio || '',
               telegram: found.telegram || '',
               email: found.email || '',
+              avatarUrl: found.avatarUrl || '',
               rating: found.rating || 0,
               hiredCount: found.hiredCount || 0,
               showInSearch: found.showInSearch !== undefined ? found.showInSearch : true,
@@ -447,6 +454,7 @@ export default function SpecialistsPage() {
               bio: found.bio,
               telegram: found.telegram || '',
               email: found.email,
+              avatarUrl: found.avatarUrl || '',
               rating: found.rating || 0,
               hiredCount: found.hiredCount || 0,
               showInSearch: found.showInSearch !== undefined ? found.showInSearch : true,
@@ -532,9 +540,17 @@ export default function SpecialistsPage() {
             className="bg-white rounded-apple border border-primary-100 hover:border-primary-200 transition-colors p-8 text-left w-full flex flex-col"
           >
             <div className="flex items-start gap-5 mb-4 flex-shrink-0">
-              <div className="w-14 h-14 rounded-apple bg-primary-50 flex items-center justify-center text-primary-700 text-base font-normal flex-shrink-0">
-                {(specialist.firstName?.[0] || '')}{(specialist.lastName?.[0] || '')}
-              </div>
+              {specialist.avatarUrl ? (
+                <img
+                  src={specialist.avatarUrl}
+                  alt={`${specialist.firstName} ${specialist.lastName}`}
+                  className="w-14 h-14 rounded-apple object-cover flex-shrink-0 border border-primary-100"
+                />
+              ) : (
+                <div className="w-14 h-14 rounded-apple bg-primary-50 flex items-center justify-center text-primary-700 text-base font-normal flex-shrink-0">
+                  {(specialist.firstName?.[0] || '')}{(specialist.lastName?.[0] || '')}
+                </div>
+              )}
               <div className="flex-1 min-w-0">
                 <h3 className="text-lg font-normal text-primary-900 mb-1 tracking-tight">
                   {specialist.firstName || ''} {specialist.lastName || ''}

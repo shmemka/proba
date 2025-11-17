@@ -27,6 +27,7 @@ interface ProfileData {
   bio?: string
   telegram: string
   email?: string
+  avatarUrl?: string
   showInSearch?: boolean
   projects?: Project[]
 }
@@ -83,6 +84,7 @@ export default function EditProfilePage() {
   const [formData, setFormData] = useState<ProfileData>(createEmptyProfile)
   const [projects, setProjects] = useState<Project[]>([])
   const [activeTab, setActiveTab] = useState<'card' | 'portfolio'>('card')
+  const [avatarPreview, setAvatarPreview] = useState<string>('')
 
   // Загружаем данные профиля из Supabase или localStorage
   useEffect(() => {
@@ -101,8 +103,14 @@ export default function EditProfilePage() {
               bio: specialist.bio || '',
               telegram: specialist.telegram || '',
               email: specialist.email || currentUser.email || '',
+              avatarUrl: specialist.avatar_url || '',
               showInSearch: specialist.show_in_search !== undefined ? specialist.show_in_search : true,
             })
+            
+            // Загружаем аватарку
+            if (specialist.avatar_url) {
+              setAvatarPreview(specialist.avatar_url)
+            }
             
             // Загружаем портфолио
             if (specialist.portfolio && Array.isArray(specialist.portfolio)) {
@@ -129,8 +137,12 @@ export default function EditProfilePage() {
               setFormData({
                 ...savedProfile,
                 email: savedProfile.email || currentUser.email || '',
+                avatarUrl: (savedProfile as any).avatarUrl || '',
                 showInSearch: savedProfile.showInSearch !== undefined ? savedProfile.showInSearch : true,
               })
+              if ((savedProfile as any).avatarUrl) {
+                setAvatarPreview((savedProfile as any).avatarUrl)
+              }
               if (savedProfile.projects) {
                 setProjects(savedProfile.projects)
               }
@@ -147,6 +159,51 @@ export default function EditProfilePage() {
 
     loadProfile()
   }, [isAuthorized, currentUser])
+
+  // Функция для обработки аватарки (квадрат 400x400)
+  const processAvatar = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        const img = new Image()
+        img.onload = () => {
+          const canvas = document.createElement('canvas')
+          const ctx = canvas.getContext('2d')
+          if (!ctx) {
+            reject(new Error('Не удалось создать контекст canvas'))
+            return
+          }
+
+          const targetSize = 400
+          const size = Math.min(img.width, img.height)
+          const x = (img.width - size) / 2
+          const y = (img.height - size) / 2
+
+          canvas.width = targetSize
+          canvas.height = targetSize
+
+          ctx.drawImage(img, x, y, size, size, 0, 0, targetSize, targetSize)
+
+          resolve(canvas.toDataURL('image/jpeg', 0.9))
+        }
+        img.onerror = reject
+        img.src = e.target?.result as string
+      }
+      reader.onerror = reject
+      reader.readAsDataURL(file)
+    })
+  }
+
+  const handleAvatarUpload = async (file: File) => {
+    try {
+      const processedAvatar = await processAvatar(file)
+      setAvatarPreview(processedAvatar)
+      setFormData({ ...formData, avatarUrl: processedAvatar })
+    } catch (error) {
+      console.error('Ошибка обработки аватарки:', error)
+      alert('Не удалось обработать аватарку')
+    }
+  }
 
   // Функция для обрезки изображения в формат 4:3 (альбомная ориентация)
   const cropImageTo4_3 = (file: File): Promise<string> => {
@@ -284,6 +341,7 @@ export default function EditProfilePage() {
           bio: formData.bio || '',
           telegram: formData.telegram.trim(),
           email: formData.email || currentUser.email,
+          avatar_url: formData.avatarUrl || '',
           show_in_search: formData.showInSearch !== false,
           portfolio: portfolioData,
         })
@@ -383,6 +441,64 @@ export default function EditProfilePage() {
       <form onSubmit={handleSubmit}>
         {activeTab === 'card' && (
           <div className="bg-white rounded-apple border border-primary-100 p-10 space-y-6">
+            {/* Загрузка аватарки */}
+            <div>
+              <label className="block text-sm font-light text-primary-700 mb-2">
+                Фото профиля
+              </label>
+              <div className="flex items-center gap-6">
+                <div className="relative">
+                  <div className="w-24 h-24 rounded-apple overflow-hidden border border-primary-200 bg-primary-50 flex items-center justify-center">
+                    {avatarPreview ? (
+                      <img
+                        src={avatarPreview}
+                        alt="Аватар"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-primary-400 text-2xl font-light">
+                        {(formData.firstName?.[0] || '') + (formData.lastName?.[0] || '') || '?'}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <label className="inline-block cursor-pointer">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) {
+                          handleAvatarUpload(file)
+                        }
+                      }}
+                    />
+                    <span className="inline-flex items-center gap-2 px-4 py-2 border border-primary-200 rounded-apple text-sm font-normal text-primary-700 hover:bg-primary-50 transition-colors">
+                      <PhotoIcon className="w-4 h-4" />
+                      {avatarPreview ? 'Изменить фото' : 'Загрузить фото'}
+                    </span>
+                  </label>
+                  {avatarPreview && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAvatarPreview('')
+                        setFormData({ ...formData, avatarUrl: '' })
+                      }}
+                      className="ml-3 text-sm font-light text-primary-500 hover:text-primary-700"
+                    >
+                      Удалить
+                    </button>
+                  )}
+                  <p className="text-xs font-light text-primary-500 mt-2">
+                    Рекомендуемый размер: квадрат, минимум 400x400px
+                  </p>
+                </div>
+              </div>
+            </div>
+
             <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="firstName" className="block text-sm font-light text-primary-700 mb-2">

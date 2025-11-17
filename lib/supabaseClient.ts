@@ -34,6 +34,7 @@ export interface Database {
           specialization: string
           bio: string
           telegram: string
+          avatar_url: string
           show_in_search: boolean
           portfolio: any
           created_at: string

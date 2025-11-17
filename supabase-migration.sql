@@ -19,6 +19,7 @@ CREATE TABLE specialists (
   specialization TEXT NOT NULL,
   bio TEXT DEFAULT '',
   telegram TEXT DEFAULT '',
+  avatar_url TEXT DEFAULT '',
   show_in_search BOOLEAN DEFAULT true,
   portfolio JSONB DEFAULT '[]'::jsonb,
   created_at TIMESTAMPTZ DEFAULT NOW(),

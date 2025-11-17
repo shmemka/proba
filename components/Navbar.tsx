@@ -5,13 +5,14 @@ import { usePathname, useRouter } from 'next/navigation'
 import { ArrowRightOnRectangleIcon, Cog6ToothIcon, Bars3Icon } from '@heroicons/react/24/outline'
 import { useState, useEffect } from 'react'
 import { getActiveUser } from '@/lib/storage'
-import { getCurrentUser, signOut, isSupabaseAvailable } from '@/lib/supabase'
+import { getCurrentUser, signOut, isSupabaseAvailable, getSpecialist } from '@/lib/supabase'
 
 type NavUser = {
   id: string
   email: string
   name?: string
   type?: 'specialist' | 'company'
+  avatarUrl?: string
 }
 
 export default function Navbar() {
@@ -27,11 +28,25 @@ export default function Navbar() {
         // Проверяем Supabase Auth
         const supabaseUser = await getCurrentUser()
         if (supabaseUser) {
+          const userType = supabaseUser.user_metadata?.userType || 'specialist'
+          let avatarUrl = ''
+          
+          // Если специалист, загружаем аватарку из профиля
+          if (userType === 'specialist') {
+            try {
+              const specialist = await getSpecialist(supabaseUser.id)
+              avatarUrl = specialist?.avatar_url || ''
+            } catch (error) {
+              console.error('Ошибка загрузки профиля специалиста:', error)
+            }
+          }
+          
           setUser({
             id: supabaseUser.id,
             email: supabaseUser.email || '',
             name: supabaseUser.user_metadata?.displayName || supabaseUser.email || '',
-            type: supabaseUser.user_metadata?.userType || 'specialist',
+            type: userType,
+            avatarUrl,
           })
         } else {
           setUser(null)
@@ -45,6 +60,7 @@ export default function Navbar() {
             email: storedUser.email,
             name: storedUser.name,
             type: storedUser.type,
+            avatarUrl: '',
           })
         } else {
           setUser(null)
@@ -134,11 +150,17 @@ export default function Navbar() {
                 onMouseLeave={() => setIsProfileMenuOpen(false)}
               >
                 <button className="flex items-center gap-3 px-3 py-2 rounded-apple hover:bg-primary-50 transition-colors">
-                  <img 
-                    src="/avatar.jpg" 
-                    alt={user.name || user.email}
-                    className="w-8 h-8 rounded-apple object-cover"
-                  />
+                  {user.avatarUrl ? (
+                    <img 
+                      src={user.avatarUrl} 
+                      alt={user.name || user.email}
+                      className="w-8 h-8 rounded-apple object-cover"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-apple bg-primary-50 flex items-center justify-center text-primary-700 text-xs font-normal">
+                      {(user.name?.[0] || user.email?.[0] || '?').toUpperCase()}
+                    </div>
+                  )}
                   <span className="text-primary-900 text-sm font-normal">{user.name || user.email}</span>
                 </button>
                 
@@ -228,11 +250,17 @@ export default function Navbar() {
               {user ? (
                 <>
                   <div className="px-3 py-3 flex items-center gap-3">
-                    <img 
-                      src="/avatar.jpg" 
-                      alt={user.name || user.email}
-                      className="w-10 h-10 rounded-apple object-cover"
-                    />
+                    {user.avatarUrl ? (
+                      <img 
+                        src={user.avatarUrl} 
+                        alt={user.name || user.email}
+                        className="w-10 h-10 rounded-apple object-cover"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-apple bg-primary-50 flex items-center justify-center text-primary-700 text-sm font-normal">
+                        {(user.name?.[0] || user.email?.[0] || '?').toUpperCase()}
+                      </div>
+                    )}
                     <span className="text-base font-normal text-primary-900">
                       {user.name || user.email}
                     </span>

@@ -14,6 +14,7 @@ interface Specialist {
   bio?: string
   telegram: string
   email?: string
+  avatarUrl?: string
   rating: number
   hiredCount: number
   projects?: Array<{
@@ -125,9 +126,17 @@ export default function SpecialistDrawer({
           >
               {/* Avatar */}
               <div className="mb-6">
-                <div className="w-24 h-24 rounded-full bg-primary-50 flex items-center justify-center text-primary-700 text-3xl font-normal mb-4">
-                  {(firstName?.[0] || '')}{(lastName?.[0] || '')}
-                </div>
+                {specialist.avatarUrl ? (
+                  <img
+                    src={specialist.avatarUrl}
+                    alt={fullName}
+                    className="w-24 h-24 rounded-full object-cover mb-4 border border-primary-200"
+                  />
+                ) : (
+                  <div className="w-24 h-24 rounded-full bg-primary-50 flex items-center justify-center text-primary-700 text-3xl font-normal mb-4">
+                    {(firstName?.[0] || '')}{(lastName?.[0] || '')}
+                  </div>
+                )}
                 <h1 className="text-3xl font-light text-primary-900 mb-2 tracking-tight">
                   {fullName}
                 </h1>

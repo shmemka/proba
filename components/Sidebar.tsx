@@ -5,13 +5,14 @@ import { usePathname, useRouter } from 'next/navigation'
 import { ArrowRightOnRectangleIcon, Cog6ToothIcon, Bars3Icon, XMarkIcon, UsersIcon, BriefcaseIcon, BookOpenIcon } from '@heroicons/react/24/outline'
 import { useState, useEffect } from 'react'
 import { getActiveUser } from '@/lib/storage'
-import { getCurrentUser, signOut, isSupabaseAvailable } from '@/lib/supabase'
+import { getCurrentUser, signOut, isSupabaseAvailable, getSpecialist } from '@/lib/supabase'
 
 type NavUser = {
   id: string
   email: string
   name?: string
   type?: 'specialist' | 'company'
+  avatarUrl?: string
 }
 
 export default function Sidebar() {
@@ -27,11 +28,25 @@ export default function Sidebar() {
         // Проверяем Supabase Auth
         const supabaseUser = await getCurrentUser()
         if (supabaseUser) {
+          const userType = supabaseUser.user_metadata?.userType || 'specialist'
+          let avatarUrl = ''
+          
+          // Если специалист, загружаем аватарку из профиля
+          if (userType === 'specialist') {
+            try {
+              const specialist = await getSpecialist(supabaseUser.id)
+              avatarUrl = specialist?.avatar_url || ''
+            } catch (error) {
+              console.error('Ошибка загрузки профиля специалиста:', error)
+            }
+          }
+          
           setUser({
             id: supabaseUser.id,
             email: supabaseUser.email || '',
             name: supabaseUser.user_metadata?.displayName || supabaseUser.email || '',
-            type: supabaseUser.user_metadata?.userType || 'specialist',
+            type: userType,
+            avatarUrl,
           })
         } else {
           setUser(null)
@@ -45,6 +60,7 @@ export default function Sidebar() {
             email: storedUser.email,
             name: storedUser.name,
             type: storedUser.type,
+            avatarUrl: '',
           })
         } else {
           setUser(null)
@@ -178,11 +194,17 @@ export default function Sidebar() {
               onMouseLeave={() => setIsProfileMenuOpen(false)}
             >
               <button className="w-full flex items-center gap-3 px-4 py-3 rounded-apple hover:bg-primary-50 transition-colors">
-                <img
-                  src="/avatar.jpg"
-                  alt={user.name || user.email}
-                  className="w-10 h-10 rounded-apple object-cover"
-                />
+                {user.avatarUrl ? (
+                  <img
+                    src={user.avatarUrl}
+                    alt={user.name || user.email}
+                    className="w-10 h-10 rounded-apple object-cover"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-apple bg-primary-50 flex items-center justify-center text-primary-700 text-sm font-normal flex-shrink-0">
+                    {(user.name?.[0] || user.email?.[0] || '?').toUpperCase()}
+                  </div>
+                )}
                 <div className="flex-1 min-w-0 text-left">
                   <p className="text-sm font-normal text-primary-900 truncate">
                     {user.name || user.email}
