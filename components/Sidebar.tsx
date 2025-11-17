@@ -116,8 +116,13 @@ export default function Sidebar() {
     <>
       {/* Mobile menu button */}
       <button
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white rounded-apple border border-primary-100 shadow-sm hover:bg-primary-50 transition-colors"
-        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white rounded-apple border border-primary-100 shadow-sm hover:bg-primary-50 active:bg-primary-50 transition-colors"
+        onClick={() => {
+          setIsMobileMenuOpen(!isMobileMenuOpen)
+          if (isMobileMenuOpen) {
+            setIsProfileMenuOpen(false)
+          }
+        }}
         aria-label="Toggle menu"
       >
         {isMobileMenuOpen ? (
@@ -131,7 +136,10 @@ export default function Sidebar() {
       {isMobileMenuOpen && (
         <div
           className="lg:hidden fixed inset-0 bg-black/20 z-40"
-          onClick={() => setIsMobileMenuOpen(false)}
+          onClick={() => {
+            setIsMobileMenuOpen(false)
+            setIsProfileMenuOpen(false)
+          }}
         />
       )}
 
@@ -168,13 +176,16 @@ export default function Sidebar() {
               <Link
                 key={link.href}
                 href={link.href}
-                onClick={() => setIsMobileMenuOpen(false)}
+                onClick={() => {
+                  setIsMobileMenuOpen(false)
+                  setIsProfileMenuOpen(false)
+                }}
                 className={`
                   flex items-center gap-3 px-4 py-3 rounded-apple text-sm font-normal transition-colors tracking-tight
                   ${
                     isActive(link.href)
                       ? 'bg-primary-50 text-primary-900'
-                      : 'text-primary-600 hover:bg-primary-50 hover:text-primary-900'
+                      : 'text-primary-600 hover:bg-primary-50 active:bg-primary-50 hover:text-primary-900'
                   }
                 `}
               >
@@ -188,12 +199,11 @@ export default function Sidebar() {
         {/* User section */}
         <div className="p-4 border-t border-primary-100">
           {user ? (
-            <div 
-              className="relative"
-              onMouseEnter={() => setIsProfileMenuOpen(true)}
-              onMouseLeave={() => setIsProfileMenuOpen(false)}
-            >
-              <button className="w-full flex items-center gap-3 px-4 py-3 rounded-apple hover:bg-primary-50 transition-colors">
+            <div className="relative">
+              <button 
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-apple hover:bg-primary-50 active:bg-primary-50 transition-colors"
+                onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+              >
                 {user.avatarUrl ? (
                   <img
                     src={user.avatarUrl}
@@ -225,8 +235,11 @@ export default function Sidebar() {
                     {user.type === 'specialist' && (
                       <Link
                         href="/profile/edit"
-                        onClick={() => setIsMobileMenuOpen(false)}
-                        className="flex items-center gap-3 px-4 py-2 mx-2 text-sm font-normal text-primary-700 hover:bg-primary-50 rounded-apple transition-colors"
+                        onClick={() => {
+                          setIsMobileMenuOpen(false)
+                          setIsProfileMenuOpen(false)
+                        }}
+                        className="flex items-center gap-3 px-4 py-2 mx-2 text-sm font-normal text-primary-700 hover:bg-primary-50 active:bg-primary-50 rounded-apple transition-colors"
                       >
                         <Cog6ToothIcon className="w-4 h-4" />
                         Настройки
@@ -235,8 +248,11 @@ export default function Sidebar() {
                     {user.type === 'company' && (
                       <Link
                         href="/projects/new"
-                        onClick={() => setIsMobileMenuOpen(false)}
-                        className="flex items-center gap-3 px-4 py-2 mx-2 text-sm font-normal text-primary-700 hover:bg-primary-50 rounded-apple transition-colors"
+                        onClick={() => {
+                          setIsMobileMenuOpen(false)
+                          setIsProfileMenuOpen(false)
+                        }}
+                        className="flex items-center gap-3 px-4 py-2 mx-2 text-sm font-normal text-primary-700 hover:bg-primary-50 active:bg-primary-50 rounded-apple transition-colors"
                       >
                         <Cog6ToothIcon className="w-4 h-4" />
                         Создать проект
@@ -247,8 +263,9 @@ export default function Sidebar() {
                       onClick={(e) => {
                         e.preventDefault()
                         handleLogout()
+                        setIsProfileMenuOpen(false)
                       }}
-                      className="flex items-center gap-3 px-4 py-2 mx-2 text-sm font-normal text-primary-700 hover:bg-primary-50 rounded-apple transition-colors"
+                      className="flex items-center gap-3 px-4 py-2 mx-2 text-sm font-normal text-primary-700 hover:bg-primary-50 active:bg-primary-50 rounded-apple transition-colors"
                     >
                       <ArrowRightOnRectangleIcon className="w-4 h-4" />
                       Выйти
@@ -261,15 +278,21 @@ export default function Sidebar() {
             <div className="space-y-2">
               <Link
                 href="/login"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="block w-full text-center px-4 py-3 rounded-apple text-sm font-normal text-primary-700 hover:bg-primary-50 transition-colors"
+                onClick={() => {
+                  setIsMobileMenuOpen(false)
+                  setIsProfileMenuOpen(false)
+                }}
+                className="block w-full text-center px-4 py-3 rounded-apple text-sm font-normal text-primary-700 hover:bg-primary-50 active:bg-primary-50 transition-colors"
               >
                 Войти
               </Link>
               <Link
                 href="/register"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="block w-full text-center px-4 py-3 rounded-apple text-sm font-normal bg-primary-900 text-white hover:bg-primary-800 transition-colors"
+                onClick={() => {
+                  setIsMobileMenuOpen(false)
+                  setIsProfileMenuOpen(false)
+                }}
+                className="block w-full text-center px-4 py-3 rounded-apple text-sm font-normal bg-primary-900 text-white hover:bg-primary-800 active:bg-primary-800 transition-colors"
               >
                 Регистрация
               </Link>

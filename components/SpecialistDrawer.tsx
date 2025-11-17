@@ -111,10 +111,10 @@ export default function SpecialistDrawer({
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-40 w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm border border-primary-200 flex items-center justify-center hover:bg-white transition-colors shadow-sm"
+          className="absolute top-3 sm:top-4 right-3 sm:right-4 z-40 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/90 backdrop-blur-sm border border-primary-200 flex items-center justify-center hover:bg-white active:bg-white transition-colors shadow-sm"
           aria-label="Закрыть"
         >
-          <XMarkIcon className="w-5 h-5 text-primary-700" />
+          <XMarkIcon className="w-4 h-4 sm:w-5 sm:h-5 text-primary-700" />
         </button>
 
         {/* Content */}
@@ -157,7 +157,7 @@ export default function SpecialistDrawer({
                     href={telegramUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="bg-primary-900 text-white px-6 py-3 rounded-apple hover:bg-primary-800 transition-colors font-normal tracking-tight text-center flex items-center justify-center gap-2"
+                    className="bg-primary-900 text-white px-5 sm:px-6 py-2.5 sm:py-3 rounded-apple hover:bg-primary-800 active:bg-primary-800 transition-colors font-normal tracking-tight text-center flex items-center justify-center gap-2 text-sm sm:text-base"
                   >
                     <PaperAirplaneIcon className="w-4 h-4" />
                     Связаться в Telegram
@@ -166,7 +166,7 @@ export default function SpecialistDrawer({
                 {specialist.email && (
                   <a
                     href={`mailto:${specialist.email}`}
-                    className="border border-primary-200 text-primary-700 px-6 py-3 rounded-apple hover:bg-primary-50 transition-colors font-normal tracking-tight text-center flex items-center justify-center gap-2"
+                    className="border border-primary-200 text-primary-700 px-5 sm:px-6 py-2.5 sm:py-3 rounded-apple hover:bg-primary-50 active:bg-primary-50 transition-colors font-normal tracking-tight text-center flex items-center justify-center gap-2 text-sm sm:text-base"
                   >
                     <EnvelopeIcon className="w-4 h-4" />
                     Написать на email
@@ -279,20 +279,20 @@ export default function SpecialistDrawer({
 
                 {/* Navigation arrows */}
                 {specialist.projects && specialist.projects.length > 1 && (
-                  <div className="absolute bottom-4 right-4 flex items-center gap-2 z-30">
+                  <div className="absolute bottom-3 sm:bottom-4 right-3 sm:right-4 flex items-center gap-2 z-30">
                     <button
                       onClick={handlePrevious}
-                      className="w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm border border-primary-200 flex items-center justify-center hover:bg-white transition-colors shadow-sm"
+                      className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/90 backdrop-blur-sm border border-primary-200 flex items-center justify-center hover:bg-white active:bg-white transition-colors shadow-sm"
                       aria-label="Предыдущий проект"
                     >
-                      <ChevronLeftIcon className="w-5 h-5 text-primary-700" />
+                      <ChevronLeftIcon className="w-4 h-4 sm:w-5 sm:h-5 text-primary-700" />
                     </button>
                     <button
                       onClick={handleNext}
-                      className="w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm border border-primary-200 flex items-center justify-center hover:bg-white transition-colors shadow-sm"
+                      className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/90 backdrop-blur-sm border border-primary-200 flex items-center justify-center hover:bg-white active:bg-white transition-colors shadow-sm"
                       aria-label="Следующий проект"
                     >
-                      <ChevronRightIcon className="w-5 h-5 text-primary-700" />
+                      <ChevronRightIcon className="w-4 h-4 sm:w-5 sm:h-5 text-primary-700" />
                     </button>
                   </div>
                 )}
