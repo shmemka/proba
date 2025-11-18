@@ -588,13 +588,14 @@ export default function EditProfilePage() {
 
           // Определяем, можно ли опубликовать карточку
           // Карточка публикуется только если заполнены все обязательные поля и указан хотя бы один способ связи
-          const canPublish = 
+          const canPublish = Boolean(
             formData.firstName.trim() &&
             formData.lastName.trim() &&
             (formData.telegram.trim() || (formData.email || currentUser.email || '').trim()) &&
             formData.telegram.trim() // Для публикации обязательно нужен Telegram
+          )
             
-          const shouldPublish = formData.showInSearch !== false && canPublish
+          const shouldPublish = formData.showInSearch === true && canPublish
 
           await updateSpecialist(currentUser.id, {
             first_name: formData.firstName.trim(),
@@ -688,11 +689,12 @@ export default function EditProfilePage() {
           // Определяем, можно ли опубликовать карточку
           const hasTelegram = formData.telegram.trim().length > 0
           const hasEmail = (formData.email || currentUser.email || '').trim().length > 0
-          const canPublish = 
+          const canPublish = Boolean(
             formData.firstName.trim() &&
             formData.lastName.trim() &&
             (hasTelegram || hasEmail) &&
             hasTelegram // Для публикации обязательно нужен Telegram
+          )
             
           const shouldPublish = formData.showInSearch === true && canPublish
           
