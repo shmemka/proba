@@ -15,6 +15,11 @@ export const metadata: Metadata = {
     default: 'проба',
     template: '%s | проба',
   },
+  icons: {
+    icon: '/icon.png',
+    shortcut: '/icon.png',
+    apple: '/icon.png',
+  },
   description: 'Платформа, где молодые специалисты получают реальный опыт, а малые компании — качественные решения. Бесплатные проекты для портфолио.',
   keywords: ['фриланс', 'портфолио', 'опыт работы', 'специалисты', 'проекты', 'бесплатные услуги'],
   authors: [{ name: 'FreeExperience' }],
