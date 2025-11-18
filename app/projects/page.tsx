@@ -300,35 +300,37 @@ export default function ProjectsPage() {
             <p className="text-base sm:text-lg font-light text-primary-600">Найдите задачу для получения опыта и портфолио</p>
           </div>
           {currentUserId && (
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 flex-wrap">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
               <button
                 onClick={() => setIsSearchModalOpen(true)}
-                className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 rounded-apple border border-primary-200 bg-white text-primary-700 hover:bg-primary-50 transition-colors font-normal tracking-tight"
+                className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 rounded-apple bg-primary-50 text-primary-700 hover:bg-primary-100 transition-colors font-normal tracking-tight"
               >
                 <MagnifyingGlassIcon className="w-5 h-5" />
                 <span className="text-xs sm:text-sm whitespace-nowrap">Поиск</span>
               </button>
-              <Link
-                href="/projects/new"
-                className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 rounded-apple bg-primary-900 text-white hover:bg-primary-800 transition-colors font-normal tracking-tight"
-              >
-                <PlusIcon className="w-5 h-5" />
-                <span className="text-xs sm:text-sm whitespace-nowrap">Новая задача</span>
-              </Link>
-              <button
-                onClick={() => setIsMyProjectsModalOpen(true)}
-                className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 rounded-apple border border-primary-200 bg-white text-primary-700 hover:bg-primary-50 transition-colors font-normal tracking-tight"
-              >
-                <BriefcaseIcon className="w-5 h-5" />
-                <span className="text-xs sm:text-sm whitespace-nowrap">Мои задачи</span>
-              </button>
-              <button
-                onClick={() => setIsMyApplicationsModalOpen(true)}
-                className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 rounded-apple border border-primary-200 bg-white text-primary-700 hover:bg-primary-50 transition-colors font-normal tracking-tight"
-              >
-                <PaperAirplaneIcon className="w-5 h-5" />
-                <span className="text-xs sm:text-sm whitespace-nowrap">Мои отклики</span>
-              </button>
+              <div className="flex flex-row items-center gap-2 sm:gap-3 flex-wrap">
+                <Link
+                  href="/projects/new"
+                  className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 rounded-apple bg-primary-900 text-white hover:bg-primary-800 transition-colors font-normal tracking-tight"
+                >
+                  <PlusIcon className="w-5 h-5" />
+                  <span className="text-xs sm:text-sm whitespace-nowrap">Новая задача</span>
+                </Link>
+                <button
+                  onClick={() => setIsMyProjectsModalOpen(true)}
+                  className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 rounded-apple bg-primary-50 text-primary-700 hover:bg-primary-100 transition-colors font-normal tracking-tight"
+                >
+                  <BriefcaseIcon className="w-5 h-5" />
+                  <span className="text-xs sm:text-sm whitespace-nowrap">Мои задачи</span>
+                </button>
+                <button
+                  onClick={() => setIsMyApplicationsModalOpen(true)}
+                  className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 rounded-apple bg-primary-50 text-primary-700 hover:bg-primary-100 transition-colors font-normal tracking-tight"
+                >
+                  <PaperAirplaneIcon className="w-5 h-5" />
+                  <span className="text-xs sm:text-sm whitespace-nowrap">Мои отклики</span>
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -349,35 +351,37 @@ export default function ProjectsPage() {
           <p className="text-base sm:text-lg font-light text-primary-600">Найдите задачу для получения опыта и портфолио</p>
         </div>
           {currentUserId && (
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 flex-wrap">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
               <button
                 onClick={() => setIsSearchModalOpen(true)}
-                className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 rounded-apple border border-primary-200 bg-white text-primary-700 hover:bg-primary-50 transition-colors font-normal tracking-tight"
+                className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 rounded-apple bg-primary-50 text-primary-700 hover:bg-primary-100 transition-colors font-normal tracking-tight"
               >
                 <MagnifyingGlassIcon className="w-5 h-5" />
                 <span className="text-xs sm:text-sm whitespace-nowrap">Поиск</span>
               </button>
-              <Link
-                href="/projects/new"
-                className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 rounded-apple bg-primary-900 text-white hover:bg-primary-800 transition-colors font-normal tracking-tight"
-              >
-                <PlusIcon className="w-5 h-5" />
-                <span className="text-xs sm:text-sm whitespace-nowrap">Новая задача</span>
-              </Link>
-              <button
-                onClick={() => setIsMyProjectsModalOpen(true)}
-                className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 rounded-apple border border-primary-200 bg-white text-primary-700 hover:bg-primary-50 transition-colors font-normal tracking-tight"
-              >
-                <BriefcaseIcon className="w-5 h-5" />
-                <span className="text-xs sm:text-sm whitespace-nowrap">Мои задачи</span>
-              </button>
-              <button
-                onClick={() => setIsMyApplicationsModalOpen(true)}
-                className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 rounded-apple border border-primary-200 bg-white text-primary-700 hover:bg-primary-50 transition-colors font-normal tracking-tight"
-              >
-                <PaperAirplaneIcon className="w-5 h-5" />
-                <span className="text-xs sm:text-sm whitespace-nowrap">Мои отклики</span>
-              </button>
+              <div className="flex flex-row items-center gap-2 sm:gap-3 flex-wrap">
+                <Link
+                  href="/projects/new"
+                  className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 rounded-apple bg-primary-900 text-white hover:bg-primary-800 transition-colors font-normal tracking-tight"
+                >
+                  <PlusIcon className="w-5 h-5" />
+                  <span className="text-xs sm:text-sm whitespace-nowrap">Новая задача</span>
+                </Link>
+                <button
+                  onClick={() => setIsMyProjectsModalOpen(true)}
+                  className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 rounded-apple bg-primary-50 text-primary-700 hover:bg-primary-100 transition-colors font-normal tracking-tight"
+                >
+                  <BriefcaseIcon className="w-5 h-5" />
+                  <span className="text-xs sm:text-sm whitespace-nowrap">Мои задачи</span>
+                </button>
+                <button
+                  onClick={() => setIsMyApplicationsModalOpen(true)}
+                  className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 rounded-apple bg-primary-50 text-primary-700 hover:bg-primary-100 transition-colors font-normal tracking-tight"
+                >
+                  <PaperAirplaneIcon className="w-5 h-5" />
+                  <span className="text-xs sm:text-sm whitespace-nowrap">Мои отклики</span>
+                </button>
+              </div>
             </div>
           )}
       </div>

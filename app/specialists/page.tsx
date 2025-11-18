@@ -468,18 +468,20 @@ export default function SpecialistsPage() {
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
               <button
                 onClick={() => setIsSearchModalOpen(true)}
-                className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 rounded-apple border border-primary-200 bg-white text-primary-700 hover:bg-primary-50 transition-colors font-normal tracking-tight"
+                className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 rounded-apple bg-primary-50 text-primary-700 hover:bg-primary-100 transition-colors font-normal tracking-tight"
               >
                 <MagnifyingGlassIcon className="w-5 h-5" />
                 <span className="text-xs sm:text-sm whitespace-nowrap">Поиск</span>
               </button>
-              <Link
-                href="/profile/edit"
-                className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 rounded-apple border border-primary-200 bg-white text-primary-700 hover:bg-primary-50 transition-colors font-normal tracking-tight"
-              >
-                <UserIcon className="w-5 h-5" />
-                <span className="text-xs sm:text-sm whitespace-nowrap">Моя карточка</span>
-              </Link>
+              <div className="flex flex-row items-center gap-2 sm:gap-3">
+                <Link
+                  href="/profile/edit"
+                  className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 rounded-apple bg-primary-50 text-primary-700 hover:bg-primary-100 transition-colors font-normal tracking-tight"
+                >
+                  <UserIcon className="w-5 h-5" />
+                  <span className="text-xs sm:text-sm whitespace-nowrap">Моя карточка</span>
+                </Link>
+              </div>
             </div>
           )}
         </div>
@@ -499,24 +501,26 @@ export default function SpecialistsPage() {
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-light text-primary-900 mb-2 sm:mb-3 tracking-tight">Таланты</h1>
           <p className="text-base sm:text-lg font-light text-primary-600">Найдите специалиста для вашего проекта</p>
         </div>
-        {currentUserId && (
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
-            <button
-              onClick={() => setIsSearchModalOpen(true)}
-              className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 rounded-apple border border-primary-200 bg-white text-primary-700 hover:bg-primary-50 transition-colors font-normal tracking-tight"
-            >
-              <MagnifyingGlassIcon className="w-5 h-5" />
-              <span className="text-xs sm:text-sm whitespace-nowrap">Поиск</span>
-            </button>
-            <Link
-              href="/profile/edit"
-              className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 rounded-apple border border-primary-200 bg-white text-primary-700 hover:bg-primary-50 transition-colors font-normal tracking-tight"
-            >
-              <UserIcon className="w-5 h-5" />
-              <span className="text-xs sm:text-sm whitespace-nowrap">Моя карточка</span>
-            </Link>
-          </div>
-        )}
+          {currentUserId && (
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
+              <button
+                onClick={() => setIsSearchModalOpen(true)}
+                className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 rounded-apple bg-primary-50 text-primary-700 hover:bg-primary-100 transition-colors font-normal tracking-tight"
+              >
+                <MagnifyingGlassIcon className="w-5 h-5" />
+                <span className="text-xs sm:text-sm whitespace-nowrap">Поиск</span>
+              </button>
+              <div className="flex flex-row items-center gap-2 sm:gap-3">
+                <Link
+                  href="/profile/edit"
+                  className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 rounded-apple bg-primary-50 text-primary-700 hover:bg-primary-100 transition-colors font-normal tracking-tight"
+                >
+                  <UserIcon className="w-5 h-5" />
+                  <span className="text-xs sm:text-sm whitespace-nowrap">Моя карточка</span>
+                </Link>
+              </div>
+            </div>
+          )}
       </div>
 
       <div className="mb-6 sm:mb-10">

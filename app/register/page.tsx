@@ -155,20 +155,20 @@ function RegisterForm() {
                   onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                 />
               </div>
-              <div>
+            <div>
                 <label htmlFor="lastName" className="block text-sm font-light text-primary-700 mb-2">
                   Фамилия
-                </label>
-                <input
+              </label>
+              <input
                   id="lastName"
                   name="lastName"
-                  type="text"
-                  required
-                  className="w-full px-5 py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white"
+                type="text"
+                required
+                className="w-full px-5 py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white"
                   placeholder="Иванов"
                   value={formData.lastName}
                   onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                />
+              />
               </div>
             </div>
 

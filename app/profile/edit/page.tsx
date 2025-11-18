@@ -136,6 +136,7 @@ export default function EditProfilePage() {
   const [formData, setFormData] = useState<ProfileData>(createEmptyProfile)
   const [projects, setProjects] = useState<Project[]>([])
   const [activeTab, setActiveTab] = useState<'general' | 'freelancers' | 'companies'>('general')
+  const [freelancerSubTab, setFreelancerSubTab] = useState<'profile' | 'portfolio'>('profile')
   const [avatarPreview, setAvatarPreview] = useState<string>('')
 
   // Загружаем данные профиля из Supabase или localStorage
@@ -149,7 +150,6 @@ export default function EditProfilePage() {
           const specialist = await getSpecialist(currentUser.id)
           if (specialist) {
             const specialistEmail = specialist.email || ''
-            const userEmail = currentUser.email || ''
             setFormData({
               firstName: specialist.first_name || '',
               lastName: specialist.last_name || '',
@@ -159,7 +159,7 @@ export default function EditProfilePage() {
               email: specialistEmail,
               avatarUrl: specialist.avatar_url || '',
               showInSearch: specialist.show_in_search === true,
-              useEmailForContact: !!specialistEmail && specialistEmail !== userEmail,
+              useEmailForContact: !!specialistEmail, // Если email есть, значит переключатель был включен
             })
             
             // Загружаем аватарку
@@ -197,13 +197,12 @@ export default function EditProfilePage() {
               })
             } else {
               const savedEmail = savedProfile.email || ''
-              const userEmail = currentUser.email || ''
               setFormData({
                 ...savedProfile,
                 email: savedEmail,
                 avatarUrl: (savedProfile as any).avatarUrl || '',
                 showInSearch: savedProfile.showInSearch === true,
-                useEmailForContact: !!savedEmail && savedEmail !== userEmail,
+                useEmailForContact: !!savedEmail, // Если email есть, значит переключатель был включен
               })
               if ((savedProfile as any).avatarUrl) {
                 setAvatarPreview((savedProfile as any).avatarUrl)
@@ -572,7 +571,7 @@ export default function EditProfilePage() {
 
           alert('Изменения сохранены')
           setIsSaving(false)
-          return
+            return
         }
 
         // Сохраняем данные для фрилансеров
@@ -628,7 +627,8 @@ export default function EditProfilePage() {
           const shouldPublish = formData.showInSearch === true && canPublish
 
           // Определяем email для связи
-          const contactEmail = formData.useEmailForContact ? (formData.email || currentUser.email || '') : ''
+          // Сохраняем null вместо пустой строки, если переключатель выключен
+          const contactEmail = formData.useEmailForContact ? (formData.email || currentUser.email || '') : null
 
           await updateSpecialist(currentUser.id, {
             first_name: formData.firstName.trim(),
@@ -682,7 +682,7 @@ export default function EditProfilePage() {
             }))),
           }
           saveSpecialistProfile(currentUser.id, profileDataWithProjects)
-          alert('Изменения сохранены')
+        alert('Изменения сохранены')
           setIsSaving(false)
           return
         }
@@ -722,7 +722,8 @@ export default function EditProfilePage() {
           const shouldPublish = formData.showInSearch === true && canPublish
           
           // Определяем email для связи
-          const contactEmail = formData.useEmailForContact ? (formData.email || currentUser.email || '') : ''
+          // Сохраняем null вместо пустой строки, если переключатель выключен
+          const contactEmail = formData.useEmailForContact ? (formData.email || currentUser.email || '') : null
           
           const profileDataWithProjects = {
             ...formData,
@@ -951,10 +952,38 @@ export default function EditProfilePage() {
 
         {activeTab === 'freelancers' && (
           <div className="space-y-4 sm:space-y-6">
-            <div>
-              <label htmlFor="specialization" className="block text-sm font-light text-primary-700 mb-2">
-                Специализация
-              </label>
+            {/* Segmented Controls */}
+            <div className="flex gap-2 p-1 bg-primary-50 rounded-apple border border-primary-100">
+              <button
+                type="button"
+                onClick={() => setFreelancerSubTab('profile')}
+                className={`flex-1 px-4 py-2 rounded-apple text-sm font-normal transition-colors ${
+                  freelancerSubTab === 'profile'
+                    ? 'bg-white text-primary-900 shadow-sm'
+                    : 'text-primary-600 hover:text-primary-900'
+                }`}
+              >
+                Профиль
+              </button>
+              <button
+                type="button"
+                onClick={() => setFreelancerSubTab('portfolio')}
+                className={`flex-1 px-4 py-2 rounded-apple text-sm font-normal transition-colors ${
+                  freelancerSubTab === 'portfolio'
+                    ? 'bg-white text-primary-900 shadow-sm'
+                    : 'text-primary-600 hover:text-primary-900'
+                }`}
+              >
+                Портфолио
+              </button>
+            </div>
+
+            {freelancerSubTab === 'profile' && (
+              <div className="space-y-4 sm:space-y-6">
+                <div>
+                  <label htmlFor="specialization" className="block text-sm font-light text-primary-700 mb-2">
+                    Специализация
+                  </label>
               <select
                 id="specialization"
                 className="w-full px-5 py-4 border border-primary-200 rounded-apple text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white"
@@ -1047,122 +1076,125 @@ export default function EditProfilePage() {
                 </div>
               </label>
             </div>
-
-            {/* Портфолио */}
-            <div className="pt-6 border-t border-primary-100">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6 mb-4 sm:mb-6">
-                <div>
-                  <h2 className="text-xl sm:text-2xl font-light text-primary-900 mb-1 tracking-tight">Портфолио</h2>
-                  <p className="text-xs sm:text-sm font-light text-primary-600">Добавьте до 3 проектов с фотографиями</p>
-                </div>
-                {projects.length < 3 && (
-                  <button
-                    type="button"
-                    onClick={addProject}
-                    className="inline-flex items-center justify-center gap-2 bg-primary-900 text-white px-4 sm:px-5 py-2 sm:py-3 rounded-apple hover:bg-primary-800 transition-colors font-normal tracking-tight"
-                  >
-                    <PlusIcon className="w-4 h-4 sm:w-5 sm:h-5" />
-                    Добавить проект
-                  </button>
-                )}
               </div>
+            )}
 
+            {freelancerSubTab === 'portfolio' && (
               <div className="space-y-4 sm:space-y-6">
-                {projects.map((project, projectIndex) => (
-                  <div key={project.id} className="border border-primary-200 rounded-apple p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6">
-                    <div className="flex items-start justify-between">
-                      <h3 className="text-xl font-normal text-primary-900 tracking-tight">Проект {projectIndex + 1}</h3>
-                      <button
-                        type="button"
-                        onClick={() => removeProject(project.id)}
-                        className="p-2 hover:bg-primary-50 rounded-apple transition-colors"
-                      >
-                        <XMarkIcon className="w-5 h-5 text-primary-600" />
-                      </button>
-                    </div>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6 mb-4 sm:mb-6">
+                  <div>
+                    <h2 className="text-xl sm:text-2xl font-light text-primary-900 mb-1 tracking-tight">Портфолио</h2>
+                    <p className="text-xs sm:text-sm font-light text-primary-600">Добавьте до 3 проектов с фотографиями</p>
+                  </div>
+                  {projects.length < 3 && (
+                    <button
+                      type="button"
+                      onClick={addProject}
+                      className="inline-flex items-center justify-center gap-2 bg-primary-900 text-white px-4 sm:px-5 py-2 sm:py-3 rounded-apple hover:bg-primary-800 transition-colors font-normal tracking-tight"
+                    >
+                      <PlusIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                      Добавить проект
+                    </button>
+                  )}
+                </div>
 
-                    <div>
-                      <label className="block text-sm font-light text-primary-700 mb-2">
-                        Название проекта
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Название проекта"
-                        className="w-full px-5 py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white"
-                        value={project.title}
-                        onChange={(e) => updateProject(project.id, 'title', e.target.value)}
-                      />
-                    </div>
+                <div className="space-y-4 sm:space-y-6">
+              {projects.map((project, projectIndex) => (
+                <div key={project.id} className="border border-primary-200 rounded-apple p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6">
+                  <div className="flex items-start justify-between">
+                    <h3 className="text-xl font-normal text-primary-900 tracking-tight">Проект {projectIndex + 1}</h3>
+                    <button
+                      type="button"
+                      onClick={() => removeProject(project.id)}
+                      className="p-2 hover:bg-primary-50 rounded-apple transition-colors"
+                    >
+                      <XMarkIcon className="w-5 h-5 text-primary-600" />
+                    </button>
+                  </div>
 
-                    <div>
-                      <label className="block text-sm font-light text-primary-700 mb-2">
-                        Описание проекта
-                      </label>
-                      <textarea
-                        rows={3}
-                        placeholder="Описание проекта"
-                        className="w-full px-5 py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white"
-                        value={project.description}
-                        onChange={(e) => updateProject(project.id, 'description', e.target.value)}
-                      />
-                    </div>
+                  <div>
+                    <label className="block text-sm font-light text-primary-700 mb-2">
+                      Название проекта
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Название проекта"
+                      className="w-full px-5 py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white"
+                      value={project.title}
+                      onChange={(e) => updateProject(project.id, 'title', e.target.value)}
+                    />
+                  </div>
 
-                    <div>
-                      <label className="block text-sm font-light text-primary-700 mb-2">
-                        Фотографии (до 3, формат 4:3)
-                      </label>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                        {project.images.map((image, imageIndex) => (
-                          <div key={imageIndex} className="relative group">
-                            <div className="rounded-apple overflow-hidden border border-primary-200 bg-primary-50" style={{ aspectRatio: '4/3' }}>
-                              <img
-                                src={image.url}
-                                alt={`Проект ${projectIndex + 1} - фото ${imageIndex + 1}`}
-                                className="w-full h-full object-cover"
-                                style={{ aspectRatio: '4/3' }}
-                              />
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => removeImage(project.id, imageIndex)}
-                              className="absolute top-2 right-2 p-1 bg-white/90 backdrop-blur-sm rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                              <XMarkIcon className="w-4 h-4 text-primary-700" />
-                            </button>
-                          </div>
-                        ))}
-                        {project.images.length < 3 && (
-                          <label className="rounded-apple border-2 border-dashed border-primary-300 hover:border-primary-400 transition-colors cursor-pointer flex items-center justify-center bg-primary-50" style={{ aspectRatio: '4/3' }}>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              className="hidden"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0]
-                                if (file) {
-                                  handleImageUpload(project.id, file)
-                                }
-                              }}
+                  <div>
+                    <label className="block text-sm font-light text-primary-700 mb-2">
+                      Описание проекта
+                    </label>
+                    <textarea
+                      rows={3}
+                      placeholder="Описание проекта"
+                      className="w-full px-5 py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white"
+                      value={project.description}
+                      onChange={(e) => updateProject(project.id, 'description', e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-light text-primary-700 mb-2">
+                      Фотографии (до 3, формат 4:3)
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                      {project.images.map((image, imageIndex) => (
+                        <div key={imageIndex} className="relative group">
+                          <div className="rounded-apple overflow-hidden border border-primary-200 bg-primary-50" style={{ aspectRatio: '4/3' }}>
+                            <img
+                              src={image.url}
+                              alt={`Проект ${projectIndex + 1} - фото ${imageIndex + 1}`}
+                              className="w-full h-full object-cover"
+                              style={{ aspectRatio: '4/3' }}
                             />
-                            <div className="text-center">
-                              <PhotoIcon className="w-8 h-8 text-primary-400 mx-auto mb-2" />
-                              <span className="text-xs font-light text-primary-600">Добавить фото</span>
-                            </div>
-                          </label>
-                        )}
-                      </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeImage(project.id, imageIndex)}
+                            className="absolute top-2 right-2 p-1 bg-white/90 backdrop-blur-sm rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <XMarkIcon className="w-4 h-4 text-primary-700" />
+                          </button>
+                        </div>
+                      ))}
+                      {project.images.length < 3 && (
+                        <label className="rounded-apple border-2 border-dashed border-primary-300 hover:border-primary-400 transition-colors cursor-pointer flex items-center justify-center bg-primary-50" style={{ aspectRatio: '4/3' }}>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0]
+                              if (file) {
+                                handleImageUpload(project.id, file)
+                              }
+                            }}
+                          />
+                          <div className="text-center">
+                            <PhotoIcon className="w-8 h-8 text-primary-400 mx-auto mb-2" />
+                            <span className="text-xs font-light text-primary-600">Добавить фото</span>
+                          </div>
+                        </label>
+                      )}
                     </div>
                   </div>
-                ))}
-                {projects.length === 0 && (
-                  <div className="text-center py-16 text-primary-500 font-light">
-                    <PhotoIcon className="w-16 h-16 text-primary-300 mx-auto mb-4" />
-                    <p className="text-base mb-2">Портфолио пока пусто</p>
-                    <p className="text-sm">Добавьте проекты, чтобы показать свои работы</p>
-                  </div>
-                )}
+                </div>
+              ))}
+              {projects.length === 0 && (
+                <div className="text-center py-16 text-primary-500 font-light">
+                  <PhotoIcon className="w-16 h-16 text-primary-300 mx-auto mb-4" />
+                  <p className="text-base mb-2">Портфолио пока пусто</p>
+                  <p className="text-sm">Добавьте проекты, чтобы показать свои работы</p>
+                </div>
+              )}
               </div>
             </div>
+            )}
 
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4 sm:pt-6 border-t border-primary-100">
               <button

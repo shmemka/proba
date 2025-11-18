@@ -48,7 +48,7 @@ export interface Database {
       specialists: {
         Row: {
           id: string
-          email: string
+          email: string | null
           first_name: string
           last_name: string
           specialization: string

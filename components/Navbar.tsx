@@ -198,24 +198,24 @@ export default function Navbar() {
                     </span>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    {user.type === 'specialist' && (
-                      <Link
-                        href="/profile/edit"
+                  {user.type === 'specialist' && (
+                    <Link
+                      href="/profile/edit"
                         className="p-2 text-primary-600 hover:text-primary-900 hover:bg-primary-50 rounded-apple transition-colors"
-                        onClick={() => setIsMenuOpen(false)}
-                      >
-                        <Cog6ToothIcon className="w-5 h-5" />
-                      </Link>
-                    )}
-                    <button
-                      onClick={() => {
-                        handleLogout()
-                        setIsMenuOpen(false)
-                      }}
-                      className="p-2 text-primary-600 hover:text-primary-900 hover:bg-primary-50 rounded-apple transition-colors"
+                      onClick={() => setIsMenuOpen(false)}
                     >
+                        <Cog6ToothIcon className="w-5 h-5" />
+                    </Link>
+                  )}
+                  <button
+                    onClick={() => {
+                      handleLogout()
+                      setIsMenuOpen(false)
+                    }}
+                      className="p-2 text-primary-600 hover:text-primary-900 hover:bg-primary-50 rounded-apple transition-colors"
+                  >
                       <ArrowRightOnRectangleIcon className="w-5 h-5" />
-                    </button>
+                  </button>
                   </div>
                 </div>
               ) : (
