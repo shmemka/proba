@@ -729,7 +729,7 @@ export default function EditProfilePage() {
 
       <form onSubmit={handleSubmit}>
         {activeTab === 'general' && (
-          <div className="bg-white rounded-apple border border-primary-100 p-4 sm:p-6 lg:p-10 space-y-4 sm:space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             <div>
               <h2 className="text-xl sm:text-2xl font-light text-primary-900 mb-4 tracking-tight">Общая информация</h2>
               <p className="text-sm font-light text-primary-600 mb-6">Основные данные вашего аккаунта</p>
@@ -797,7 +797,7 @@ export default function EditProfilePage() {
         )}
 
         {activeTab === 'profile' && (
-          <div className="bg-white rounded-apple border border-primary-100 p-4 sm:p-6 lg:p-10 space-y-4 sm:space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {/* Загрузка аватарки */}
             <div>
               <label className="block text-sm font-light text-primary-700 mb-2">
@@ -984,7 +984,7 @@ export default function EditProfilePage() {
         )}
 
         {activeTab === 'portfolio' && (
-          <div className="bg-white rounded-apple border border-primary-100 p-4 sm:p-6 lg:p-10">
+          <div>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6 mb-4 sm:mb-6">
               <div>
                 <h2 className="text-xl sm:text-2xl font-light text-primary-900 mb-1 tracking-tight">Портфолио</h2>
