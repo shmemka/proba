@@ -1,7 +1,34 @@
+'use client'
+
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowRightIcon, UsersIcon, BriefcaseIcon, TrophyIcon, ArrowTrendingUpIcon } from '@heroicons/react/24/outline'
+import { getCurrentUser, isSupabaseAvailable } from '@/lib/supabase'
+import { getActiveUser } from '@/lib/storage'
 
 export default function Home() {
+  const router = useRouter()
+
+  // Проверяем авторизацию и редиректим авторизованных пользователей
+  useEffect(() => {
+    const checkAuth = async () => {
+      if (isSupabaseAvailable()) {
+        const user = await getCurrentUser({ force: true })
+        if (user) {
+          router.push('/specialists')
+        }
+      } else {
+        // Fallback на localStorage
+        const user = getActiveUser()
+        if (user?.email && user?.password) {
+          router.push('/specialists')
+        }
+      }
+    }
+    checkAuth()
+  }, [router])
+
   return (
     <div className="flex flex-col">
       {/* Hero Section */}

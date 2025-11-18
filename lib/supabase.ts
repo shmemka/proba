@@ -171,6 +171,9 @@ export async function signUp(
   const safeDisplayName = deriveDisplayName(normalizedEmail, 'specialist', displayName)
 
   try {
+    // Инвалидируем кеш перед регистрацией
+    invalidateCache('auth:')
+
     const { data, error } = await supabase.auth.signUp({
       email: normalizedEmail,
       password,
@@ -190,6 +193,9 @@ export async function signUp(
     if (!user) {
       throw new Error('Не удалось создать пользователя')
     }
+
+    // Инвалидируем кеш после успешной регистрации
+    invalidateCache('auth:')
 
     // Создаем профиль специалиста (опционально, можно создать позже в настройках)
     try {
@@ -218,6 +224,9 @@ export async function signIn(email: string, password: string) {
   const normalizedEmail = normalizeEmail(email)
 
   try {
+    // Инвалидируем кеш перед входом
+    invalidateCache('auth:')
+
     const { data, error } = await supabase.auth.signInWithPassword({
       email: normalizedEmail,
       password,
@@ -229,6 +238,9 @@ export async function signIn(email: string, password: string) {
 
     const user = data.user
     if (user) {
+      // Инвалидируем кеш после успешного входа
+      invalidateCache('auth:')
+
       const safeDisplayName = deriveDisplayName(
         user.email || normalizedEmail,
         'specialist',
@@ -276,10 +288,21 @@ export async function getCurrentUser(options?: { force?: boolean }) {
   return fetchWithCache(
     AUTH_USER_CACHE_KEY,
     async () => {
+      // Используем getSession вместо getUser для более надежной проверки сессии
       const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      return user ?? null
+        data: { session },
+      } = await supabase.auth.getSession()
+      
+      if (!session?.user) {
+        return null
+      }
+
+      // Проверяем, что сессия не истекла
+      if (session.expires_at && session.expires_at * 1000 < Date.now()) {
+        return null
+      }
+
+      return session.user
     },
     5_000,
     options?.force,

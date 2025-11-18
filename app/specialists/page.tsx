@@ -465,7 +465,7 @@ export default function SpecialistsPage() {
             <p className="text-base sm:text-lg font-light text-primary-600">Найдите специалиста для вашего проекта</p>
           </div>
           {currentUserId && (
-            <div className="flex flex-col sm:flex-row items-center gap-0">
+            <div className="flex flex-row items-center justify-center sm:justify-start gap-0">
               <Link
                 href="/profile/edit"
                 className="inline-flex flex-col items-center justify-center gap-1.5 px-4 sm:px-5 py-3 sm:py-4 transition-all duration-200 font-normal tracking-tight text-primary-700 hover:bg-primary-50 active:scale-95"
@@ -501,7 +501,7 @@ export default function SpecialistsPage() {
           <p className="text-base sm:text-lg font-light text-primary-600">Найдите специалиста для вашего проекта</p>
         </div>
         {currentUserId && (
-          <div className="flex flex-col sm:flex-row items-center gap-0">
+          <div className="flex flex-row items-center justify-center sm:justify-start gap-0">
             <Link
               href="/profile/edit"
               className="inline-flex flex-col items-center justify-center gap-1.5 px-4 sm:px-5 py-3 sm:py-4 transition-colors font-normal tracking-tight text-primary-700 hover:bg-primary-50"

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { getActiveUser, type StoredUser } from '@/lib/storage'
 import { getCurrentUser, getSpecialist, isSupabaseAvailable } from '@/lib/supabase'
+import { invalidateCache } from '@/lib/cache'
 import { supabase } from '@/lib/supabaseClient'
 
 export type AuthUser = {
@@ -77,7 +78,11 @@ export function useAuthUser() {
     refresh({ forceProfile: true })
 
     if (SUPABASE_AVAILABLE && supabase) {
-      const { data } = supabase.auth.onAuthStateChange(() => {
+      const { data } = supabase.auth.onAuthStateChange((event) => {
+        // Инвалидируем кеш при изменении состояния авторизации
+        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
+          invalidateCache('auth:')
+        }
         refresh({ forceProfile: true })
       })
 

@@ -300,7 +300,7 @@ export default function ProjectsPage() {
             <p className="text-base sm:text-lg font-light text-primary-600">Найдите задачу для получения опыта и портфолио</p>
           </div>
           {currentUserId && (
-            <div className="flex flex-col sm:flex-row items-center gap-0">
+            <div className="flex flex-row items-center justify-center sm:justify-start gap-0 flex-wrap">
               <Link
                 href="/projects/new"
                 className="inline-flex flex-col items-center justify-center gap-1.5 px-4 sm:px-5 py-3 sm:py-4 transition-all duration-200 font-normal tracking-tight text-[#FF4600] hover:bg-primary-50 active:scale-95"
@@ -352,7 +352,7 @@ export default function ProjectsPage() {
           <p className="text-base sm:text-lg font-light text-primary-600">Найдите задачу для получения опыта и портфолио</p>
         </div>
           {currentUserId && (
-            <div className="flex flex-col sm:flex-row items-center gap-0">
+            <div className="flex flex-row items-center justify-center sm:justify-start gap-0 flex-wrap">
               <Link
                 href="/projects/new"
                 className="inline-flex flex-col items-center justify-center gap-1.5 px-4 sm:px-5 py-3 sm:py-4 transition-all duration-200 font-normal tracking-tight text-[#FF4600] hover:bg-primary-50 active:scale-95"
