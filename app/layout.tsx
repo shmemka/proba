@@ -12,8 +12,8 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: 'FreeExperience - Платформа для опыта и портфолио',
-    template: '%s | FreeExperience',
+    default: 'проба',
+    template: '%s | проба',
   },
   description: 'Платформа, где молодые специалисты получают реальный опыт, а малые компании — качественные решения. Бесплатные проекты для портфолио.',
   keywords: ['фриланс', 'портфолио', 'опыт работы', 'специалисты', 'проекты', 'бесплатные услуги'],

@@ -85,7 +85,7 @@ export default function Navbar() {
               >
                 <button className="flex items-center gap-3 px-3 py-2 rounded-apple hover:bg-primary-50 transition-colors">
                   {user.avatarUrl ? (
-                    <div className="relative w-8 h-8 rounded-apple overflow-hidden">
+                    <div className="relative w-8 h-8 rounded-[10px] overflow-hidden">
                       <Image 
                         src={user.avatarUrl} 
                         alt={user.name || user.email}
@@ -95,7 +95,7 @@ export default function Navbar() {
                       />
                     </div>
                   ) : (
-                    <div className="w-8 h-8 rounded-apple bg-primary-50 flex items-center justify-center text-primary-700 text-xs font-normal">
+                    <div className="w-8 h-8 rounded-[10px] bg-primary-50 flex items-center justify-center text-primary-700 text-xs font-normal">
                       {(user.name?.[0] || user.email?.[0] || '?').toUpperCase()}
                     </div>
                   )}
@@ -113,13 +113,6 @@ export default function Navbar() {
                       >
                         <Cog6ToothIcon className="w-4 h-4" />
                         Настройки
-                      </Link>
-                      <Link
-                        href="/projects/new"
-                        className="flex items-center gap-3 px-4 py-2 mx-2 text-sm font-normal text-primary-700 hover:bg-primary-50 rounded-apple transition-colors"
-                      >
-                        <Cog6ToothIcon className="w-4 h-4" />
-                        Создать задачу
                       </Link>
                       <Link
                         href="#"
@@ -186,7 +179,7 @@ export default function Navbar() {
                 <>
                   <div className="px-3 py-3 flex items-center gap-3">
                     {user.avatarUrl ? (
-                      <div className="relative w-10 h-10 rounded-apple overflow-hidden">
+                      <div className="relative w-10 h-10 rounded-[10px] overflow-hidden">
                         <Image 
                           src={user.avatarUrl} 
                           alt={user.name || user.email}
@@ -196,7 +189,7 @@ export default function Navbar() {
                         />
                       </div>
                     ) : (
-                      <div className="w-10 h-10 rounded-apple bg-primary-50 flex items-center justify-center text-primary-700 text-sm font-normal">
+                      <div className="w-10 h-10 rounded-[10px] bg-primary-50 flex items-center justify-center text-primary-700 text-sm font-normal">
                         {(user.name?.[0] || user.email?.[0] || '?').toUpperCase()}
                       </div>
                     )}

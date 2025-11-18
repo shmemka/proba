@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useEffect, useMemo, memo } from 'react'
+import { useState, useEffect, useMemo, memo, useCallback } from 'react'
 import Link from 'next/link'
 import { MagnifyingGlassIcon, PlusIcon, CalendarIcon } from '@heroicons/react/24/outline'
 import { readJson } from '@/lib/storage'
 import { getProjects, getCurrentUser, isSupabaseAvailable } from '@/lib/supabase'
 import { ProjectCardSkeleton } from '@/components/SkeletonLoader'
+import ProjectDrawer from '@/components/ProjectDrawer'
 
 interface Project {
   id: string
@@ -27,6 +28,8 @@ export default function ProjectsPage() {
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<Category>('all')
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
 
   // Debounce для поиска
   useEffect(() => {
@@ -193,14 +196,23 @@ export default function ProjectsPage() {
     }
   }
 
-  const ProjectCard = memo(({ project }: { project: Project }) => {
+  const handleProjectClick = useCallback((projectId: string) => {
+    setSelectedProjectId(projectId)
+    setIsDrawerOpen(true)
+  }, [])
+
+  const handleCloseDrawer = useCallback(() => {
+    setIsDrawerOpen(false)
+    setSelectedProjectId(null)
+  }, [])
+
+  const ProjectCard = memo(({ project, onClick }: { project: Project; onClick: (id: string) => void }) => {
     const formattedDeadline = useMemo(() => formatDate(project.deadline), [project.deadline])
     
     return (
-      <Link
-        href={`/projects/${project.id}`}
-        prefetch={true}
-        className="block bg-white rounded-apple border border-primary-100 hover:border-primary-200 transition-colors p-4 sm:p-6 lg:p-8"
+      <button
+        onClick={() => onClick(project.id)}
+        className="w-full text-left bg-white rounded-apple border border-primary-100 hover:border-primary-200 transition-colors p-4 sm:p-6 lg:p-8"
       >
         <div className="flex justify-between items-start mb-3 sm:mb-4 gap-3">
           <div className="flex-1 min-w-0">
@@ -223,7 +235,7 @@ export default function ProjectsPage() {
             </span>
           </div>
         </div>
-      </Link>
+      </button>
     )
   })
   ProjectCard.displayName = 'ProjectCard'
@@ -334,7 +346,7 @@ export default function ProjectsPage() {
 
       <div className="space-y-4">
         {filteredProjects.map((project) => (
-          <ProjectCard key={project.id} project={project} />
+          <ProjectCard key={project.id} project={project} onClick={handleProjectClick} />
         ))}
       </div>
 
@@ -344,6 +356,12 @@ export default function ProjectsPage() {
           <p className="text-primary-500 text-sm sm:text-base font-light">Попробуйте изменить параметры поиска</p>
         </div>
       )}
+
+      <ProjectDrawer
+        projectId={selectedProjectId}
+        isOpen={isDrawerOpen}
+        onClose={handleCloseDrawer}
+      />
     </div>
   )
 }
