@@ -32,12 +32,12 @@ export default function Navbar() {
   const navLinks = user 
     ? [
         { href: '/specialists', label: 'Таланты' },
-        { href: '/projects', label: 'Проекты' },
+        { href: '/projects', label: 'Задачи' },
         { href: '/resources', label: 'Ресурсы' },
       ]
     : [
         { href: '/specialists', label: 'Таланты' },
-        { href: '/projects', label: 'Проекты' },
+        { href: '/projects', label: 'Задачи' },
         { href: '/resources', label: 'Ресурсы' },
       ]
 
@@ -107,24 +107,20 @@ export default function Navbar() {
                     {/* Безопасная зона между кнопкой и меню */}
                     <div className="absolute right-0 top-full w-full h-0.5" />
                     <div className="absolute right-0 top-full mt-0.5 w-48 bg-white rounded-apple border border-primary-100 shadow-lg py-2 z-50">
-                      {user.type === 'specialist' && (
-                        <Link
-                          href="/profile/edit"
-                          className="flex items-center gap-3 px-4 py-2 mx-2 text-sm font-normal text-primary-700 hover:bg-primary-50 rounded-apple transition-colors"
-                        >
-                          <Cog6ToothIcon className="w-4 h-4" />
-                          Настройки
-                        </Link>
-                      )}
-                      {user.type === 'company' && (
-                        <Link
-                          href="/projects/new"
-                          className="flex items-center gap-3 px-4 py-2 mx-2 text-sm font-normal text-primary-700 hover:bg-primary-50 rounded-apple transition-colors"
-                        >
-                          <Cog6ToothIcon className="w-4 h-4" />
-                          Создать проект
-                        </Link>
-                      )}
+                      <Link
+                        href="/profile/edit"
+                        className="flex items-center gap-3 px-4 py-2 mx-2 text-sm font-normal text-primary-700 hover:bg-primary-50 rounded-apple transition-colors"
+                      >
+                        <Cog6ToothIcon className="w-4 h-4" />
+                        Настройки
+                      </Link>
+                      <Link
+                        href="/projects/new"
+                        className="flex items-center gap-3 px-4 py-2 mx-2 text-sm font-normal text-primary-700 hover:bg-primary-50 rounded-apple transition-colors"
+                      >
+                        <Cog6ToothIcon className="w-4 h-4" />
+                        Создать задачу
+                      </Link>
                       <Link
                         href="#"
                         onClick={(e) => {

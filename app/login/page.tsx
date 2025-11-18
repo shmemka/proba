@@ -15,31 +15,21 @@ function LoginForm() {
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Если пользователь уже авторизован, перенаправляем на рабочие страницы
+  // Если пользователь уже авторизован, перенаправляем
   useEffect(() => {
     const checkAuth = async () => {
       if (isSupabaseAvailable()) {
         const user = await getCurrentUser()
         if (user) {
           const redirect = searchParams.get('redirect')
-          if (redirect) {
-            router.push(redirect)
-          } else {
-            // Определяем тип пользователя из metadata
-            const userType = user.user_metadata?.userType || 'specialist'
-            router.push(userType === 'company' ? '/projects' : '/specialists')
-          }
+          router.push(redirect || '/specialists')
         }
       } else {
         // Fallback на localStorage
         const user = getActiveUser()
         if (user?.email && user?.password) {
           const redirect = searchParams.get('redirect')
-          if (redirect) {
-            router.push(redirect)
-          } else {
-            router.push(user.type === 'company' ? '/projects' : '/specialists')
-          }
+          router.push(redirect || '/specialists')
         }
       }
     }
@@ -68,9 +58,7 @@ function LoginForm() {
         const { user } = await signIn(normalizedEmail, passwordValue)
         if (user) {
           const redirect = searchParams.get('redirect')
-          const userType = user.user_metadata?.userType || 'specialist'
-          const defaultRedirect = userType === 'company' ? '/projects' : '/specialists'
-          router.push(redirect || defaultRedirect)
+          router.push(redirect || '/specialists')
         }
       } else {
         // Fallback на localStorage
@@ -84,7 +72,7 @@ function LoginForm() {
           } else {
             userToLogin = registerUser({
               email: normalizedEmail,
-              name: 'Матвей',
+              name: 'Пользователь',
               password: passwordValue,
               type: 'specialist',
             })
@@ -94,8 +82,7 @@ function LoginForm() {
         setActiveUser(userToLogin)
         window.dispatchEvent(new Event('storage'))
         const redirect = searchParams.get('redirect')
-        const defaultRedirect = userToLogin.type === 'company' ? '/projects' : '/specialists'
-        router.push(redirect || defaultRedirect)
+        router.push(redirect || '/specialists')
       }
     } catch (err: any) {
       console.error('Ошибка входа:', err)

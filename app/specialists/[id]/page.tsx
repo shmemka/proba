@@ -235,7 +235,7 @@ export default function SpecialistProfilePage({ params }: { params: { id: string
             href="/projects"
             className="w-full sm:w-auto border border-primary-200 text-primary-700 px-6 py-3 sm:py-4 rounded-apple hover:bg-primary-50 active:bg-primary-50 transition-colors font-normal tracking-tight text-center"
           >
-            Предложить проект
+            Предложить задачу
           </Link>
         </div>
       </div>

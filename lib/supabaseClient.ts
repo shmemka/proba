@@ -56,21 +56,10 @@ export interface Database {
         Insert: Omit<Database['public']['Tables']['specialists']['Row'], 'created_at' | 'updated_at'>
         Update: Partial<Database['public']['Tables']['specialists']['Insert']>
       }
-      companies: {
-        Row: {
-          id: string
-          email: string
-          company_name: string
-          created_at: string
-          updated_at: string
-        }
-        Insert: Omit<Database['public']['Tables']['companies']['Row'], 'created_at' | 'updated_at'>
-        Update: Partial<Database['public']['Tables']['companies']['Insert']>
-      }
       projects: {
         Row: {
           id: string
-          company_id: string
+          user_id: string
           title: string
           description: string
           full_description: string

@@ -18,19 +18,19 @@ export default function Home() {
           </p>
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center px-4 sm:px-0">
             <Link
-              href="/register?type=specialist"
+              href="/register"
               prefetch={true}
               className="bg-primary-900 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-apple font-normal hover:bg-primary-800 transition-colors inline-flex items-center justify-center gap-2 text-sm sm:text-base tracking-tight"
             >
-              Я специалист
+              Зарегистрироваться
               <ArrowRightIcon className="w-4 h-4" />
             </Link>
             <Link
-              href="/register?type=company"
+              href="/login"
               prefetch={true}
               className="bg-white text-primary-900 px-6 sm:px-8 py-3 sm:py-4 rounded-apple font-normal hover:bg-primary-50 transition-colors inline-flex items-center justify-center gap-2 border border-primary-200 text-sm sm:text-base tracking-tight"
             >
-              Я компания
+              Войти
               <ArrowRightIcon className="w-4 h-4" />
             </Link>
           </div>
@@ -52,7 +52,7 @@ export default function Home() {
               </div>
               <h3 className="text-lg sm:text-xl font-normal mb-2 sm:mb-3 text-primary-900 tracking-tight">Специалисты</h3>
               <p className="text-sm sm:text-base font-light text-primary-600 leading-relaxed">
-                Создайте анкету, покажите свои навыки и начните работать над реальными проектами
+                Создайте анкету, покажите свои навыки и начните работать над реальными задачами
               </p>
             </div>
             <div className="text-center">
@@ -63,7 +63,7 @@ export default function Home() {
               </div>
               <h3 className="text-lg sm:text-xl font-normal mb-2 sm:mb-3 text-primary-900 tracking-tight">Компании</h3>
               <p className="text-sm sm:text-base font-light text-primary-600 leading-relaxed">
-                Разместите проект и получите готовое решение от мотивированных специалистов
+                Разместите задачу и получите готовое решение от мотивированных специалистов
               </p>
             </div>
             <div className="text-center">
@@ -114,7 +114,7 @@ export default function Home() {
               prefetch={true}
               className="bg-white text-primary-900 px-6 sm:px-8 py-3 sm:py-4 rounded-apple font-normal hover:bg-primary-100 transition-colors border border-primary-200 text-sm sm:text-base tracking-tight"
             >
-              Найти проект
+              Найти задачу
             </Link>
           </div>
         </div>

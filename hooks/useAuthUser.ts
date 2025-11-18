@@ -41,23 +41,22 @@ export function useAuthUser() {
             return
           }
 
-          const userType = supabaseUser.user_metadata?.userType === 'company' ? 'company' : 'specialist'
           let avatarUrl = ''
 
-          if (userType === 'specialist') {
-            try {
-              const specialist = await getSpecialist(supabaseUser.id, { force: options?.forceProfile })
-              avatarUrl = (specialist as any)?.avatar_url || ''
-            } catch (error) {
-              console.error('Ошибка загрузки профиля специалиста:', error)
-            }
+          // Пытаемся загрузить профиль специалиста (если есть)
+          try {
+            const specialist = await getSpecialist(supabaseUser.id, { force: options?.forceProfile })
+            avatarUrl = (specialist as any)?.avatar_url || ''
+          } catch (error) {
+            // Профиль специалиста может не существовать - это нормально
+            console.debug('Профиль специалиста не найден:', error)
           }
 
           setUser({
             id: supabaseUser.id,
             email: supabaseUser.email || '',
             name: supabaseUser.user_metadata?.displayName || supabaseUser.email || '',
-            type: userType,
+            type: 'specialist', // Все пользователи регистрируются как специалисты
             avatarUrl,
           })
           return

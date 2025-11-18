@@ -3,54 +3,38 @@
 import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { UserPlusIcon, UserIcon, BriefcaseIcon } from '@heroicons/react/24/outline'
+import { UserPlusIcon } from '@heroicons/react/24/outline'
 import { signUp, getCurrentUser, isSupabaseAvailable } from '@/lib/supabase'
 import { findUserByEmail, getActiveUser, registerUser, saveSpecialistProfile, setActiveUser } from '@/lib/storage'
 
 function RegisterForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [userType, setUserType] = useState<'specialist' | 'company'>('specialist')
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
     confirmPassword: '',
-    companyName: '',
   })
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
     const checkAuth = async () => {
-      const type = searchParams.get('type')
-      if (type === 'company' || type === 'specialist') {
-        setUserType(type)
-      }
-
       if (isSupabaseAvailable()) {
         const user = await getCurrentUser()
         if (user) {
-          const userType = user.user_metadata?.userType || 'specialist'
-          if (userType === 'specialist') {
-            router.push('/profile/edit')
-          } else {
-            router.push('/projects')
-          }
+          router.push('/specialists')
         }
       } else {
         const user = getActiveUser()
         if (user?.email && user?.password) {
-          if (user.type === 'specialist') {
-            router.push('/profile/edit')
-          } else {
-            router.push('/projects')
-          }
+          router.push('/specialists')
         }
       }
     }
     checkAuth()
-  }, [searchParams, router])
+  }, [router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -61,7 +45,6 @@ function RegisterForm() {
     }
 
     const trimmedName = formData.name.trim()
-    const trimmedCompany = formData.companyName.trim()
     const normalizedEmail = formData.email.trim().toLowerCase()
 
     if (formData.password !== formData.confirmPassword) {
@@ -74,13 +57,8 @@ function RegisterForm() {
       return
     }
 
-    if (userType === 'specialist' && !trimmedName) {
+    if (!trimmedName) {
       setError('Укажите ваше имя и фамилию')
-      return
-    }
-
-    if (userType === 'company' && !trimmedCompany) {
-      setError('Укажите название компании')
       return
     }
 
@@ -88,12 +66,11 @@ function RegisterForm() {
 
     try {
       if (isSupabaseAvailable()) {
-        // Используем Supabase Auth
-        const displayName = userType === 'company' ? trimmedCompany : trimmedName
-        await signUp(normalizedEmail, formData.password, userType, displayName)
+        // Используем Supabase Auth - регистрируем как специалиста по умолчанию
+        await signUp(normalizedEmail, formData.password, 'specialist', trimmedName)
         
-        // После регистрации перенаправляем
-        router.push(userType === 'company' ? '/projects/new' : '/profile/edit')
+        // После регистрации перенаправляем на редактирование профиля
+        router.push('/profile/edit')
       } else {
         // Fallback на localStorage
         if (findUserByEmail(normalizedEmail)) {
@@ -103,28 +80,25 @@ function RegisterForm() {
 
         const newUser = registerUser({
           email: normalizedEmail,
-          name: userType === 'company' ? trimmedCompany : trimmedName,
-          type: userType,
+          name: trimmedName,
+          type: 'specialist',
           password: formData.password,
-          companyName: userType === 'company' ? trimmedCompany : undefined,
         })
         setActiveUser(newUser)
         window.dispatchEvent(new Event('storage'))
 
-        if (userType === 'specialist') {
-          const nameParts = trimmedName.split(' ')
-          const specialistProfile = {
-            firstName: nameParts[0] || '',
-            lastName: nameParts.slice(1).join(' ') || '',
-            specialization: 'Дизайн' as const,
-            bio: '',
-            telegram: '',
-            email: normalizedEmail,
-          }
-          saveSpecialistProfile(newUser.id, specialistProfile)
+        const nameParts = trimmedName.split(' ')
+        const specialistProfile = {
+          firstName: nameParts[0] || '',
+          lastName: nameParts.slice(1).join(' ') || '',
+          specialization: 'Дизайн' as const,
+          bio: '',
+          telegram: '',
+          email: normalizedEmail,
         }
+        saveSpecialistProfile(newUser.id, specialistProfile)
 
-        router.push(userType === 'company' ? '/projects/new' : '/profile/edit')
+        router.push('/profile/edit')
       }
     } catch (err: any) {
       console.error(err)
@@ -154,33 +128,6 @@ function RegisterForm() {
           </p>
         </div>
 
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={() => setUserType('specialist')}
-            className={`flex-1 flex items-center justify-center gap-2 px-5 py-4 rounded-apple border transition-colors font-light tracking-tight ${
-              userType === 'specialist'
-                ? 'border-primary-900 bg-primary-900 text-white'
-                : 'border-primary-200 bg-white text-primary-700 hover:border-primary-300'
-            }`}
-          >
-            <UserIcon className="w-4 h-4" />
-            Специалист
-          </button>
-          <button
-            type="button"
-            onClick={() => setUserType('company')}
-            className={`flex-1 flex items-center justify-center gap-2 px-5 py-4 rounded-apple border transition-colors font-light tracking-tight ${
-              userType === 'company'
-                ? 'border-primary-900 bg-primary-900 text-white'
-                : 'border-primary-200 bg-white text-primary-700 hover:border-primary-300'
-            }`}
-          >
-            <BriefcaseIcon className="w-4 h-4" />
-            Компания
-          </button>
-        </div>
-
         <form className="space-y-6" onSubmit={handleSubmit}>
           {error && (
             <div className="bg-primary-50 border border-primary-200 text-primary-700 px-5 py-4 rounded-apple text-sm font-light">
@@ -189,39 +136,21 @@ function RegisterForm() {
           )}
 
           <div className="space-y-4">
-            {userType === 'company' ? (
-              <div>
-                <label htmlFor="companyName" className="block text-sm font-light text-primary-700 mb-2">
-                  Название компании
-                </label>
-                <input
-                  id="companyName"
-                  name="companyName"
-                  type="text"
-                  required
-                  className="w-full px-5 py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white"
-                  placeholder="ООО «Пример»"
-                  value={formData.companyName}
-                  onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
-                />
-              </div>
-            ) : (
-              <div>
-                <label htmlFor="name" className="block text-sm font-light text-primary-700 mb-2">
-                  Имя и фамилия
-                </label>
-                <input
-                  id="name"
-                  name="name"
-                  type="text"
-                  required
-                  className="w-full px-5 py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white"
-                  placeholder="Иван Иванов"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                />
-              </div>
-            )}
+            <div>
+              <label htmlFor="name" className="block text-sm font-light text-primary-700 mb-2">
+                Имя и фамилия
+              </label>
+              <input
+                id="name"
+                name="name"
+                type="text"
+                required
+                className="w-full px-5 py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white"
+                placeholder="Иван Иванов"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              />
+            </div>
 
             <div>
               <label htmlFor="email" className="block text-sm font-light text-primary-700 mb-2">

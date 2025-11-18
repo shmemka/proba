@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { CheckIcon, PlusIcon, XMarkIcon, PhotoIcon } from '@heroicons/react/24/outline'
 import { getActiveUser, loadSpecialistProfile, readJson, saveSpecialistProfile, type StoredUser, writeJson } from '@/lib/storage'
-import { getCurrentUser, getSpecialist, updateSpecialist, isSupabaseAvailable } from '@/lib/supabase'
+import { getCurrentUser, getSpecialist, updateSpecialist, isSupabaseAvailable, ensureSpecialistProfile } from '@/lib/supabase'
 
 type Specialization = 'Дизайн' | 'SMM' | 'Веб-разработка'
 
@@ -52,25 +52,20 @@ export default function EditProfilePage() {
       if (isSupabaseAvailable()) {
         const user = await getCurrentUser()
         if (user) {
-          const userType = user.user_metadata?.userType
-          if (userType === 'specialist') {
-            setCurrentUser({
-              id: user.id,
-              email: user.email || '',
-              name: user.user_metadata?.displayName || '',
-              password: '',
-              type: 'specialist',
-            })
-            setIsAuthorized(true)
-          } else {
-            router.push('/login?redirect=/profile/edit')
-          }
+          setCurrentUser({
+            id: user.id,
+            email: user.email || '',
+            name: user.user_metadata?.displayName || '',
+            password: '',
+            type: 'specialist',
+          })
+          setIsAuthorized(true)
         } else {
           router.push('/login?redirect=/profile/edit')
         }
       } else {
         const user = getActiveUser()
-        if (user?.type === 'specialist' && user.email) {
+        if (user?.email) {
           setCurrentUser(user)
           setIsAuthorized(true)
         } else {
@@ -83,8 +78,12 @@ export default function EditProfilePage() {
   
   const [formData, setFormData] = useState<ProfileData>(createEmptyProfile)
   const [projects, setProjects] = useState<Project[]>([])
-  const [activeTab, setActiveTab] = useState<'card' | 'portfolio'>('card')
+  const [activeTab, setActiveTab] = useState<'general' | 'profile' | 'portfolio'>('general')
   const [avatarPreview, setAvatarPreview] = useState<string>('')
+  const [generalData, setGeneralData] = useState({
+    name: '',
+    email: '',
+  })
 
   // Загружаем данные профиля из Supabase или localStorage
   useEffect(() => {
@@ -116,8 +115,18 @@ export default function EditProfilePage() {
             if (specialist.portfolio && Array.isArray(specialist.portfolio)) {
               setProjects(specialist.portfolio as Project[])
             }
+            
+            // Загружаем общие данные
+            setGeneralData({
+              name: `${specialist.first_name || ''} ${specialist.last_name || ''}`.trim() || currentUser.name || '',
+              email: specialist.email || currentUser.email || '',
+            })
           } else {
             setFormData(prev => ({ ...prev, email: currentUser.email || '' }))
+            setGeneralData({
+              name: currentUser.name || '',
+              email: currentUser.email || '',
+            })
           }
         } else {
           // Fallback на localStorage
@@ -149,6 +158,10 @@ export default function EditProfilePage() {
             }
           } else {
             setFormData(prev => ({ ...prev, email: currentUser.email || '' }))
+            setGeneralData({
+              name: currentUser.name || '',
+              email: currentUser.email || '',
+            })
           }
         }
       } catch (error) {
@@ -313,12 +326,6 @@ export default function EditProfilePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // Валидация
-    if (!formData.firstName.trim() || !formData.lastName.trim() || !formData.telegram.trim()) {
-      alert('Заполните обязательные поля: имя, фамилия и Telegram')
-      return
-    }
-
     if (!currentUser) {
       router.push('/login?redirect=/profile/edit')
       return
@@ -326,60 +333,108 @@ export default function EditProfilePage() {
 
     try {
       if (isSupabaseAvailable()) {
-        // Сохраняем в Supabase
-        const portfolioData = projects.map(p => ({
-          id: p.id,
-          title: p.title,
-          description: p.description,
-          images: p.images.map(img => ({ url: img.url }))
-        }))
+        // Сохраняем профиль специалиста (если есть данные)
+        if (activeTab === 'profile' || activeTab === 'portfolio') {
+          // Валидация для профиля
+          if (activeTab === 'profile' && (!formData.firstName.trim() || !formData.lastName.trim() || !formData.telegram.trim())) {
+            alert('Заполните обязательные поля: имя, фамилия и Telegram')
+            return
+          }
 
-        await updateSpecialist(currentUser.id, {
-          first_name: formData.firstName.trim(),
-          last_name: formData.lastName.trim(),
-          specialization: formData.specialization,
-          bio: formData.bio || '',
-          telegram: formData.telegram.trim(),
-          email: formData.email || currentUser.email,
-          avatar_url: formData.avatarUrl || '',
-          show_in_search: formData.showInSearch !== false,
-          portfolio: portfolioData,
-        })
+          // Создаем профиль специалиста, если его нет
+          try {
+            await ensureSpecialistProfile({
+              id: currentUser.id,
+              email: currentUser.email || '',
+              displayName: `${formData.firstName} ${formData.lastName}`.trim() || generalData.name,
+            })
+          } catch (profileError) {
+            // Профиль может уже существовать - это нормально
+            console.debug('Профиль специалиста уже существует или ошибка создания:', profileError)
+          }
 
-        router.push('/specialists')
-      } else {
-        // Fallback на localStorage
-        const profileDataWithProjects = {
-          ...formData,
-          projects: projects.map(p => ({
+          const portfolioData = projects.map(p => ({
             id: p.id,
             title: p.title,
             description: p.description,
             images: p.images.map(img => ({ url: img.url }))
           }))
+
+          await updateSpecialist(currentUser.id, {
+            first_name: formData.firstName.trim(),
+            last_name: formData.lastName.trim(),
+            specialization: formData.specialization,
+            bio: formData.bio || '',
+            telegram: formData.telegram.trim(),
+            email: formData.email || currentUser.email,
+            avatar_url: formData.avatarUrl || '',
+            show_in_search: formData.showInSearch !== false,
+            portfolio: portfolioData,
+          })
         }
-        saveSpecialistProfile(currentUser.id, profileDataWithProjects)
-        
-        const specialists = readJson<any[]>('specialists', [])
-        const existingIndex = specialists.findIndex((s: any) => s.id === currentUser.id)
-        const specialistId = currentUser.id || Date.now().toString()
-        
-        const specialistData = {
-          id: specialistId,
-          ...profileDataWithProjects,
-          rating: existingIndex >= 0 ? specialists[existingIndex].rating || 0 : 0,
-          hiredCount: existingIndex >= 0 ? specialists[existingIndex].hiredCount || 0 : 0,
+
+        // Обновляем общие данные (имя в auth metadata)
+        if (activeTab === 'general') {
+          const nameParts = generalData.name.split(' ')
+          // Обновляем имя в профиле специалиста, если он существует
+          try {
+            await ensureSpecialistProfile({
+              id: currentUser.id,
+              email: currentUser.email || '',
+              displayName: generalData.name,
+            })
+            await updateSpecialist(currentUser.id, {
+              first_name: nameParts[0] || '',
+              last_name: nameParts.slice(1).join(' ') || '',
+            })
+          } catch (error) {
+            console.debug('Не удалось обновить имя:', error)
+          }
         }
-        
-        if (existingIndex >= 0) {
-          specialists[existingIndex] = specialistData
-        } else {
-          specialists.push(specialistData)
+
+        // Не перенаправляем, остаемся на странице
+        alert('Изменения сохранены')
+      } else {
+        // Fallback на localStorage
+        if (activeTab === 'profile' || activeTab === 'portfolio') {
+          if (activeTab === 'profile' && (!formData.firstName.trim() || !formData.lastName.trim() || !formData.telegram.trim())) {
+            alert('Заполните обязательные поля: имя, фамилия и Telegram')
+            return
+          }
+
+          const profileDataWithProjects = {
+            ...formData,
+            projects: projects.map(p => ({
+              id: p.id,
+              title: p.title,
+              description: p.description,
+              images: p.images.map(img => ({ url: img.url }))
+            }))
+          }
+          saveSpecialistProfile(currentUser.id, profileDataWithProjects)
+          
+          const specialists = readJson<any[]>('specialists', [])
+          const existingIndex = specialists.findIndex((s: any) => s.id === currentUser.id)
+          const specialistId = currentUser.id || Date.now().toString()
+          
+          const specialistData = {
+            id: specialistId,
+            ...profileDataWithProjects,
+            rating: existingIndex >= 0 ? specialists[existingIndex].rating || 0 : 0,
+            hiredCount: existingIndex >= 0 ? specialists[existingIndex].hiredCount || 0 : 0,
+          }
+          
+          if (existingIndex >= 0) {
+            specialists[existingIndex] = specialistData
+          } else {
+            specialists.push(specialistData)
+          }
+          
+          writeJson('specialists', specialists)
+          window.dispatchEvent(new Event('storage'))
         }
-        
-        writeJson('specialists', specialists)
-        window.dispatchEvent(new Event('storage'))
-        router.push('/specialists')
+
+        alert('Изменения сохранены')
       }
     } catch (error: any) {
       console.error('Ошибка сохранения профиля:', error)
@@ -406,25 +461,39 @@ export default function EditProfilePage() {
 
       {/* Tabs */}
       <div className="mb-6 border-b border-primary-200">
-        <div className="flex gap-6">
+        <div className="flex gap-6 overflow-x-auto scrollbar-hide -mx-4 sm:mx-0 px-4 sm:px-0">
           <button
             type="button"
-            onClick={() => setActiveTab('card')}
-            className={`relative text-sm font-normal transition-colors tracking-tight pb-4 ${
-              activeTab === 'card'
+            onClick={() => setActiveTab('general')}
+            className={`relative text-sm font-normal transition-colors tracking-tight pb-4 whitespace-nowrap ${
+              activeTab === 'general'
                 ? 'text-[#FF4600]'
                 : 'text-primary-400 hover:text-primary-600'
             }`}
           >
-            Моя карточка
-            {activeTab === 'card' && (
+            Общие
+            {activeTab === 'general' && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FF4600]"></span>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('profile')}
+            className={`relative text-sm font-normal transition-colors tracking-tight pb-4 whitespace-nowrap ${
+              activeTab === 'profile'
+                ? 'text-[#FF4600]'
+                : 'text-primary-400 hover:text-primary-600'
+            }`}
+          >
+            Профиль
+            {activeTab === 'profile' && (
               <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FF4600]"></span>
             )}
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('portfolio')}
-            className={`relative text-sm font-normal transition-colors tracking-tight pb-4 ${
+            className={`relative text-sm font-normal transition-colors tracking-tight pb-4 whitespace-nowrap ${
               activeTab === 'portfolio'
                 ? 'text-[#FF4600]'
                 : 'text-primary-400 hover:text-primary-600'
@@ -439,7 +508,74 @@ export default function EditProfilePage() {
       </div>
 
       <form onSubmit={handleSubmit}>
-        {activeTab === 'card' && (
+        {activeTab === 'general' && (
+          <div className="bg-white rounded-apple border border-primary-100 p-4 sm:p-6 lg:p-10 space-y-4 sm:space-y-6">
+            <div>
+              <h2 className="text-xl sm:text-2xl font-light text-primary-900 mb-4 tracking-tight">Общая информация</h2>
+              <p className="text-sm font-light text-primary-600 mb-6">Основные данные вашего аккаунта</p>
+            </div>
+
+            <div>
+              <label htmlFor="generalName" className="block text-sm font-light text-primary-700 mb-2">
+                Имя и фамилия
+              </label>
+              <input
+                id="generalName"
+                type="text"
+                className="w-full px-5 py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white"
+                placeholder="Иван Иванов"
+                value={generalData.name}
+                onChange={(e) => setGeneralData({ ...generalData, name: e.target.value })}
+              />
+            </div>
+
+            <div>
+              <label htmlFor="generalEmail" className="block text-sm font-light text-primary-700 mb-2">
+                Email
+              </label>
+              <input
+                id="generalEmail"
+                type="email"
+                className="w-full px-5 py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white"
+                placeholder="example@mail.com"
+                value={generalData.email}
+                onChange={(e) => setGeneralData({ ...generalData, email: e.target.value })}
+              />
+              <p className="text-xs font-light text-primary-500 mt-2">
+                Email используется для входа в систему и не может быть изменен
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4 sm:pt-6 border-t border-primary-100">
+              <button
+                type="button"
+                onClick={() => {
+                  // Обновляем имя в профиле специалиста
+                  const nameParts = generalData.name.split(' ')
+                  setFormData({
+                    ...formData,
+                    firstName: nameParts[0] || '',
+                    lastName: nameParts.slice(1).join(' ') || '',
+                  })
+                  handleSubmit(new Event('submit') as any)
+                }}
+                className="inline-flex items-center justify-center gap-2 bg-primary-900 text-white px-6 py-3 sm:py-4 rounded-apple hover:bg-primary-800 transition-colors font-normal tracking-tight"
+              >
+                <CheckIcon className="w-5 h-5" />
+                Сохранить изменения
+              </button>
+              <button
+                type="button"
+                onClick={() => router.back()}
+                className="border border-primary-200 text-primary-700 px-6 py-3 sm:py-4 rounded-apple hover:bg-primary-50 transition-colors font-normal tracking-tight"
+              >
+                Отмена
+              </button>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'profile' && (
           <div className="bg-white rounded-apple border border-primary-100 p-4 sm:p-6 lg:p-10 space-y-4 sm:space-y-6">
             {/* Загрузка аватарки */}
             <div>

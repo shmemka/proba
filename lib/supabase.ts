@@ -97,19 +97,17 @@ const mapSupabaseError = (error: unknown, fallback: string) => {
   return rawMessage || fallback
 }
 
-type EnsureProfileParams = {
+type EnsureSpecialistProfileParams = {
   id: string
-  userType: 'specialist' | 'company'
   email: string
   displayName?: string
 }
 
-const ensureProfileRecord = async ({
+export const ensureSpecialistProfile = async ({
   id,
-  userType,
   email,
   displayName,
-}: EnsureProfileParams) => {
+}: EnsureSpecialistProfileParams) => {
   const supabase = getSupabaseClient()
   if (!supabase) {
     return
@@ -117,70 +115,40 @@ const ensureProfileRecord = async ({
 
   const normalizedEmail = normalizeEmail(email)
 
-  if (userType === 'specialist') {
-    const { data: existing, error: lookupError } = await supabase
-      .from('specialists')
-      .select('id')
-      .eq('id', id)
-      .limit(1)
-
-    if (lookupError) {
-      throw lookupError
-    }
-
-    if (existing && existing.length > 0) {
-      return
-    }
-
-    const safeDisplayName = deriveDisplayName(normalizedEmail, 'specialist', displayName)
-    const { firstName, lastName } = splitDisplayName(safeDisplayName)
-
-    const { error: insertError } = await supabase.from('specialists').insert({
-      id,
-      email: normalizedEmail,
-      first_name: firstName || safeDisplayName,
-      last_name: lastName || '',
-      specialization: DEFAULT_SPECIALIZATION,
-    })
-
-    if (insertError) {
-      throw insertError
-    }
-
-    invalidateCache('specialists')
-    invalidateCache(`specialist:${id}`)
-    return
-  }
-
-  const { data: existingCompanies, error: companyLookupError } = await supabase
-    .from('companies')
+  const { data: existing, error: lookupError } = await supabase
+    .from('specialists')
     .select('id')
     .eq('id', id)
     .limit(1)
 
-  if (companyLookupError) {
-    throw companyLookupError
+  if (lookupError) {
+    throw lookupError
   }
 
-  if (existingCompanies && existingCompanies.length > 0) {
+  if (existing && existing.length > 0) {
     return
   }
 
-  const safeCompanyName = deriveDisplayName(normalizedEmail, 'company', displayName)
+  const safeDisplayName = deriveDisplayName(normalizedEmail, 'specialist', displayName)
+  const { firstName, lastName } = splitDisplayName(safeDisplayName)
 
-  const { error: insertCompanyError } = await supabase.from('companies').insert({
+  const { error: insertError } = await supabase.from('specialists').insert({
     id,
     email: normalizedEmail,
-    company_name: safeCompanyName,
+    first_name: firstName || safeDisplayName,
+    last_name: lastName || '',
+    specialization: DEFAULT_SPECIALIZATION,
   })
 
-  if (insertCompanyError) {
-    throw insertCompanyError
+  if (insertError) {
+    throw insertError
   }
+
+  invalidateCache('specialists')
+  invalidateCache(`specialist:${id}`)
 }
 
 type Specialist = Database['public']['Tables']['specialists']['Row']
-type Company = Database['public']['Tables']['companies']['Row']
 type Project = Database['public']['Tables']['projects']['Row']
 type Application = Database['public']['Tables']['applications']['Row']
 
@@ -200,7 +168,7 @@ export async function signUp(
   }
 
   const normalizedEmail = normalizeEmail(email)
-  const safeDisplayName = deriveDisplayName(normalizedEmail, userType, displayName)
+  const safeDisplayName = deriveDisplayName(normalizedEmail, 'specialist', displayName)
 
   try {
     const { data, error } = await supabase.auth.signUp({
@@ -208,7 +176,7 @@ export async function signUp(
       password,
       options: {
         data: {
-          userType,
+          userType: 'specialist',
           displayName: safeDisplayName,
         },
       },
@@ -223,12 +191,17 @@ export async function signUp(
       throw new Error('Не удалось создать пользователя')
     }
 
-    await ensureProfileRecord({
-      id: user.id,
-      userType,
-      email: user.email || normalizedEmail,
-      displayName: safeDisplayName,
-    })
+    // Создаем профиль специалиста (опционально, можно создать позже в настройках)
+    try {
+      await ensureSpecialistProfile({
+        id: user.id,
+        email: user.email || normalizedEmail,
+        displayName: safeDisplayName,
+      })
+    } catch (profileError) {
+      // Не критично, профиль можно создать позже
+      console.debug('Не удалось создать профиль специалиста при регистрации:', profileError)
+    }
 
     return data
   } catch (error) {
@@ -256,19 +229,23 @@ export async function signIn(email: string, password: string) {
 
     const user = data.user
     if (user) {
-      const userType = user.user_metadata?.userType === 'company' ? 'company' : 'specialist'
       const safeDisplayName = deriveDisplayName(
         user.email || normalizedEmail,
-        userType,
+        'specialist',
         user.user_metadata?.displayName,
       )
 
-      await ensureProfileRecord({
-        id: user.id,
-        userType,
-        email: user.email || normalizedEmail,
-        displayName: safeDisplayName,
-      })
+      // Создаем профиль специалиста (опционально, можно создать позже в настройках)
+      try {
+        await ensureSpecialistProfile({
+          id: user.id,
+          email: user.email || normalizedEmail,
+          displayName: safeDisplayName,
+        })
+      } catch (profileError) {
+        // Не критично, профиль можно создать позже
+        console.debug('Не удалось создать профиль специалиста при входе:', profileError)
+      }
     }
 
     return data
@@ -405,72 +382,56 @@ export async function updateSpecialist(id: string, updates: Partial<Specialist>)
 }
 
 // ============================================
-// Компании
+// Компании - удалено, больше не используется
 // ============================================
-
-export async function getCompany(id: string) {
-  const supabase = getSupabaseClient()
-  if (!supabase) {
-    return null
-  }
-
-  const { data, error } = await supabase
-    .from('companies')
-    .select('*')
-    .eq('id', id)
-    .single()
-
-  if (error) {
-    console.error('Ошибка загрузки компании:', error)
-    throw error
-  }
-
-  return data
-}
-
-export async function updateCompany(id: string, updates: Partial<Company>) {
-  const supabase = getSupabaseClient()
-  if (!supabase) {
-    throw new Error('Supabase не настроен')
-  }
-
-  const { data, error } = await supabase
-    .from('companies')
-    .update(updates)
-    .eq('id', id)
-    .select()
-    .single()
-
-  if (error) throw error
-  return data
-}
 
 // ============================================
 // Проекты
 // ============================================
 
-export async function getProjects(options?: { force?: boolean }) {
+export async function getProjects(options?: { force?: boolean; userId?: string; specialistId?: string }) {
   const supabase = getSupabaseClient()
   if (!supabase) {
     return []
   }
 
+  const cacheKey = `projects${options?.userId ? `:user:${options.userId}` : ''}${options?.specialistId ? `:specialist:${options.specialistId}` : ''}`
+
   return fetchWithCache(
-    'projects',
+    cacheKey,
     async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('projects')
-        .select(
-          `
-      *,
-      companies(company_name)
-    `,
-        )
-        .eq('status', 'open')
-        .order('created_at', { ascending: false })
+        .select('*')
+
+      // Если указан userId, показываем все задачи пользователя (включая закрытые)
+      if (options?.userId) {
+        query = query.eq('user_id', options.userId)
+      } else if (options?.specialistId) {
+        // Если указан specialistId, показываем задачи, на которые специалист подал заявку
+        const { data: applicationsData } = await supabase
+          .from('applications')
+          .select('project_id')
+          .eq('specialist_id', options.specialistId)
+        
+        if (applicationsData && applicationsData.length > 0) {
+          const projectIds = applicationsData.map(a => a.project_id)
+          query = query.in('id', projectIds)
+        } else {
+          // Если нет заявок, возвращаем пустой массив
+          return []
+        }
+      } else {
+        // По умолчанию показываем только открытые задачи
+        query = query.eq('status', 'open')
+      }
+
+      query = query.order('created_at', { ascending: false })
+
+      const { data, error } = await query
 
       if (error) {
-        console.error('Ошибка загрузки проектов:', error)
+        console.error('Ошибка загрузки задач:', error)
         throw error
       }
 
@@ -486,16 +447,15 @@ export async function getProjects(options?: { force?: boolean }) {
         .in('project_id', projectIds)
 
       if (applicationsError) {
-        console.error('Ошибка загрузки заявок для проектов:', applicationsError)
-        // Не блокируем загрузку проектов, просто вернём их без счётчиков
+        console.error('Ошибка загрузки заявок для задач:', applicationsError)
+        // Не блокируем загрузку задач, просто вернём их без счётчиков
         return data.map((project) => ({
           ...project,
           applicationsCount: 0,
-          company: (project.companies as any)?.company_name || 'Компания',
         }))
       }
 
-      // Подсчитываем заявки для каждого проекта
+      // Подсчитываем заявки для каждой задачи
       const applicationsCountMap = new Map<string, number>()
       if (applicationsData) {
         applicationsData.forEach((app) => {
@@ -508,7 +468,6 @@ export async function getProjects(options?: { force?: boolean }) {
       return data.map((project) => ({
         ...project,
         applicationsCount: applicationsCountMap.get(project.id) || 0,
-        company: (project.companies as any)?.company_name || 'Компания',
       }))
     },
     30_000,
@@ -527,17 +486,12 @@ export async function getProject(id: string, options?: { force?: boolean }) {
     async () => {
       const { data, error } = await supabase
         .from('projects')
-        .select(
-          `
-      *,
-      companies(company_name)
-    `,
-        )
+        .select('*')
         .eq('id', id)
         .single()
 
       if (error) {
-        console.error('Ошибка загрузки проекта:', error)
+        console.error('Ошибка загрузки задачи:', error)
         throw error
       }
 
@@ -550,13 +504,13 @@ export async function getProject(id: string, options?: { force?: boolean }) {
         .eq('project_id', id)
 
       if (applicationsError) {
-        console.error('Ошибка загрузки количества заявок для проекта:', applicationsError)
+        console.error('Ошибка загрузки количества заявок для задачи:', applicationsError)
       }
 
       return {
         ...data,
         applicationsCount: count || 0,
-        company: (data.companies as any)?.company_name || 'Компания',
+        user_id: data.user_id,
       }
     },
     30_000,
@@ -565,7 +519,6 @@ export async function getProject(id: string, options?: { force?: boolean }) {
 }
 
 export async function createProject(project: {
-  company_id: string
   title: string
   description: string
   full_description?: string
@@ -585,29 +538,22 @@ export async function createProject(project: {
 
   const currentUser = await getCurrentUser()
   if (!currentUser) {
-      throw new Error('Пользователь не найден')
-    }
-
-  if (!currentUser.email) {
-    throw new Error('У аккаунта компании отсутствует email')
+    throw new Error('Пользователь не найден')
   }
-
-  await ensureProfileRecord({
-        id: project.company_id,
-    userType: 'company',
-    email: currentUser.email,
-    displayName: currentUser.user_metadata?.displayName,
-      })
 
   const { data, error } = await supabase
     .from('projects')
     .insert({
-      ...project,
+      user_id: currentUser.id,
+      title: project.title,
+      description: project.description,
+      full_description: project.full_description || project.description,
+      specialization: project.specialization || 'Другое',
+      skills: project.skills || [],
+      location: project.location || '',
+      deadline: project.deadline || null,
       budget: project.budget || '',
       timeline: project.timeline || '',
-      full_description: project.full_description || '',
-      location: project.location || '',
-      skills: project.skills || [],
       requirements: project.requirements || [],
       deliverables: project.deliverables || [],
     })
@@ -648,7 +594,13 @@ export async function getApplications(projectId?: string, specialistId?: string)
     return []
   }
 
-  let query = supabase.from('applications').select('*')
+  let query = supabase
+    .from('applications')
+    .select(`
+      *,
+      specialists(id, first_name, last_name, email, telegram, avatar_url, specialization, bio),
+      projects(id, title)
+    `)
 
   if (projectId) {
     query = query.eq('project_id', projectId)
@@ -687,6 +639,9 @@ export async function createApplication(application: {
   if (error) throw error
   invalidateCache('projects')
   invalidateCache(`project:${application.project_id}`)
+  // Инвалидируем кэш для всех вариантов проектов
+  invalidateCache('projects:company:')
+  invalidateCache('projects:specialist:')
   return data
 }
 
