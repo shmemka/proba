@@ -37,6 +37,7 @@ interface ProfileData {
   email?: string
   avatarUrl?: string
   showInSearch?: boolean
+  useEmailForContact?: boolean
   projects?: Project[]
 }
 
@@ -47,6 +48,7 @@ const createEmptyProfile = (): ProfileData => ({
   bio: '',
   telegram: '',
   email: '',
+  useEmailForContact: false,
 })
 
 const SUPABASE_ENABLED = isSupabaseAvailable()
@@ -134,12 +136,7 @@ export default function EditProfilePage() {
   const [formData, setFormData] = useState<ProfileData>(createEmptyProfile)
   const [projects, setProjects] = useState<Project[]>([])
   const [activeTab, setActiveTab] = useState<'general' | 'freelancers' | 'companies'>('general')
-  const [freelancerSubTab, setFreelancerSubTab] = useState<'profile' | 'portfolio'>('profile')
   const [avatarPreview, setAvatarPreview] = useState<string>('')
-  const [generalData, setGeneralData] = useState({
-    name: '',
-    email: '',
-  })
 
   // Загружаем данные профиля из Supabase или localStorage
   useEffect(() => {
@@ -151,15 +148,18 @@ export default function EditProfilePage() {
           // Загружаем из Supabase
           const specialist = await getSpecialist(currentUser.id)
           if (specialist) {
+            const specialistEmail = specialist.email || ''
+            const userEmail = currentUser.email || ''
             setFormData({
               firstName: specialist.first_name || '',
               lastName: specialist.last_name || '',
               specialization: (specialist.specialization as Specialization) || 'Дизайн',
               bio: specialist.bio || '',
               telegram: specialist.telegram || '',
-              email: specialist.email || currentUser.email || '',
+              email: specialistEmail,
               avatarUrl: specialist.avatar_url || '',
               showInSearch: specialist.show_in_search === true,
+              useEmailForContact: !!specialistEmail && specialistEmail !== userEmail,
             })
             
             // Загружаем аватарку
@@ -171,18 +171,15 @@ export default function EditProfilePage() {
             if (specialist.portfolio && Array.isArray(specialist.portfolio)) {
               setProjects(specialist.portfolio as Project[])
             }
-            
-            // Загружаем общие данные
-            setGeneralData({
-              name: `${specialist.first_name || ''} ${specialist.last_name || ''}`.trim() || currentUser.name || '',
-              email: specialist.email || currentUser.email || '',
-            })
           } else {
-            setFormData(prev => ({ ...prev, email: currentUser.email || '' }))
-            setGeneralData({
-              name: currentUser.name || '',
+            // Если профиля нет, загружаем имя из user metadata или currentUser
+            const nameParts = currentUser.name ? currentUser.name.split(' ') : []
+            setFormData(prev => ({
+              ...prev,
+              firstName: nameParts[0] || '',
+              lastName: nameParts.slice(1).join(' ') || '',
               email: currentUser.email || '',
-            })
+            }))
           }
         } else {
           // Fallback на localStorage
@@ -199,11 +196,14 @@ export default function EditProfilePage() {
                 email: savedProfile.email || currentUser.email || '',
               })
             } else {
+              const savedEmail = savedProfile.email || ''
+              const userEmail = currentUser.email || ''
               setFormData({
                 ...savedProfile,
-                email: savedProfile.email || currentUser.email || '',
+                email: savedEmail,
                 avatarUrl: (savedProfile as any).avatarUrl || '',
                 showInSearch: savedProfile.showInSearch === true,
+                useEmailForContact: !!savedEmail && savedEmail !== userEmail,
               })
               if ((savedProfile as any).avatarUrl) {
                 setAvatarPreview((savedProfile as any).avatarUrl)
@@ -213,16 +213,25 @@ export default function EditProfilePage() {
               }
             }
           } else {
-            setFormData(prev => ({ ...prev, email: currentUser.email || '' }))
-            setGeneralData({
-              name: currentUser.name || '',
+            // Если профиля нет, загружаем имя из currentUser
+            const nameParts = currentUser.name ? currentUser.name.split(' ') : []
+            setFormData(prev => ({
+              ...prev,
+              firstName: nameParts[0] || '',
+              lastName: nameParts.slice(1).join(' ') || '',
               email: currentUser.email || '',
-            })
+            }))
           }
         }
       } catch (error) {
         console.error('Ошибка загрузки профиля:', error)
-        setFormData(prev => ({ ...prev, email: currentUser.email || '' }))
+        const nameParts = currentUser.name ? currentUser.name.split(' ') : []
+        setFormData(prev => ({
+          ...prev,
+          firstName: nameParts[0] || '',
+          lastName: nameParts.slice(1).join(' ') || '',
+          email: currentUser.email || '',
+        }))
       }
     }
 
@@ -535,33 +544,55 @@ export default function EditProfilePage() {
 
     try {
       if (SUPABASE_ENABLED) {
-        // Сохраняем профиль специалиста (если есть данные)
+        // Сохраняем общие данные (фото, имя, фамилия)
+        if (activeTab === 'general') {
+          // Создаем профиль специалиста, если его нет
+          try {
+            await ensureSpecialistProfile({
+              id: currentUser.id,
+              email: currentUser.email || '',
+              displayName: `${formData.firstName} ${formData.lastName}`.trim(),
+            })
+          } catch (profileError) {
+            console.debug('Профиль специалиста уже существует или ошибка создания:', profileError)
+          }
+
+          const { avatarUrl: uploadedAvatarUrl } = await uploadProfileAssets()
+
+          await updateSpecialist(currentUser.id, {
+            first_name: formData.firstName.trim(),
+            last_name: formData.lastName.trim(),
+            avatar_url: uploadedAvatarUrl || formData.avatarUrl || '',
+          })
+
+          setFormData((prev) => ({
+            ...prev,
+            avatarUrl: uploadedAvatarUrl || prev.avatarUrl || '',
+          }))
+
+          alert('Изменения сохранены')
+          setIsSaving(false)
+          return
+        }
+
+        // Сохраняем данные для фрилансеров
         if (activeTab === 'freelancers') {
-          // Валидация для профиля
-          if (freelancerSubTab === 'profile') {
-            // Проверяем обязательные поля
-            if (!formData.firstName.trim() || !formData.lastName.trim()) {
-              alert('Заполните обязательные поля: имя и фамилия')
+          // Валидация
+          // Проверяем, что указан хотя бы один способ связи
+          const hasTelegram = formData.telegram.trim().length > 0
+          const hasEmail = formData.useEmailForContact && (formData.email || currentUser.email || '').trim().length > 0
+          if (!hasTelegram && !hasEmail) {
+            alert('Укажите хотя бы один способ связи: Telegram или включите использование почты')
+            setIsSaving(false)
+            return
+          }
+          
+          // Если пользователь хочет опубликовать карточку, проверяем полноту данных
+          if (formData.showInSearch === true) {
+            if (!hasTelegram) {
+              alert('Для публикации карточки необходимо указать Telegram')
               setIsSaving(false)
               return
-            }
-            
-            // Проверяем, что указан хотя бы один способ связи
-            const hasTelegram = formData.telegram.trim().length > 0
-            const hasEmail = (formData.email || currentUser.email || '').trim().length > 0
-            if (!hasTelegram && !hasEmail) {
-              alert('Укажите хотя бы один способ связи: Telegram или почта')
-              setIsSaving(false)
-              return
-            }
-            
-            // Если пользователь хочет опубликовать карточку, проверяем полноту данных
-            if (formData.showInSearch !== false) {
-              if (!hasTelegram) {
-                alert('Для публикации карточки необходимо указать Telegram')
-                setIsSaving(false)
-                return
-              }
             }
           }
 
@@ -570,7 +601,7 @@ export default function EditProfilePage() {
             await ensureSpecialistProfile({
               id: currentUser.id,
               email: currentUser.email || '',
-              displayName: `${formData.firstName} ${formData.lastName}`.trim() || generalData.name,
+              displayName: `${formData.firstName} ${formData.lastName}`.trim(),
             })
           } catch (profileError) {
             // Профиль может уже существовать - это нормально
@@ -591,11 +622,13 @@ export default function EditProfilePage() {
           const canPublish = Boolean(
             formData.firstName.trim() &&
             formData.lastName.trim() &&
-            (formData.telegram.trim() || (formData.email || currentUser.email || '').trim()) &&
             formData.telegram.trim() // Для публикации обязательно нужен Telegram
           )
             
           const shouldPublish = formData.showInSearch === true && canPublish
+
+          // Определяем email для связи
+          const contactEmail = formData.useEmailForContact ? (formData.email || currentUser.email || '') : ''
 
           await updateSpecialist(currentUser.id, {
             first_name: formData.firstName.trim(),
@@ -603,15 +636,15 @@ export default function EditProfilePage() {
             specialization: formData.specialization,
             bio: formData.bio || '',
             telegram: formData.telegram.trim(),
-            email: formData.email || currentUser.email,
-            avatar_url: uploadedAvatarUrl || '',
+            email: contactEmail,
+            avatar_url: uploadedAvatarUrl || formData.avatarUrl || '',
             show_in_search: shouldPublish,
             portfolio: portfolioData,
             portfolio_preview: portfolioPreview,
           })
           
           // Обновляем состояние, если карточка не может быть опубликована
-          if (formData.showInSearch !== false && !canPublish) {
+          if (formData.showInSearch === true && !canPublish) {
             setFormData(prev => ({ ...prev, showInSearch: false }))
           }
 
@@ -626,56 +659,49 @@ export default function EditProfilePage() {
               images: project.images.map((image) => ({ url: image.url })),
             })),
           )
-        }
 
-        // Обновляем общие данные (имя в auth metadata)
-        if (activeTab === 'general') {
-          const nameParts = generalData.name.split(' ')
-          // Обновляем имя в профиле специалиста, если он существует
-          try {
-            await ensureSpecialistProfile({
-              id: currentUser.id,
-              email: currentUser.email || '',
-              displayName: generalData.name,
-            })
-            await updateSpecialist(currentUser.id, {
-              first_name: nameParts[0] || '',
-              last_name: nameParts.slice(1).join(' ') || '',
-            })
-          } catch (error) {
-            console.debug('Не удалось обновить имя:', error)
-          }
+          alert('Изменения сохранены')
         }
-
-        // Не перенаправляем, остаемся на странице
-        alert('Изменения сохранены')
       } else {
         // Fallback на localStorage
+        if (activeTab === 'general') {
+          // Сохраняем общие данные
+          const profileDataWithProjects = {
+            ...formData,
+            projects: projects.map(p => ({
+              id: p.id,
+              title: p.title,
+              description: p.description,
+              images: p.images.map(img => ({ url: img.url }))
+            })),
+            portfolioPreview: buildPortfolioPreview(projects.map(p => ({
+              id: p.id,
+              title: p.title,
+              description: p.description,
+              images: p.images.map(img => ({ url: img.url }))
+            }))),
+          }
+          saveSpecialistProfile(currentUser.id, profileDataWithProjects)
+          alert('Изменения сохранены')
+          setIsSaving(false)
+          return
+        }
+
         if (activeTab === 'freelancers') {
-          if (freelancerSubTab === 'profile') {
-            // Проверяем обязательные поля
-            if (!formData.firstName.trim() || !formData.lastName.trim()) {
-              alert('Заполните обязательные поля: имя и фамилия')
+          // Валидация
+          const hasTelegram = formData.telegram.trim().length > 0
+          const hasEmail = formData.useEmailForContact && (formData.email || currentUser.email || '').trim().length > 0
+          if (!hasTelegram && !hasEmail) {
+            alert('Укажите хотя бы один способ связи: Telegram или включите использование почты')
+            setIsSaving(false)
+            return
+          }
+          
+          if (formData.showInSearch === true) {
+            if (!hasTelegram) {
+              alert('Для публикации карточки необходимо указать Telegram')
               setIsSaving(false)
               return
-            }
-            
-            // Проверяем, что указан хотя бы один способ связи
-            const hasTelegram = formData.telegram.trim().length > 0
-            const hasEmail = (formData.email || currentUser.email || '').trim().length > 0
-            if (!hasTelegram && !hasEmail) {
-              alert('Укажите хотя бы один способ связи: Telegram или почта')
-              setIsSaving(false)
-              return
-            }
-            
-            // Если пользователь хочет опубликовать карточку, проверяем полноту данных
-            if (formData.showInSearch !== false) {
-              if (!hasTelegram) {
-                alert('Для публикации карточки необходимо указать Telegram')
-                setIsSaving(false)
-                return
-              }
             }
           }
 
@@ -687,19 +713,20 @@ export default function EditProfilePage() {
           }))
           
           // Определяем, можно ли опубликовать карточку
-          const hasTelegram = formData.telegram.trim().length > 0
-          const hasEmail = (formData.email || currentUser.email || '').trim().length > 0
           const canPublish = Boolean(
             formData.firstName.trim() &&
             formData.lastName.trim() &&
-            (hasTelegram || hasEmail) &&
             hasTelegram // Для публикации обязательно нужен Telegram
           )
             
           const shouldPublish = formData.showInSearch === true && canPublish
           
+          // Определяем email для связи
+          const contactEmail = formData.useEmailForContact ? (formData.email || currentUser.email || '') : ''
+          
           const profileDataWithProjects = {
             ...formData,
+            email: contactEmail,
             showInSearch: shouldPublish,
             projects: projectsPayload,
             portfolioPreview: buildPortfolioPreview(projectsPayload),
@@ -778,10 +805,7 @@ export default function EditProfilePage() {
           </button>
           <button
             type="button"
-            onClick={() => {
-              setActiveTab('freelancers')
-              setFreelancerSubTab('profile')
-            }}
+            onClick={() => setActiveTab('freelancers')}
             className={`relative text-sm font-normal transition-colors tracking-tight pb-4 whitespace-nowrap ${
               activeTab === 'freelancers'
                 ? 'text-[#FF4600]'
@@ -810,112 +834,9 @@ export default function EditProfilePage() {
         </div>
       </div>
 
-      {/* Sub-tabs для фрилансеров */}
-      {activeTab === 'freelancers' && (
-        <div className="mb-6 border-b border-primary-200">
-          <div className="flex gap-6 overflow-x-auto scrollbar-hide -mx-4 sm:mx-0 px-4 sm:px-0">
-            <button
-              type="button"
-              onClick={() => setFreelancerSubTab('profile')}
-              className={`relative text-sm font-normal transition-colors tracking-tight pb-4 whitespace-nowrap ${
-                freelancerSubTab === 'profile'
-                  ? 'text-[#FF4600]'
-                  : 'text-primary-400 hover:text-primary-600'
-              }`}
-            >
-              Карточка
-              {freelancerSubTab === 'profile' && (
-                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FF4600]"></span>
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={() => setFreelancerSubTab('portfolio')}
-              className={`relative text-sm font-normal transition-colors tracking-tight pb-4 whitespace-nowrap ${
-                freelancerSubTab === 'portfolio'
-                  ? 'text-[#FF4600]'
-                  : 'text-primary-400 hover:text-primary-600'
-              }`}
-            >
-              Портфолио
-              {freelancerSubTab === 'portfolio' && (
-                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FF4600]"></span>
-              )}
-            </button>
-          </div>
-        </div>
-      )}
 
       <form onSubmit={handleSubmit}>
         {activeTab === 'general' && (
-          <div className="space-y-4 sm:space-y-6">
-            <div>
-              <h2 className="text-xl sm:text-2xl font-light text-primary-900 mb-4 tracking-tight">Общая информация</h2>
-              <p className="text-sm font-light text-primary-600 mb-6">Основные данные вашего аккаунта</p>
-            </div>
-
-            <div>
-              <label htmlFor="generalName" className="block text-sm font-light text-primary-700 mb-2">
-                Имя и фамилия
-              </label>
-              <input
-                id="generalName"
-                type="text"
-                className="w-full px-5 py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white"
-                placeholder="Иван Иванов"
-                value={generalData.name}
-                onChange={(e) => setGeneralData({ ...generalData, name: e.target.value })}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="generalEmail" className="block text-sm font-light text-primary-700 mb-2">
-                Email
-              </label>
-              <input
-                id="generalEmail"
-                type="email"
-                className="w-full px-5 py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white"
-                placeholder="example@mail.com"
-                value={generalData.email}
-                onChange={(e) => setGeneralData({ ...generalData, email: e.target.value })}
-              />
-              <p className="text-xs font-light text-primary-500 mt-2">
-                Email используется для входа в систему и не может быть изменен
-              </p>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4 sm:pt-6 border-t border-primary-100">
-              <button
-                type="button"
-                onClick={() => {
-                  // Обновляем имя в профиле специалиста
-                  const nameParts = generalData.name.split(' ')
-                  setFormData({
-                    ...formData,
-                    firstName: nameParts[0] || '',
-                    lastName: nameParts.slice(1).join(' ') || '',
-                  })
-                  handleSubmit(new Event('submit') as any)
-                }}
-                disabled={isSaving}
-                className="inline-flex items-center justify-center gap-2 bg-primary-900 text-white px-6 py-3 sm:py-4 rounded-apple hover:bg-primary-800 transition-colors font-normal tracking-tight disabled:opacity-70 disabled:cursor-not-allowed"
-              >
-                <CheckIcon className="w-5 h-5" />
-                {isSaving ? 'Сохранение...' : 'Сохранить изменения'}
-              </button>
-              <button
-                type="button"
-                onClick={() => router.back()}
-                className="border border-primary-200 text-primary-700 px-6 py-3 sm:py-4 rounded-apple hover:bg-primary-50 transition-colors font-normal tracking-tight"
-              >
-                Отмена
-              </button>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'freelancers' && freelancerSubTab === 'profile' && (
           <div className="space-y-4 sm:space-y-6">
             {/* Загрузка аватарки */}
             <div>
@@ -981,7 +902,7 @@ export default function EditProfilePage() {
             <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="firstName" className="block text-sm font-light text-primary-700 mb-2">
-                  Имя <span className="text-primary-400">*</span>
+                  Имя
                 </label>
                 <input
                   id="firstName"
@@ -995,7 +916,7 @@ export default function EditProfilePage() {
 
               <div>
                 <label htmlFor="lastName" className="block text-sm font-light text-primary-700 mb-2">
-                  Фамилия <span className="text-primary-400">*</span>
+                  Фамилия
                 </label>
                 <input
                   id="lastName"
@@ -1008,13 +929,34 @@ export default function EditProfilePage() {
               </div>
             </div>
 
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4 sm:pt-6 border-t border-primary-100">
+              <button
+                type="submit"
+                disabled={isSaving}
+                className="inline-flex items-center justify-center gap-2 bg-primary-900 text-white px-6 py-3 sm:py-4 rounded-apple hover:bg-primary-800 transition-colors font-normal tracking-tight disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                <CheckIcon className="w-5 h-5" />
+                {isSaving ? 'Сохранение...' : 'Сохранить изменения'}
+              </button>
+              <button
+                type="button"
+                onClick={() => router.back()}
+                className="border border-primary-200 text-primary-700 px-6 py-3 sm:py-4 rounded-apple hover:bg-primary-50 transition-colors font-normal tracking-tight"
+              >
+                Отмена
+              </button>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'freelancers' && (
+          <div className="space-y-4 sm:space-y-6">
             <div>
               <label htmlFor="specialization" className="block text-sm font-light text-primary-700 mb-2">
-                Специализация <span className="text-primary-400">*</span>
+                Специализация
               </label>
               <select
                 id="specialization"
-                required
                 className="w-full px-5 py-4 border border-primary-200 rounded-apple text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white"
                 value={formData.specialization}
                 onChange={(e) => setFormData({ ...formData, specialization: e.target.value as Specialization })}
@@ -1054,28 +996,28 @@ export default function EditProfilePage() {
                 onChange={(e) => setFormData({ ...formData, telegram: e.target.value })}
               />
               <p className="text-xs font-light text-primary-500 mt-2">
-                Обязательно для публикации карточки. Укажите хотя бы один способ связи: Telegram или почту.
+                Обязательно для публикации карточки. Укажите хотя бы один способ связи: Telegram или включите использование почты.
               </p>
             </div>
 
-            <div>
-              <label htmlFor="email" className="block text-sm font-light text-primary-700 mb-2">
-                Почта для связи
+            <div className="pt-4 border-t border-primary-100">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.useEmailForContact === true}
+                  onChange={(e) => setFormData({ ...formData, useEmailForContact: e.target.checked })}
+                  className="w-5 h-5 rounded border-primary-200 text-[#FF4600] focus:ring-1 focus:ring-[#FF4600] focus:ring-offset-0"
+                />
+                <div className="flex-1">
+                  <span className="text-sm font-light text-primary-700 block">Использовать почту для связи</span>
+                  <p className="text-xs font-light text-primary-500 mt-1">
+                    {formData.useEmailForContact ? (currentUser?.email || 'example@gmail.com') : 'Почта не будет использоваться для связи'}
+                  </p>
+                </div>
               </label>
-              <input
-                id="email"
-                type="email"
-                placeholder="example@mail.com"
-                className="w-full px-5 py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white"
-                value={formData.email || ''}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              />
-              <p className="text-xs font-light text-primary-500 mt-2">
-                Укажите хотя бы один способ связи: Telegram или почту.
-              </p>
             </div>
 
-            <div className="pt-6 border-t border-primary-100">
+            <div className="pt-4 border-t border-primary-100">
               <label className="flex items-start gap-3 cursor-pointer">
                 <input
                   type="checkbox"
@@ -1084,7 +1026,6 @@ export default function EditProfilePage() {
                     const checked = e.target.checked
                     // Проверяем, можно ли опубликовать карточку
                     const hasTelegram = formData.telegram.trim().length > 0
-                    const hasEmail = (formData.email || currentUser?.email || '').trim().length > 0
                     const hasRequiredFields = formData.firstName.trim() && formData.lastName.trim()
                     
                     if (checked && (!hasRequiredFields || !hasTelegram)) {
@@ -1107,6 +1048,122 @@ export default function EditProfilePage() {
               </label>
             </div>
 
+            {/* Портфолио */}
+            <div className="pt-6 border-t border-primary-100">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6 mb-4 sm:mb-6">
+                <div>
+                  <h2 className="text-xl sm:text-2xl font-light text-primary-900 mb-1 tracking-tight">Портфолио</h2>
+                  <p className="text-xs sm:text-sm font-light text-primary-600">Добавьте до 3 проектов с фотографиями</p>
+                </div>
+                {projects.length < 3 && (
+                  <button
+                    type="button"
+                    onClick={addProject}
+                    className="inline-flex items-center justify-center gap-2 bg-primary-900 text-white px-4 sm:px-5 py-2 sm:py-3 rounded-apple hover:bg-primary-800 transition-colors font-normal tracking-tight"
+                  >
+                    <PlusIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                    Добавить проект
+                  </button>
+                )}
+              </div>
+
+              <div className="space-y-4 sm:space-y-6">
+                {projects.map((project, projectIndex) => (
+                  <div key={project.id} className="border border-primary-200 rounded-apple p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6">
+                    <div className="flex items-start justify-between">
+                      <h3 className="text-xl font-normal text-primary-900 tracking-tight">Проект {projectIndex + 1}</h3>
+                      <button
+                        type="button"
+                        onClick={() => removeProject(project.id)}
+                        className="p-2 hover:bg-primary-50 rounded-apple transition-colors"
+                      >
+                        <XMarkIcon className="w-5 h-5 text-primary-600" />
+                      </button>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-light text-primary-700 mb-2">
+                        Название проекта
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Название проекта"
+                        className="w-full px-5 py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white"
+                        value={project.title}
+                        onChange={(e) => updateProject(project.id, 'title', e.target.value)}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-light text-primary-700 mb-2">
+                        Описание проекта
+                      </label>
+                      <textarea
+                        rows={3}
+                        placeholder="Описание проекта"
+                        className="w-full px-5 py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white"
+                        value={project.description}
+                        onChange={(e) => updateProject(project.id, 'description', e.target.value)}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-light text-primary-700 mb-2">
+                        Фотографии (до 3, формат 4:3)
+                      </label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                        {project.images.map((image, imageIndex) => (
+                          <div key={imageIndex} className="relative group">
+                            <div className="rounded-apple overflow-hidden border border-primary-200 bg-primary-50" style={{ aspectRatio: '4/3' }}>
+                              <img
+                                src={image.url}
+                                alt={`Проект ${projectIndex + 1} - фото ${imageIndex + 1}`}
+                                className="w-full h-full object-cover"
+                                style={{ aspectRatio: '4/3' }}
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => removeImage(project.id, imageIndex)}
+                              className="absolute top-2 right-2 p-1 bg-white/90 backdrop-blur-sm rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <XMarkIcon className="w-4 h-4 text-primary-700" />
+                            </button>
+                          </div>
+                        ))}
+                        {project.images.length < 3 && (
+                          <label className="rounded-apple border-2 border-dashed border-primary-300 hover:border-primary-400 transition-colors cursor-pointer flex items-center justify-center bg-primary-50" style={{ aspectRatio: '4/3' }}>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0]
+                                if (file) {
+                                  handleImageUpload(project.id, file)
+                                }
+                              }}
+                            />
+                            <div className="text-center">
+                              <PhotoIcon className="w-8 h-8 text-primary-400 mx-auto mb-2" />
+                              <span className="text-xs font-light text-primary-600">Добавить фото</span>
+                            </div>
+                          </label>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {projects.length === 0 && (
+                  <div className="text-center py-16 text-primary-500 font-light">
+                    <PhotoIcon className="w-16 h-16 text-primary-300 mx-auto mb-4" />
+                    <p className="text-base mb-2">Портфолио пока пусто</p>
+                    <p className="text-sm">Добавьте проекты, чтобы показать свои работы</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4 sm:pt-6 border-t border-primary-100">
               <button
                 type="submit"
@@ -1127,140 +1184,6 @@ export default function EditProfilePage() {
           </div>
         )}
 
-        {activeTab === 'freelancers' && freelancerSubTab === 'portfolio' && (
-          <div>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6 mb-4 sm:mb-6">
-              <div>
-                <h2 className="text-xl sm:text-2xl font-light text-primary-900 mb-1 tracking-tight">Портфолио</h2>
-                <p className="text-xs sm:text-sm font-light text-primary-600">Добавьте до 3 проектов с фотографиями</p>
-              </div>
-              {projects.length < 3 && (
-                <button
-                  type="button"
-                  onClick={addProject}
-                  className="inline-flex items-center justify-center gap-2 bg-primary-900 text-white px-4 sm:px-5 py-2 sm:py-3 rounded-apple hover:bg-primary-800 transition-colors font-normal tracking-tight"
-                >
-                  <PlusIcon className="w-4 h-4 sm:w-5 sm:h-5" />
-                  Добавить проект
-                </button>
-              )}
-            </div>
-
-            <div className="space-y-4 sm:space-y-6">
-              {projects.map((project, projectIndex) => (
-                <div key={project.id} className="border border-primary-200 rounded-apple p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6">
-                  <div className="flex items-start justify-between">
-                    <h3 className="text-xl font-normal text-primary-900 tracking-tight">Проект {projectIndex + 1}</h3>
-                    <button
-                      type="button"
-                      onClick={() => removeProject(project.id)}
-                      className="p-2 hover:bg-primary-50 rounded-apple transition-colors"
-                    >
-                      <XMarkIcon className="w-5 h-5 text-primary-600" />
-                    </button>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-light text-primary-700 mb-2">
-                      Название проекта
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Название проекта"
-                      className="w-full px-5 py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white"
-                      value={project.title}
-                      onChange={(e) => updateProject(project.id, 'title', e.target.value)}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-light text-primary-700 mb-2">
-                      Описание проекта
-                    </label>
-                    <textarea
-                      rows={3}
-                      placeholder="Описание проекта"
-                      className="w-full px-5 py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white"
-                      value={project.description}
-                      onChange={(e) => updateProject(project.id, 'description', e.target.value)}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-light text-primary-700 mb-2">
-                      Фотографии (до 3, формат 4:3)
-                    </label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                      {project.images.map((image, imageIndex) => (
-                        <div key={imageIndex} className="relative group">
-                          <div className="rounded-apple overflow-hidden border border-primary-200 bg-primary-50" style={{ aspectRatio: '4/3' }}>
-                            <img
-                              src={image.url}
-                              alt={`Проект ${projectIndex + 1} - фото ${imageIndex + 1}`}
-                              className="w-full h-full object-cover"
-                              style={{ aspectRatio: '4/3' }}
-                            />
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => removeImage(project.id, imageIndex)}
-                            className="absolute top-2 right-2 p-1 bg-white/90 backdrop-blur-sm rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <XMarkIcon className="w-4 h-4 text-primary-700" />
-                          </button>
-                        </div>
-                      ))}
-                      {project.images.length < 3 && (
-                        <label className="rounded-apple border-2 border-dashed border-primary-300 hover:border-primary-400 transition-colors cursor-pointer flex items-center justify-center bg-primary-50" style={{ aspectRatio: '4/3' }}>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0]
-                              if (file) {
-                                handleImageUpload(project.id, file)
-                              }
-                            }}
-                          />
-                          <div className="text-center">
-                            <PhotoIcon className="w-8 h-8 text-primary-400 mx-auto mb-2" />
-                            <span className="text-xs font-light text-primary-600">Добавить фото</span>
-                          </div>
-                        </label>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-              {projects.length === 0 && (
-                <div className="text-center py-16 text-primary-500 font-light">
-                  <PhotoIcon className="w-16 h-16 text-primary-300 mx-auto mb-4" />
-                  <p className="text-base mb-2">Портфолио пока пусто</p>
-                  <p className="text-sm">Добавьте проекты, чтобы показать свои работы</p>
-                </div>
-              )}
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4 sm:pt-6 border-t border-primary-100 mt-6 sm:mt-8">
-              <button
-                type="submit"
-                disabled={isSaving}
-                className="inline-flex items-center justify-center gap-2 bg-primary-900 text-white px-6 py-3 sm:py-4 rounded-apple hover:bg-primary-800 transition-colors font-normal tracking-tight disabled:opacity-70 disabled:cursor-not-allowed"
-              >
-                <CheckIcon className="w-5 h-5" />
-                {isSaving ? 'Сохранение...' : 'Сохранить изменения'}
-              </button>
-              <button
-                type="button"
-                onClick={() => router.back()}
-                className="border border-primary-200 text-primary-700 px-6 py-3 sm:py-4 rounded-apple hover:bg-primary-50 transition-colors font-normal tracking-tight"
-              >
-                Отмена
-              </button>
-            </div>
-          </div>
-        )}
 
         {activeTab === 'companies' && (
           <div className="space-y-4 sm:space-y-6">

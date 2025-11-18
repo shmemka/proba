@@ -11,7 +11,8 @@ function RegisterForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [formData, setFormData] = useState({
-    name: '',
+    firstName: '',
+    lastName: '',
     email: '',
     password: '',
     confirmPassword: '',
@@ -44,7 +45,8 @@ function RegisterForm() {
       return
     }
 
-    const trimmedName = formData.name.trim()
+    const trimmedFirstName = formData.firstName.trim()
+    const trimmedLastName = formData.lastName.trim()
     const normalizedEmail = formData.email.trim().toLowerCase()
 
     if (formData.password !== formData.confirmPassword) {
@@ -57,7 +59,7 @@ function RegisterForm() {
       return
     }
 
-    if (!trimmedName) {
+    if (!trimmedFirstName || !trimmedLastName) {
       setError('Укажите ваше имя и фамилию')
       return
     }
@@ -65,9 +67,11 @@ function RegisterForm() {
     setIsSubmitting(true)
 
     try {
+      const fullName = `${trimmedFirstName} ${trimmedLastName}`.trim()
+      
       if (isSupabaseAvailable()) {
         // Используем Supabase Auth - регистрируем как специалиста по умолчанию
-        await signUp(normalizedEmail, formData.password, 'specialist', trimmedName)
+        await signUp(normalizedEmail, formData.password, 'specialist', fullName)
         
         // После регистрации перенаправляем на редактирование профиля
         router.push('/profile/edit')
@@ -80,17 +84,16 @@ function RegisterForm() {
 
         const newUser = registerUser({
           email: normalizedEmail,
-          name: trimmedName,
+          name: fullName,
           type: 'specialist',
           password: formData.password,
         })
         setActiveUser(newUser)
         window.dispatchEvent(new Event('storage'))
 
-        const nameParts = trimmedName.split(' ')
         const specialistProfile = {
-          firstName: nameParts[0] || '',
-          lastName: nameParts.slice(1).join(' ') || '',
+          firstName: trimmedFirstName,
+          lastName: trimmedLastName,
           specialization: 'Дизайн' as const,
           bio: '',
           telegram: '',
@@ -136,20 +139,37 @@ function RegisterForm() {
           )}
 
           <div className="space-y-4">
-            <div>
-              <label htmlFor="name" className="block text-sm font-light text-primary-700 mb-2">
-                Имя и фамилия
-              </label>
-              <input
-                id="name"
-                name="name"
-                type="text"
-                required
-                className="w-full px-5 py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white"
-                placeholder="Иван Иванов"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="firstName" className="block text-sm font-light text-primary-700 mb-2">
+                  Имя
+                </label>
+                <input
+                  id="firstName"
+                  name="firstName"
+                  type="text"
+                  required
+                  className="w-full px-5 py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white"
+                  placeholder="Иван"
+                  value={formData.firstName}
+                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                />
+              </div>
+              <div>
+                <label htmlFor="lastName" className="block text-sm font-light text-primary-700 mb-2">
+                  Фамилия
+                </label>
+                <input
+                  id="lastName"
+                  name="lastName"
+                  type="text"
+                  required
+                  className="w-full px-5 py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white"
+                  placeholder="Иванов"
+                  value={formData.lastName}
+                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                />
+              </div>
             </div>
 
             <div>
