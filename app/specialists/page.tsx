@@ -12,6 +12,16 @@ import { SpecialistCardSkeleton } from '@/components/SkeletonLoader'
 
 type Specialization = 'Дизайн' | 'SMM' | 'Веб-разработка'
 
+interface SpecialistProject {
+  id: string
+  title: string
+  description: string
+  images?: Array<{
+    url: string
+  }>
+  link?: string
+}
+
 interface Specialist {
   id: string
   firstName: string
@@ -24,38 +34,34 @@ interface Specialist {
   rating: number
   hiredCount: number
   showInSearch?: boolean
-  projects?: Array<{
-    id: string
-    title: string
-    description: string
-    images?: Array<{
-      url: string
-    }>
-    link?: string
-  }>
+  projects?: SpecialistProject[]
+  hasPortfolioDetails?: boolean
+  portfolioPreview?: string[]
 }
 
-interface FullSpecialist {
-  id: string
-  firstName: string
-  lastName: string
-  specialization: Specialization
-  bio?: string
-  telegram: string
-  email?: string
-  avatarUrl?: string
-  rating: number
-  hiredCount: number
-  showInSearch?: boolean
-  projects?: Array<{
-    id: string
-    title: string
-    description: string
-    images?: Array<{
-      url: string
-    }>
-    link?: string
-  }>
+type FullSpecialist = Specialist
+
+const MAX_PREVIEW_IMAGES = 5
+
+const normalizePreviewArray = (values?: unknown[]): string[] => {
+  if (!Array.isArray(values)) {
+    return []
+  }
+
+  return values
+    .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+    .slice(0, MAX_PREVIEW_IMAGES)
+}
+
+const derivePortfolioPreview = (projects?: SpecialistProject[]) => {
+  if (!projects) {
+    return []
+  }
+
+  return projects
+    .flatMap((project) => (project.images || []).map((image) => image.url))
+    .filter((url): url is string => typeof url === 'string' && url.trim().length > 0)
+    .slice(0, MAX_PREVIEW_IMAGES)
 }
 
 
@@ -105,7 +111,9 @@ export default function SpecialistsPage() {
               rating: 0, // Пока нет рейтинга в БД
               hiredCount: 0, // Пока нет счетчика в БД
               showInSearch: s.show_in_search !== false,
-              projects: (s.portfolio && Array.isArray(s.portfolio)) ? s.portfolio : [],
+              projects: [],
+              hasPortfolioDetails: false,
+              portfolioPreview: normalizePreviewArray(s.portfolio_preview),
             }))
           
           setSpecialists(formattedSpecialists)
@@ -130,8 +138,12 @@ export default function SpecialistsPage() {
         if (seenIds.has(saved.id)) return
         seenIds.add(saved.id)
         
-        const migratedSpecialist = formatSpecialistFromStorage(saved)
-        allSpecialists.push(migratedSpecialist)
+        const migratedSpecialist = formatSpecialistFromStorage(saved) as Specialist
+        allSpecialists.push({
+          ...migratedSpecialist,
+          hasPortfolioDetails: true,
+          portfolioPreview: derivePortfolioPreview(migratedSpecialist.projects),
+        })
       })
       setSpecialists(allSpecialists)
     }
@@ -213,10 +225,20 @@ export default function SpecialistsPage() {
         return
       }
 
-      if (projects.length > 0 || !SUPABASE_AVAILABLE) {
+      if (!SUPABASE_AVAILABLE) {
         openDrawer({
           ...specialistSummary,
           projects,
+          hasPortfolioDetails: true,
+        })
+        return
+      }
+
+      if (specialistSummary.hasPortfolioDetails && projects.length > 0) {
+        openDrawer({
+          ...specialistSummary,
+          projects,
+          hasPortfolioDetails: true,
         })
         return
       }
@@ -224,6 +246,19 @@ export default function SpecialistsPage() {
       if (SUPABASE_AVAILABLE) {
         const specialist = await getSpecialist(specialistSummary.id)
         if (specialist) {
+          const normalizedProjects: SpecialistProject[] = Array.isArray(specialist.portfolio)
+            ? specialist.portfolio.map((p: any, idx: number) => ({
+                id: p.id || `project-${idx}`,
+                title: p.title || '',
+                description: p.description || '',
+                images: p.images || [],
+                link: p.link,
+              }))
+            : []
+
+          const previewFromDb = normalizePreviewArray(specialist.portfolio_preview)
+          const preview = previewFromDb.length > 0 ? previewFromDb : derivePortfolioPreview(normalizedProjects)
+
           const normalizedSpecialist: FullSpecialist = {
             id: specialist.id,
             firstName: specialist.first_name || '',
@@ -236,15 +271,9 @@ export default function SpecialistsPage() {
             rating: specialistSummary.rating,
             hiredCount: specialistSummary.hiredCount,
             showInSearch: specialist.show_in_search !== false,
-            projects: (specialist.portfolio && Array.isArray(specialist.portfolio))
-              ? specialist.portfolio.map((p: any, idx: number) => ({
-                  id: p.id || `project-${idx}`,
-                  title: p.title || '',
-                  description: p.description || '',
-                  images: p.images || [],
-                  link: p.link,
-                }))
-              : [],
+            projects: normalizedProjects,
+            hasPortfolioDetails: true,
+            portfolioPreview: preview,
           }
           openDrawer(normalizedSpecialist)
           return
@@ -264,6 +293,8 @@ export default function SpecialistsPage() {
           images: p.images || [],
           link: p.link,
         }))
+        migratedSpecialist.hasPortfolioDetails = true
+        migratedSpecialist.portfolioPreview = derivePortfolioPreview(migratedSpecialist.projects)
         openDrawer(migratedSpecialist)
       }
     } catch (error) {
@@ -278,11 +309,15 @@ export default function SpecialistsPage() {
 
   const SpecialistCard = memo(({ specialist, onClick }: { specialist: Specialist; onClick: () => void }) => {
     const portfolioImages = useMemo(() => {
+      if (specialist.portfolioPreview && specialist.portfolioPreview.length > 0) {
+        return specialist.portfolioPreview.slice(0, MAX_PREVIEW_IMAGES).map((url) => ({ url }))
+      }
+
       if (!specialist.projects || specialist.projects.length === 0) return []
       return specialist.projects
         .flatMap(project => project.images || [])
-        .slice(0, 5)
-    }, [specialist.projects])
+        .slice(0, MAX_PREVIEW_IMAGES)
+    }, [specialist.portfolioPreview, specialist.projects])
 
     return (
       <button

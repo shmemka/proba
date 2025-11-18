@@ -27,6 +27,7 @@ BEGIN
       avatar_url TEXT DEFAULT '',
       show_in_search BOOLEAN DEFAULT true,
       portfolio JSONB DEFAULT '[]'::jsonb,
+      portfolio_preview TEXT[] DEFAULT '{}'::text[],
       created_at TIMESTAMPTZ DEFAULT NOW(),
       updated_at TIMESTAMPTZ DEFAULT NOW()
     );

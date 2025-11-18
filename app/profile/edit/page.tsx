@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { CheckIcon, PlusIcon, XMarkIcon, PhotoIcon } from '@heroicons/react/24/outline'
 import { getActiveUser, loadSpecialistProfile, readJson, saveSpecialistProfile, type StoredUser, writeJson } from '@/lib/storage'
 import { getCurrentUser, getSpecialist, updateSpecialist, isSupabaseAvailable, ensureSpecialistProfile } from '@/lib/supabase'
+import { uploadPublicAsset } from '@/lib/supabaseStorage'
 
 type Specialization = 'Дизайн' | 'SMM' | 'Веб-разработка'
 
@@ -18,6 +19,13 @@ interface Project {
   title: string
   description: string
   images: ProjectImage[]
+}
+
+type PersistedProject = {
+  id: string
+  title: string
+  description: string
+  images: Array<{ url: string }>
 }
 
 interface ProfileData {
@@ -41,15 +49,54 @@ const createEmptyProfile = (): ProfileData => ({
   email: '',
 })
 
+const SUPABASE_ENABLED = isSupabaseAvailable()
+const MAX_PORTFOLIO_PREVIEW = 5
+const STORAGE_CACHE_TTL = '604800'
+
+const buildPortfolioPreview = (projectList: Array<{ images: Array<{ url: string }> }>) => {
+  return projectList
+    .flatMap((project) => project.images.map((image) => image.url))
+    .filter((url): url is string => typeof url === 'string' && url.trim().length > 0)
+    .slice(0, MAX_PORTFOLIO_PREVIEW)
+}
+
+const randomId = () => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
+}
+
+const getFileExtension = (file: File) => {
+  if (file.name && file.name.includes('.')) {
+    return file.name.split('.').pop()?.toLowerCase() || 'jpg'
+  }
+  if (file.type && file.type.includes('/')) {
+    return file.type.split('/').pop() || 'jpg'
+  }
+  return 'jpg'
+}
+
+const createAvatarPath = (userId: string, extension: string) => {
+  return `specialists/${userId}/avatar.${extension || 'jpg'}`
+}
+
+const createPortfolioPath = (userId: string, projectId: string, fileIndex: number, extension: string) => {
+  const safeProjectId = projectId || `project-${fileIndex}`
+  return `specialists/${userId}/portfolio/${safeProjectId}/${randomId()}.${extension || 'jpg'}`
+}
+
 export default function EditProfilePage() {
   const router = useRouter()
   const [isAuthorized, setIsAuthorized] = useState(false)
   const [currentUser, setCurrentUser] = useState<StoredUser | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
+  const [pendingAvatarFile, setPendingAvatarFile] = useState<File | null>(null)
   
   useEffect(() => {
     // Проверяем авторизацию
     const checkAuth = async () => {
-      if (isSupabaseAvailable()) {
+      if (SUPABASE_ENABLED) {
         const user = await getCurrentUser()
         if (user) {
           setCurrentUser({
@@ -91,7 +138,7 @@ export default function EditProfilePage() {
 
     const loadProfile = async () => {
       try {
-        if (isSupabaseAvailable()) {
+        if (SUPABASE_ENABLED) {
           // Загружаем из Supabase
           const specialist = await getSpecialist(currentUser.id)
           if (specialist) {
@@ -173,8 +220,40 @@ export default function EditProfilePage() {
     loadProfile()
   }, [isAuthorized, currentUser])
 
+  const blobToDataUrl = (blob: Blob): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onloadend = () => resolve(reader.result as string)
+      reader.onerror = reject
+      reader.readAsDataURL(blob)
+    })
+  }
+
+  const canvasToProcessedFile = (canvas: HTMLCanvasElement, fileName: string): Promise<{ file: File; preview: string }> => {
+    return new Promise((resolve, reject) => {
+      canvas.toBlob(
+        async (blob) => {
+          if (!blob) {
+            reject(new Error('Не удалось создать файл из изображения'))
+            return
+          }
+
+          try {
+            const preview = await blobToDataUrl(blob)
+            const processedFile = new File([blob], fileName, { type: blob.type || 'image/jpeg' })
+            resolve({ file: processedFile, preview })
+          } catch (error) {
+            reject(error)
+          }
+        },
+        'image/jpeg',
+        0.9,
+      )
+    })
+  }
+
   // Функция для обработки аватарки (квадрат 400x400)
-  const processAvatar = (file: File): Promise<string> => {
+  const processAvatar = (file: File): Promise<{ file: File; preview: string }> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader()
       reader.onload = (e) => {
@@ -197,7 +276,7 @@ export default function EditProfilePage() {
 
           ctx.drawImage(img, x, y, size, size, 0, 0, targetSize, targetSize)
 
-          resolve(canvas.toDataURL('image/jpeg', 0.9))
+          canvasToProcessedFile(canvas, `avatar-${Date.now()}.jpg`).then(resolve).catch(reject)
         }
         img.onerror = reject
         img.src = e.target?.result as string
@@ -209,9 +288,13 @@ export default function EditProfilePage() {
 
   const handleAvatarUpload = async (file: File) => {
     try {
-      const processedAvatar = await processAvatar(file)
-      setAvatarPreview(processedAvatar)
-      setFormData({ ...formData, avatarUrl: processedAvatar })
+      const { file: processedFile, preview } = await processAvatar(file)
+      setAvatarPreview(preview)
+      if (SUPABASE_ENABLED) {
+        setPendingAvatarFile(processedFile)
+      } else {
+        setFormData({ ...formData, avatarUrl: preview })
+      }
     } catch (error) {
       console.error('Ошибка обработки аватарки:', error)
       alert('Не удалось обработать аватарку')
@@ -219,7 +302,7 @@ export default function EditProfilePage() {
   }
 
   // Функция для обрезки изображения в формат 4:3 (альбомная ориентация)
-  const cropImageTo4_3 = (file: File): Promise<string> => {
+  const cropImageTo4_3 = (file: File, projectId: string): Promise<{ file: File; preview: string }> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader()
       reader.onload = (e) => {
@@ -266,7 +349,7 @@ export default function EditProfilePage() {
             0, 0, targetWidth, targetHeight
           )
 
-          resolve(canvas.toDataURL('image/jpeg', 0.9))
+          canvasToProcessedFile(canvas, `portfolio-${projectId}-${Date.now()}.jpg`).then(resolve).catch(reject)
         }
         img.onerror = reject
         img.src = e.target?.result as string
@@ -278,10 +361,19 @@ export default function EditProfilePage() {
 
   const handleImageUpload = async (projectId: string, file: File) => {
     try {
-      const croppedImage = await cropImageTo4_3(file)
+      const { file: processedFile, preview } = await cropImageTo4_3(file, projectId)
       setProjects(prev => prev.map(project => 
         project.id === projectId
-          ? { ...project, images: [...project.images, { url: croppedImage, file }] }
+          ? { 
+              ...project, 
+              images: [
+                ...project.images, 
+                { 
+                  url: preview, 
+                  file: SUPABASE_ENABLED ? processedFile : undefined,
+                },
+              ],
+            }
           : project
       ))
     } catch (error) {
@@ -323,6 +415,69 @@ export default function EditProfilePage() {
     ))
   }
 
+  const uploadProfileAssets = async () => {
+    if (!SUPABASE_ENABLED || !currentUser) {
+      return {
+        avatarUrl: formData.avatarUrl || '',
+        uploadedProjects: projects.map((project) => ({
+          id: project.id,
+          title: project.title,
+          description: project.description,
+          images: project.images.map((image) => ({ url: image.url })),
+        })),
+      }
+    }
+
+    let avatarUrl = formData.avatarUrl || ''
+
+    if (pendingAvatarFile) {
+      const extension = getFileExtension(pendingAvatarFile)
+      const { publicUrl } = await uploadPublicAsset({
+        file: pendingAvatarFile,
+        path: createAvatarPath(currentUser.id, extension),
+        cacheControl: STORAGE_CACHE_TTL,
+        upsert: true,
+      })
+      avatarUrl = publicUrl
+      setPendingAvatarFile(null)
+      setAvatarPreview(publicUrl)
+    }
+
+    const uploadedProjects: PersistedProject[] = await Promise.all(
+      projects.map(async (project, projectIndex) => {
+        const uploadedImages = await Promise.all(
+          project.images.map(async (image, imageIndex) => {
+            if (!SUPABASE_ENABLED || !image.file) {
+              return { url: image.url }
+            }
+
+            const extension = getFileExtension(image.file)
+            const { publicUrl } = await uploadPublicAsset({
+              file: image.file,
+              path: createPortfolioPath(currentUser.id, project.id || `project-${projectIndex}`, imageIndex, extension),
+              cacheControl: STORAGE_CACHE_TTL,
+              upsert: true,
+            })
+
+            return { url: publicUrl }
+          }),
+        )
+
+        return {
+          id: project.id,
+          title: project.title,
+          description: project.description,
+          images: uploadedImages,
+        }
+      }),
+    )
+
+    return {
+      avatarUrl,
+      uploadedProjects,
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -331,8 +486,14 @@ export default function EditProfilePage() {
       return
     }
 
+    if (isSaving) {
+      return
+    }
+
+    setIsSaving(true)
+
     try {
-      if (isSupabaseAvailable()) {
+      if (SUPABASE_ENABLED) {
         // Сохраняем профиль специалиста (если есть данные)
         if (activeTab === 'profile' || activeTab === 'portfolio') {
           // Валидация для профиля
@@ -353,12 +514,14 @@ export default function EditProfilePage() {
             console.debug('Профиль специалиста уже существует или ошибка создания:', profileError)
           }
 
-          const portfolioData = projects.map(p => ({
-            id: p.id,
-            title: p.title,
-            description: p.description,
-            images: p.images.map(img => ({ url: img.url }))
+          const { avatarUrl: uploadedAvatarUrl, uploadedProjects } = await uploadProfileAssets()
+          const portfolioData = uploadedProjects.map((project) => ({
+            id: project.id,
+            title: project.title,
+            description: project.description,
+            images: project.images.map((image) => ({ url: image.url })),
           }))
+          const portfolioPreview = buildPortfolioPreview(uploadedProjects)
 
           await updateSpecialist(currentUser.id, {
             first_name: formData.firstName.trim(),
@@ -367,10 +530,23 @@ export default function EditProfilePage() {
             bio: formData.bio || '',
             telegram: formData.telegram.trim(),
             email: formData.email || currentUser.email,
-            avatar_url: formData.avatarUrl || '',
+            avatar_url: uploadedAvatarUrl || '',
             show_in_search: formData.showInSearch !== false,
             portfolio: portfolioData,
+            portfolio_preview: portfolioPreview,
           })
+
+          setFormData((prev) => ({
+            ...prev,
+            avatarUrl: uploadedAvatarUrl || prev.avatarUrl || '',
+          }))
+
+          setProjects(
+            uploadedProjects.map((project) => ({
+              ...project,
+              images: project.images.map((image) => ({ url: image.url })),
+            })),
+          )
         }
 
         // Обновляем общие данные (имя в auth metadata)
@@ -402,14 +578,16 @@ export default function EditProfilePage() {
             return
           }
 
+          const projectsPayload = projects.map(p => ({
+            id: p.id,
+            title: p.title,
+            description: p.description,
+            images: p.images.map(img => ({ url: img.url }))
+          }))
           const profileDataWithProjects = {
             ...formData,
-            projects: projects.map(p => ({
-              id: p.id,
-              title: p.title,
-              description: p.description,
-              images: p.images.map(img => ({ url: img.url }))
-            }))
+            projects: projectsPayload,
+            portfolioPreview: buildPortfolioPreview(projectsPayload),
           }
           saveSpecialistProfile(currentUser.id, profileDataWithProjects)
           
@@ -439,6 +617,8 @@ export default function EditProfilePage() {
     } catch (error: any) {
       console.error('Ошибка сохранения профиля:', error)
       alert(error?.message || 'Не удалось сохранить профиль. Попробуйте снова.')
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -559,10 +739,11 @@ export default function EditProfilePage() {
                   })
                   handleSubmit(new Event('submit') as any)
                 }}
-                className="inline-flex items-center justify-center gap-2 bg-primary-900 text-white px-6 py-3 sm:py-4 rounded-apple hover:bg-primary-800 transition-colors font-normal tracking-tight"
+                disabled={isSaving}
+                className="inline-flex items-center justify-center gap-2 bg-primary-900 text-white px-6 py-3 sm:py-4 rounded-apple hover:bg-primary-800 transition-colors font-normal tracking-tight disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 <CheckIcon className="w-5 h-5" />
-                Сохранить изменения
+                {isSaving ? 'Сохранение...' : 'Сохранить изменения'}
               </button>
               <button
                 type="button"
@@ -623,6 +804,7 @@ export default function EditProfilePage() {
                         onClick={() => {
                           setAvatarPreview('')
                           setFormData({ ...formData, avatarUrl: '' })
+                          setPendingAvatarFile(null)
                         }}
                         className="text-sm font-light text-primary-500 hover:text-primary-700"
                       >
@@ -744,10 +926,11 @@ export default function EditProfilePage() {
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4 sm:pt-6 border-t border-primary-100">
               <button
                 type="submit"
-                className="inline-flex items-center justify-center gap-2 bg-primary-900 text-white px-6 py-3 sm:py-4 rounded-apple hover:bg-primary-800 transition-colors font-normal tracking-tight"
+                disabled={isSaving}
+                className="inline-flex items-center justify-center gap-2 bg-primary-900 text-white px-6 py-3 sm:py-4 rounded-apple hover:bg-primary-800 transition-colors font-normal tracking-tight disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 <CheckIcon className="w-5 h-5" />
-                Сохранить изменения
+                {isSaving ? 'Сохранение...' : 'Сохранить изменения'}
               </button>
               <button
                 type="button"
@@ -878,10 +1061,11 @@ export default function EditProfilePage() {
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4 sm:pt-6 border-t border-primary-100 mt-6 sm:mt-8">
               <button
                 type="submit"
-                className="inline-flex items-center justify-center gap-2 bg-primary-900 text-white px-6 py-3 sm:py-4 rounded-apple hover:bg-primary-800 transition-colors font-normal tracking-tight"
+                disabled={isSaving}
+                className="inline-flex items-center justify-center gap-2 bg-primary-900 text-white px-6 py-3 sm:py-4 rounded-apple hover:bg-primary-800 transition-colors font-normal tracking-tight disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 <CheckIcon className="w-5 h-5" />
-                Сохранить изменения
+                {isSaving ? 'Сохранение...' : 'Сохранить изменения'}
               </button>
               <button
                 type="button"

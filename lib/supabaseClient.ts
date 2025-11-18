@@ -50,10 +50,16 @@ export interface Database {
           avatar_url: string
           show_in_search: boolean
           portfolio: any
+          portfolio_preview: string[] | null
           created_at: string
           updated_at: string
         }
-        Insert: Omit<Database['public']['Tables']['specialists']['Row'], 'created_at' | 'updated_at'>
+        Insert: Omit<
+          Database['public']['Tables']['specialists']['Row'],
+          'created_at' | 'updated_at' | 'portfolio_preview'
+        > & {
+          portfolio_preview?: string[] | null
+        }
         Update: Partial<Database['public']['Tables']['specialists']['Insert']>
       }
       projects: {

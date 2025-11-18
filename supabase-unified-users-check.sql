@@ -1,50 +1,46 @@
 -- ============================================
--- Проверка и обновление для единой регистрации
+-- Проверка структуры после перехода на user_id
 -- ============================================
--- После убирания разделения на специалистов/компании
--- один пользователь может быть и в specialists, и в companies
+-- Используйте этот файл, чтобы убедиться, что база данных
+-- соответствует актуальной архитектуре (без таблицы companies)
 
--- Проверяем текущие политики RLS
--- Они уже должны позволять пользователю создавать записи в обеих таблицах
+-- 1. Проверяем, что в projects есть колонка user_id
+SELECT column_name
+FROM information_schema.columns
+WHERE table_name = 'projects'
+  AND column_name = 'user_id';
 
--- 1. Проверяем политики для specialists
+-- 2. Убеждаемся, что колонка company_id отсутствует
+SELECT column_name
+FROM information_schema.columns
+WHERE table_name = 'projects'
+  AND column_name = 'company_id';
+
+-- 3. Проверяем, что таблицы companies больше нет
+SELECT tablename
+FROM pg_tables
+WHERE schemaname = 'public'
+  AND tablename = 'companies';
+
+-- 4. Проверяем колонку portfolio_preview в specialists
+SELECT column_name
+FROM information_schema.columns
+WHERE table_name = 'specialists'
+  AND column_name = 'portfolio_preview';
+
+-- 5. Смотрим актуальные политики RLS для projects и applications
 SELECT 
-  'specialists' as table_name,
+  tablename,
   policyname,
-  cmd as command,
-  qual as using_expression
+  cmd AS command,
+  qual AS using_expression
 FROM pg_policies 
 WHERE schemaname = 'public' 
-AND tablename = 'specialists'
-ORDER BY policyname;
+  AND tablename IN ('projects', 'applications')
+ORDER BY tablename, policyname;
 
--- 2. Проверяем политики для companies
-SELECT 
-  'companies' as table_name,
-  policyname,
-  cmd as command,
-  qual as using_expression
-FROM pg_policies 
-WHERE schemaname = 'public' 
-AND tablename = 'companies'
-ORDER BY policyname;
-
--- ============================================
--- ВАЖНО: Ничего менять не нужно!
--- ============================================
--- Текущие политики уже позволяют:
--- - Пользователю создавать запись в specialists (WHERE auth.uid() = id)
--- - Пользователю создавать запись в companies (WHERE auth.uid() = id)
--- 
--- Это означает, что один и тот же пользователь может быть
--- одновременно и специалистом, и компанией, что нам и нужно.
---
--- Функция ensureProfileRecord в коде проверяет существование
--- записи перед созданием, так что дубликаты не создадутся.
-
--- ============================================
--- Опционально: можно добавить комментарий к таблицам
--- ============================================
-COMMENT ON TABLE specialists IS 'Профили пользователей. Один пользователь может быть одновременно и специалистом, и компанией (в таблице companies).';
-COMMENT ON TABLE companies IS 'Профили для создания задач. Один пользователь может быть одновременно и специалистом (в таблице specialists), и компанией.';
+-- Если какие-то запросы не возвращают строк:
+-- - выполните supabase-migrate-to-user-id.sql для миграции company_id -> user_id
+-- - запустите supabase-migration.sql для чистой установки
+-- - выполните supabase-update-for-tasks.sql, чтобы гарантировать актуальные RLS-политики
 

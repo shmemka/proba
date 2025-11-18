@@ -1,12 +1,13 @@
 -- ============================================
 -- FreeExperience Platform - Database Schema
+-- Simplified user_id-based structure
 -- ============================================
 
 -- Удаляем существующие таблицы (если нужно пересоздать)
 DROP TABLE IF EXISTS applications CASCADE;
 DROP TABLE IF EXISTS projects CASCADE;
-DROP TABLE IF EXISTS companies CASCADE;
 DROP TABLE IF EXISTS specialists CASCADE;
+DROP TABLE IF EXISTS companies CASCADE;
 
 -- ============================================
 -- Таблица: specialists (профили специалистов)
@@ -22,6 +23,7 @@ CREATE TABLE specialists (
   avatar_url TEXT DEFAULT '',
   show_in_search BOOLEAN DEFAULT true,
   portfolio JSONB DEFAULT '[]'::jsonb,
+  portfolio_preview TEXT[] DEFAULT '{}'::text[],
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -38,68 +40,38 @@ CREATE POLICY "Все могут просматривать профили сп�
   ON specialists FOR SELECT
   USING (true);
 
-CREATE POLICY "Специалисты могут создавать свой профиль"
+CREATE POLICY "Пользователи могут создавать профиль специалиста"
   ON specialists FOR INSERT
   WITH CHECK (auth.uid() = id);
 
-CREATE POLICY "Специалисты могут обновлять свой профиль"
+CREATE POLICY "Пользователи могут обновлять свой профиль специалиста"
   ON specialists FOR UPDATE
   USING (auth.uid() = id);
 
 -- ============================================
--- Таблица: companies (профили компаний)
--- ============================================
-CREATE TABLE companies (
-  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  email TEXT UNIQUE NOT NULL,
-  company_name TEXT NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Индексы
-CREATE INDEX idx_companies_email ON companies(email);
-
--- RLS
-ALTER TABLE companies ENABLE ROW LEVEL SECURITY;
-
--- Политики доступа
-CREATE POLICY "Все могут просматривать компании"
-  ON companies FOR SELECT
-  USING (true);
-
-CREATE POLICY "Компании могут создавать свой профиль"
-  ON companies FOR INSERT
-  WITH CHECK (auth.uid() = id);
-
-CREATE POLICY "Компании могут обновлять свой профиль"
-  ON companies FOR UPDATE
-  USING (auth.uid() = id);
-
--- ============================================
--- Таблица: projects (проекты компаний)
+-- Таблица: projects (задачи пользователей)
 -- ============================================
 CREATE TABLE projects (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
   description TEXT NOT NULL,
   full_description TEXT DEFAULT '',
   specialization TEXT NOT NULL,
-  skills TEXT[] DEFAULT '{}',
+  skills TEXT[] DEFAULT '{}'::text[],
   location TEXT DEFAULT '',
   deadline DATE,
   budget TEXT DEFAULT '',
   timeline TEXT DEFAULT '',
-  requirements TEXT[] DEFAULT '{}',
-  deliverables TEXT[] DEFAULT '{}',
+  requirements TEXT[] DEFAULT '{}'::text[],
+  deliverables TEXT[] DEFAULT '{}'::text[],
   status TEXT DEFAULT 'open' CHECK (status IN ('open', 'closed', 'in_progress', 'completed')),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Индексы
-CREATE INDEX idx_projects_company_id ON projects(company_id);
+CREATE INDEX idx_projects_user_id ON projects(user_id);
 CREATE INDEX idx_projects_status ON projects(status);
 CREATE INDEX idx_projects_specialization ON projects(specialization);
 
@@ -107,28 +79,28 @@ CREATE INDEX idx_projects_specialization ON projects(specialization);
 ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
 
 -- Политики доступа
-CREATE POLICY "Все могут просматривать открытые проекты"
+CREATE POLICY "Все могут просматривать открытые задачи"
   ON projects FOR SELECT
   USING (status = 'open');
 
-CREATE POLICY "Компании могут просматривать свои проекты"
+CREATE POLICY "Пользователи могут просматривать свои задачи"
   ON projects FOR SELECT
-  USING (auth.uid() = company_id);
+  USING (auth.uid() = user_id);
 
-CREATE POLICY "Компании могут создавать проекты"
+CREATE POLICY "Пользователи могут создавать задачи"
   ON projects FOR INSERT
-  WITH CHECK (auth.uid() = company_id);
+  WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY "Компании могут обновлять свои проекты"
+CREATE POLICY "Пользователи могут обновлять свои задачи"
   ON projects FOR UPDATE
-  USING (auth.uid() = company_id);
+  USING (auth.uid() = user_id);
 
-CREATE POLICY "Компании могут удалять свои проекты"
+CREATE POLICY "Пользователи могут удалять свои задачи"
   ON projects FOR DELETE
-  USING (auth.uid() = company_id);
+  USING (auth.uid() = user_id);
 
 -- ============================================
--- Таблица: applications (заявки на проекты)
+-- Таблица: applications (заявки на задачи)
 -- ============================================
 CREATE TABLE applications (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -154,13 +126,13 @@ CREATE POLICY "Специалисты могут просматривать св
   ON applications FOR SELECT
   USING (auth.uid() = specialist_id);
 
-CREATE POLICY "Компании могут просматривать заявки на свои проекты"
+CREATE POLICY "Пользователи могут просматривать заявки на свои задачи"
   ON applications FOR SELECT
   USING (
     EXISTS (
       SELECT 1 FROM projects
       WHERE projects.id = applications.project_id
-      AND projects.company_id = auth.uid()
+      AND projects.user_id = auth.uid()
     )
   );
 
@@ -172,13 +144,13 @@ CREATE POLICY "Специалисты могут обновлять свои з�
   ON applications FOR UPDATE
   USING (auth.uid() = specialist_id);
 
-CREATE POLICY "Компании могут обновлять статус заявок на свои проекты"
+CREATE POLICY "Пользователи могут обновлять статус заявок на свои задачи"
   ON applications FOR UPDATE
   USING (
     EXISTS (
       SELECT 1 FROM projects
       WHERE projects.id = applications.project_id
-      AND projects.company_id = auth.uid()
+      AND projects.user_id = auth.uid()
     )
   );
 
@@ -195,11 +167,6 @@ $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER update_specialists_updated_at
   BEFORE UPDATE ON specialists
-  FOR EACH ROW
-  EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_companies_updated_at
-  BEFORE UPDATE ON companies
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 

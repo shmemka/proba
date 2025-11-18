@@ -8,7 +8,7 @@
 - ✅ Полная интеграция с Supabase Auth
 - ✅ Row Level Security (RLS) для безопасности
 - ✅ Автоматический fallback на localStorage
-- ✅ Поддержка регистрации специалистов и компаний
+- ✅ Упрощенная модель: все пользователи регистрируются как специалисты и владельцы проектов
 - ✅ Real-time обновления (готово к использованию)
 
 ---
@@ -33,10 +33,11 @@ getSupabaseClient() // Получить singleton клиент для брауз
 
 ```
 auth.users (Supabase Auth)
-    ├─> specialists (профили специалистов)
-    ├─> companies (профили компаний)
-    └─> projects (проекты компаний)
-            └─> applications (заявки специалистов)
+    └─> specialists (профили специалистов + настройки)
+            └─> projects (задачи пользователей по user_id)
+                    └─> applications (заявки специалистов)
+Storage
+    └─> public-assets (аватары и изображения портфолио)
 ```
 
 ---
@@ -67,27 +68,6 @@ await supabase.from('specialists').insert({
 })
 ```
 
-**Компания:**
-```typescript
-const { data, error } = await supabase.auth.signUp({
-  email: 'company@example.com',
-  password: 'password123',
-  options: {
-    data: {
-      userType: 'company',
-      displayName: 'Название компании'
-    }
-  }
-})
-
-// После регистрации создается запись в companies
-await supabase.from('companies').insert({
-  id: data.user.id,
-  name: 'Название компании',
-  email: 'company@example.com'
-})
-```
-
 ### Вход
 
 ```typescript
@@ -96,8 +76,8 @@ const { data, error } = await supabase.auth.signInWithPassword({
   password: 'password123'
 })
 
-// Получить тип пользователя
-const userType = data.user?.user_metadata?.userType
+// Получить отображаемое имя
+const displayName = data.user?.user_metadata?.displayName
 ```
 
 ### Выход
@@ -113,7 +93,7 @@ const { data: { session } } = await supabase.auth.getSession()
 
 if (session) {
   console.log('User:', session.user)
-  console.log('Type:', session.user.user_metadata?.userType)
+  console.log('Display name:', session.user.user_metadata?.displayName)
 }
 ```
 
@@ -127,16 +107,15 @@ if (session) {
 ```typescript
 const { error } = await supabase.from('specialists').insert({
   id: userId, // auth.uid()
-  name: 'Имя Фамилия',
   email: 'email@example.com',
-  title: 'Frontend разработчик',
+  first_name: 'Имя',
+  last_name: 'Фамилия',
+  specialization: 'Дизайн',
   bio: 'Описание',
-  skills: ['React', 'TypeScript'],
-  location: 'Москва',
-  experience: '2 года',
-  portfolio: 'https://portfolio.com',
-  github: 'github.com/username',
-  projects: []
+  telegram: '@username',
+  show_in_search: true,
+  portfolio: [],
+  portfolio_preview: []
 })
 ```
 
@@ -145,8 +124,9 @@ const { error } = await supabase.from('specialists').insert({
 const { error } = await supabase
   .from('specialists')
   .update({
-    title: 'Senior Frontend разработчик',
-    skills: ['React', 'TypeScript', 'Next.js']
+    bio: 'Новая биография',
+    telegram: '@new_handle',
+    specialization: 'SMM'
   })
   .eq('id', userId)
 ```
@@ -159,23 +139,12 @@ const { data, error } = await supabase
   .order('created_at', { ascending: false })
 ```
 
-### Companies (Компании)
-
-**Создание профиля:**
-```typescript
-const { error } = await supabase.from('companies').insert({
-  id: userId,
-  name: 'Название компании',
-  email: 'company@example.com'
-})
-```
-
 ### Projects (Проекты)
 
 **Создание проекта:**
 ```typescript
 const { error } = await supabase.from('projects').insert({
-  company_id: userId, // auth.uid() компании
+  user_id: userId, // auth.uid()
   title: 'Название проекта',
   description: 'Краткое описание',
   full_description: 'Полное описание',
@@ -188,24 +157,21 @@ const { error } = await supabase.from('projects').insert({
 })
 ```
 
-**Получение проектов с информацией о компании:**
-```typescript
-const { data, error } = await supabase
-  .from('projects')
-  .select(`
-    *,
-    companies(name)
-  `)
-  .eq('status', 'open')
-  .order('deadline', { ascending: true })
-```
-
-**Получение проектов компании:**
+**Получение проектов с информацией о владельце:**
 ```typescript
 const { data, error } = await supabase
   .from('projects')
   .select('*')
-  .eq('company_id', userId)
+  .eq('status', 'open')
+  .order('deadline', { ascending: true })
+```
+
+**Получение проектов пользователя:**
+```typescript
+const { data, error } = await supabase
+  .from('projects')
+  .select('*')
+  .eq('user_id', userId)
 ```
 
 ### Applications (Заявки)
@@ -220,7 +186,7 @@ const { error } = await supabase.from('applications').insert({
 })
 ```
 
-**Получение заявок проекта (для компании):**
+**Получение заявок проекта (для владельца задачи):**
 ```typescript
 const { data, error } = await supabase
   .from('applications')
@@ -249,15 +215,9 @@ const { error } = await supabase
 - **UPDATE**: Только свой профиль ✅
 - **DELETE**: Запрещено ❌
 
-### Companies
-- **SELECT**: Все могут просматривать ✅
-- **INSERT**: Только свой профиль ✅
-- **UPDATE**: Только свой профиль ✅
-- **DELETE**: Запрещено ❌
-
 ### Projects
 - **SELECT**: Все могут просматривать ✅
-- **INSERT**: Только свои проекты (company_id = auth.uid()) ✅
+- **INSERT**: Только свои проекты (`user_id = auth.uid()`) ✅
 - **UPDATE**: Только свои проекты ✅
 - **DELETE**: Только свои проекты ✅
 
@@ -315,15 +275,6 @@ channel.unsubscribe()
 
 ## 🛠 Утилиты
 
-### Проверка типа пользователя
-
-```typescript
-const getUserType = async () => {
-  const { data: { user } } = await supabase.auth.getUser()
-  return user?.user_metadata?.userType as 'specialist' | 'company' | undefined
-}
-```
-
 ### Получение ID текущего пользователя
 
 ```typescript
@@ -338,12 +289,13 @@ const getCurrentUserId = async () => {
 ```typescript
 const isOwner = async (resourceId: string, table: string) => {
   const { data: { user } } = await supabase.auth.getUser()
+  const ownerColumn = table === 'projects' ? 'user_id' : 'id'
   
   const { data } = await supabase
     .from(table)
-    .select('id')
+    .select(ownerColumn)
     .eq('id', resourceId)
-    .eq('id', user?.id) // или company_id для projects
+    .eq(ownerColumn, user?.id)
     .single()
   
   return !!data
@@ -371,7 +323,7 @@ if (error) {
 ```sql
 -- В SQL Editor Supabase
 SELECT * FROM specialists WHERE id = auth.uid();
-SELECT * FROM projects WHERE company_id = auth.uid();
+SELECT * FROM projects WHERE user_id = auth.uid();
 ```
 
 ---
@@ -382,20 +334,17 @@ SELECT * FROM projects WHERE company_id = auth.uid();
 
 **Плохо:**
 ```typescript
-// Загружает все проекты, потом все компании отдельно
-const projects = await supabase.from('projects').select('*')
-const companies = await supabase.from('companies').select('*')
+// Получаем все колонки (включая тяжелое portfolio) даже для списка
+const { data } = await supabase.from('specialists').select('*')
 ```
 
 **Хорошо:**
 ```typescript
-// Загружает все за один запрос (JOIN)
+// Берем только нужные поля + легкий предпросмотр портфолио
 const { data } = await supabase
-  .from('projects')
-  .select(`
-    *,
-    companies(name, email)
-  `)
+  .from('specialists')
+  .select('id, first_name, last_name, specialization, avatar_url, portfolio_preview')
+  .order('created_at', { ascending: false })
 ```
 
 ### Пагинация

@@ -320,7 +320,9 @@ export async function getSpecialists(options?: { force?: boolean }) {
     async () => {
       const { data, error } = await supabase
         .from('specialists')
-        .select('*')
+        .select(
+          'id, email, first_name, last_name, specialization, bio, telegram, avatar_url, show_in_search, portfolio_preview',
+        )
         .order('created_at', { ascending: false })
 
       if (error) {
