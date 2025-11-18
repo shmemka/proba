@@ -318,19 +318,45 @@ export async function getSpecialists(options?: { force?: boolean }) {
   return fetchWithCache(
     'specialists',
     async () => {
-      const { data, error } = await supabase
+      // Сначала пытаемся загрузить с portfolio_preview
+      let query = supabase
         .from('specialists')
-        .select(
-          'id, email, first_name, last_name, specialization, bio, telegram, avatar_url, show_in_search, portfolio_preview',
-        )
+        .select('*')
         .order('created_at', { ascending: false })
 
+      const { data, error } = await query
+
       if (error) {
+        // Если ошибка связана с отсутствием колонки, пробуем без неё
+        if (error.message?.includes('portfolio_preview') || error.code === '42703') {
+          const { data: fallbackData, error: fallbackError } = await supabase
+            .from('specialists')
+            .select(
+              'id, email, first_name, last_name, specialization, bio, telegram, avatar_url, show_in_search, portfolio',
+            )
+            .order('created_at', { ascending: false })
+
+          if (fallbackError) {
+            console.error('Ошибка загрузки специалистов:', fallbackError)
+            throw fallbackError
+          }
+
+          // Добавляем пустой portfolio_preview для совместимости
+          return (fallbackData || []).map((item: any) => ({
+            ...item,
+            portfolio_preview: [],
+          }))
+        }
+
         console.error('Ошибка загрузки специалистов:', error)
         throw error
       }
 
-      return data || []
+      // Добавляем portfolio_preview если его нет (для старых записей)
+      return (data || []).map((item: any) => ({
+        ...item,
+        portfolio_preview: item.portfolio_preview || [],
+      }))
     },
     60_000,
     options?.force,
@@ -370,12 +396,33 @@ export async function updateSpecialist(id: string, updates: Partial<Specialist>)
     throw new Error('Supabase не настроен')
   }
 
+  // Создаем копию updates без portfolio_preview на случай, если колонка не существует
+  const safeUpdates = { ...updates }
+  
   const { data, error } = await supabase
     .from('specialists')
-    .update(updates)
+    .update(safeUpdates)
     .eq('id', id)
     .select()
     .single()
+
+  // Если ошибка из-за отсутствия portfolio_preview, пробуем без него
+  if (error && (error.message?.includes('portfolio_preview') || error.code === '42703')) {
+    const { portfolio_preview, ...updatesWithoutPreview } = safeUpdates as any
+    
+    const { data: fallbackData, error: fallbackError } = await supabase
+      .from('specialists')
+      .update(updatesWithoutPreview)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (fallbackError) throw fallbackError
+    
+    invalidateCache('specialists')
+    invalidateCache(`specialist:${id}`)
+    return fallbackData
+  }
 
   if (error) throw error
   invalidateCache('specialists')
