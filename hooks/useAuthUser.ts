@@ -34,7 +34,7 @@ export function useAuthUser() {
 
       try {
         if (SUPABASE_AVAILABLE) {
-          const supabaseUser = await getCurrentUser()
+          const supabaseUser = await getCurrentUser({ force: options?.forceProfile })
 
           if (!supabaseUser) {
             setUser(null)
@@ -47,7 +47,7 @@ export function useAuthUser() {
           if (userType === 'specialist') {
             try {
               const specialist = await getSpecialist(supabaseUser.id, { force: options?.forceProfile })
-              avatarUrl = specialist?.avatar_url || ''
+              avatarUrl = (specialist as any)?.avatar_url || ''
             } catch (error) {
               console.error('Ошибка загрузки профиля специалиста:', error)
             }

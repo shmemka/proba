@@ -12,12 +12,25 @@ export const supabase = isSupabaseConfigured
   ? createClient(supabaseUrl!, supabaseAnonKey!)
   : null
 
+let hasLoggedSupabaseInit = false
+let hasLoggedSupabaseWarning = false
+
 // Вспомогательная функция для получения клиента
 export function getSupabaseClient() {
   if (!supabase) {
-    console.warn('⚠️ Supabase не настроен. Используется localStorage.')
+    if (!hasLoggedSupabaseWarning) {
+      hasLoggedSupabaseWarning = true
+      console.warn('⚠️ Supabase не настроен. Используется localStorage.')
+    }
     return null
   }
+
+  if (!hasLoggedSupabaseInit) {
+    hasLoggedSupabaseInit = true
+    // Сообщение используется в чек-листе для быстрой проверки интеграции
+    console.log('✅ Supabase клиент инициализирован')
+  }
+
   return supabase
 }
 

@@ -188,7 +188,12 @@ type Application = Database['public']['Tables']['applications']['Row']
 // Аутентификация
 // ============================================
 
-export async function signUp(email: string, password: string, userType: 'specialist' | 'company', displayName: string) {
+export async function signUp(
+  email: string,
+  password: string,
+  userType: 'specialist' | 'company',
+  displayName: string,
+) {
   const supabase = getSupabaseClient()
   if (!supabase) {
     throw new Error('Supabase не настроен')
@@ -279,26 +284,48 @@ export async function signOut() {
   }
 
   await supabase.auth.signOut()
+  invalidateCache('auth:')
 }
 
-export async function getCurrentUser() {
+const AUTH_USER_CACHE_KEY = 'auth:user'
+const AUTH_SESSION_CACHE_KEY = 'auth:session'
+
+export async function getCurrentUser(options?: { force?: boolean }) {
   const supabase = getSupabaseClient()
   if (!supabase) {
     return null
   }
 
-  const { data: { user } } = await supabase.auth.getUser()
-  return user
+  return fetchWithCache(
+    AUTH_USER_CACHE_KEY,
+    async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      return user ?? null
+    },
+    5_000,
+    options?.force,
+  )
 }
 
-export async function getCurrentSession() {
+export async function getCurrentSession(options?: { force?: boolean }) {
   const supabase = getSupabaseClient()
   if (!supabase) {
     return null
   }
 
-  const { data: { session } } = await supabase.auth.getSession()
-  return session
+  return fetchWithCache(
+    AUTH_SESSION_CACHE_KEY,
+    async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      return session ?? null
+    },
+    5_000,
+    options?.force,
+  )
 }
 
 // ============================================
@@ -314,17 +341,17 @@ export async function getSpecialists(options?: { force?: boolean }) {
   return fetchWithCache(
     'specialists',
     async () => {
-  const { data, error } = await supabase
-    .from('specialists')
-    .select('*')
-    .order('created_at', { ascending: false })
+      const { data, error } = await supabase
+        .from('specialists')
+        .select('*')
+        .order('created_at', { ascending: false })
 
-  if (error) {
-    console.error('Ошибка загрузки специалистов:', error)
-    return []
-  }
+      if (error) {
+        console.error('Ошибка загрузки специалистов:', error)
+        throw error
+      }
 
-  return data || []
+      return data || []
     },
     60_000,
     options?.force,
@@ -340,18 +367,18 @@ export async function getSpecialist(id: string, options?: { force?: boolean }) {
   return fetchWithCache(
     `specialist:${id}`,
     async () => {
-  const { data, error } = await supabase
-    .from('specialists')
-    .select('*')
-    .eq('id', id)
-    .single()
+      const { data, error } = await supabase
+        .from('specialists')
+        .select('*')
+        .eq('id', id)
+        .single()
 
-  if (error) {
-    console.error('Ошибка загрузки специалиста:', error)
-    return null
-  }
+      if (error) {
+        console.error('Ошибка загрузки специалиста:', error)
+        throw error
+      }
 
-  return data
+      return data
     },
     60_000,
     options?.force,
@@ -395,7 +422,7 @@ export async function getCompany(id: string) {
 
   if (error) {
     console.error('Ошибка загрузки компании:', error)
-    return null
+    throw error
   }
 
   return data
@@ -431,46 +458,58 @@ export async function getProjects(options?: { force?: boolean }) {
   return fetchWithCache(
     'projects',
     async () => {
-  const { data, error } = await supabase
-    .from('projects')
-    .select(`
+      const { data, error } = await supabase
+        .from('projects')
+        .select(
+          `
       *,
       companies(company_name)
-    `)
-    .eq('status', 'open')
-    .order('created_at', { ascending: false })
+    `,
+        )
+        .eq('status', 'open')
+        .order('created_at', { ascending: false })
 
-  if (error) {
-    console.error('Ошибка загрузки проектов:', error)
-    return []
-  }
+      if (error) {
+        console.error('Ошибка загрузки проектов:', error)
+        throw error
+      }
 
-  if (!data || data.length === 0) {
-    return []
-  }
+      if (!data || data.length === 0) {
+        return []
+      }
 
-  // Оптимизация: получаем все заявки одним запросом вместо N+1
-  const projectIds = data.map(p => p.id)
-  const { data: applicationsData } = await supabase
-    .from('applications')
-    .select('project_id')
-    .in('project_id', projectIds)
+      // Оптимизация: получаем все заявки одним запросом вместо N+1
+      const projectIds = data.map((p) => p.id)
+      const { data: applicationsData, error: applicationsError } = await supabase
+        .from('applications')
+        .select('project_id')
+        .in('project_id', projectIds)
 
-  // Подсчитываем заявки для каждого проекта
-  const applicationsCountMap = new Map<string, number>()
-  if (applicationsData) {
-    applicationsData.forEach(app => {
-      const count = applicationsCountMap.get(app.project_id) || 0
-      applicationsCountMap.set(app.project_id, count + 1)
-    })
-  }
+      if (applicationsError) {
+        console.error('Ошибка загрузки заявок для проектов:', applicationsError)
+        // Не блокируем загрузку проектов, просто вернём их без счётчиков
+        return data.map((project) => ({
+          ...project,
+          applicationsCount: 0,
+          company: (project.companies as any)?.company_name || 'Компания',
+        }))
+      }
 
-  // Формируем результат
+      // Подсчитываем заявки для каждого проекта
+      const applicationsCountMap = new Map<string, number>()
+      if (applicationsData) {
+        applicationsData.forEach((app) => {
+          const count = applicationsCountMap.get(app.project_id) || 0
+          applicationsCountMap.set(app.project_id, count + 1)
+        })
+      }
+
+      // Формируем результат
       return data.map((project) => ({
-    ...project,
-    applicationsCount: applicationsCountMap.get(project.id) || 0,
-    company: (project.companies as any)?.company_name || 'Компания',
-  }))
+        ...project,
+        applicationsCount: applicationsCountMap.get(project.id) || 0,
+        company: (project.companies as any)?.company_name || 'Компания',
+      }))
     },
     30_000,
     options?.force,
@@ -486,33 +525,39 @@ export async function getProject(id: string, options?: { force?: boolean }) {
   return fetchWithCache(
     `project:${id}`,
     async () => {
-  const { data, error } = await supabase
-    .from('projects')
-    .select(`
+      const { data, error } = await supabase
+        .from('projects')
+        .select(
+          `
       *,
       companies(company_name)
-    `)
-    .eq('id', id)
-    .single()
+    `,
+        )
+        .eq('id', id)
+        .single()
 
-  if (error) {
-    console.error('Ошибка загрузки проекта:', error)
-    return null
-  }
+      if (error) {
+        console.error('Ошибка загрузки проекта:', error)
+        throw error
+      }
 
-  if (!data) return null
+      if (!data) return null
 
-  // Получаем количество заявок
-  const { count } = await supabase
-    .from('applications')
-    .select('*', { count: 'exact', head: true })
-    .eq('project_id', id)
+      // Получаем количество заявок
+      const { count, error: applicationsError } = await supabase
+        .from('applications')
+        .select('*', { count: 'exact', head: true })
+        .eq('project_id', id)
 
-  return {
-    ...data,
-    applicationsCount: count || 0,
-    company: (data.companies as any)?.company_name || 'Компания',
-  }
+      if (applicationsError) {
+        console.error('Ошибка загрузки количества заявок для проекта:', applicationsError)
+      }
+
+      return {
+        ...data,
+        applicationsCount: count || 0,
+        company: (data.companies as any)?.company_name || 'Компания',
+      }
     },
     30_000,
     options?.force,
@@ -540,19 +585,19 @@ export async function createProject(project: {
 
   const currentUser = await getCurrentUser()
   if (!currentUser) {
-    throw new Error('Пользователь не найден')
-  }
+      throw new Error('Пользователь не найден')
+    }
 
   if (!currentUser.email) {
     throw new Error('У аккаунта компании отсутствует email')
   }
 
   await ensureProfileRecord({
-    id: project.company_id,
+        id: project.company_id,
     userType: 'company',
     email: currentUser.email,
     displayName: currentUser.user_metadata?.displayName,
-  })
+      })
 
   const { data, error } = await supabase
     .from('projects')
@@ -617,7 +662,7 @@ export async function getApplications(projectId?: string, specialistId?: string)
 
   if (error) {
     console.error('Ошибка загрузки заявок:', error)
-    return []
+    throw error
   }
 
   return data || []
