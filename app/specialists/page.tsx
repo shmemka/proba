@@ -3,10 +3,10 @@
 import { useState, useEffect, useMemo, useCallback, useRef, memo } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { MagnifyingGlassIcon, StarIcon } from '@heroicons/react/24/outline'
+import { MagnifyingGlassIcon, StarIcon, XMarkIcon, UserIcon } from '@heroicons/react/24/outline'
 import { readJson } from '@/lib/storage'
 import SpecialistDrawer from '@/components/SpecialistDrawer'
-import { getSpecialists, getSpecialist, isSupabaseAvailable } from '@/lib/supabase'
+import { getSpecialists, getSpecialist, isSupabaseAvailable, getCurrentUser } from '@/lib/supabase'
 import { formatSpecialistFromStorage } from '@/lib/utils'
 import { SpecialistCardSkeleton } from '@/components/SkeletonLoader'
 
@@ -87,7 +87,43 @@ export default function SpecialistsPage() {
   const [selectedSpecialist, setSelectedSpecialist] = useState<FullSpecialist | null>(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [currentProjectIndex, setCurrentProjectIndex] = useState(0)
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const specialistDetailsCache = useRef<Map<string, FullSpecialist>>(new Map())
+
+  // Блокируем скролл при открытии модального окна поиска
+  useEffect(() => {
+    if (isSearchModalOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+    return () => {
+      document.body.style.overflow = 'unset'
+    }
+  }, [isSearchModalOpen])
+
+  // Загружаем текущего пользователя
+  useEffect(() => {
+    const loadUser = async () => {
+      if (SUPABASE_AVAILABLE) {
+        try {
+          const user = await getCurrentUser()
+          if (user) {
+            setCurrentUserId(user.id)
+          }
+        } catch (error) {
+          console.error('Ошибка загрузки пользователя:', error)
+        }
+      } else {
+        const user = readJson<any>('user', null)
+        if (user) {
+          setCurrentUserId(user.id)
+        }
+      }
+    }
+    loadUser()
+  }, [])
 
   // Debounce для поиска
   useEffect(() => {
@@ -179,9 +215,8 @@ export default function SpecialistsPage() {
     }
   }, [])
 
+  // Основной список - фильтруется только по специализации и сортировке, без поиска
   const filteredSpecialists = useMemo(() => {
-    const normalizedQuery = debouncedSearchQuery.trim().toLowerCase()
-
     return specialists
       .filter(specialist => {
         // Фильтруем по настройке "Показывать в поиске"
@@ -189,16 +224,9 @@ export default function SpecialistsPage() {
           return false
         }
         
-        const firstName = specialist.firstName || ''
-        const lastName = specialist.lastName || ''
-        const fullName = `${firstName} ${lastName}`.toLowerCase()
         const specialization = specialist.specialization || ''
-        const matchesSearch =
-          fullName.includes(normalizedQuery) ||
-          specialization.toLowerCase().includes(normalizedQuery) ||
-          (specialist.bio && specialist.bio.toLowerCase().includes(normalizedQuery))
         const matchesSpecialization = !selectedSpecialization || specialization === selectedSpecialization
-        return matchesSearch && matchesSpecialization
+        return matchesSpecialization
       })
       .sort((a, b) => {
         if (sortBy === 'name') {
@@ -211,7 +239,31 @@ export default function SpecialistsPage() {
         }
         return (b.hiredCount || 0) - (a.hiredCount || 0)
       })
-  }, [specialists, debouncedSearchQuery, selectedSpecialization, sortBy])
+  }, [specialists, selectedSpecialization, sortBy])
+
+  // Предложения для поиска - отдельный список, не влияет на основной
+  const searchSuggestions = useMemo(() => {
+    const normalizedQuery = debouncedSearchQuery.trim().toLowerCase()
+    if (!normalizedQuery) return []
+
+    return specialists
+      .filter(specialist => {
+        if (specialist.showInSearch === false) {
+          return false
+        }
+        
+        const firstName = specialist.firstName || ''
+        const lastName = specialist.lastName || ''
+        const fullName = `${firstName} ${lastName}`.toLowerCase()
+        const specialization = specialist.specialization || ''
+        return (
+          fullName.includes(normalizedQuery) ||
+          specialization.toLowerCase().includes(normalizedQuery) ||
+          (specialist.bio && specialist.bio.toLowerCase().includes(normalizedQuery))
+        )
+      })
+      .slice(0, 10) // Ограничиваем до 10 предложений
+  }, [specialists, debouncedSearchQuery])
 
   const handleSpecialistClick = useCallback(async (specialistSummary: Specialist) => {
     try {
@@ -361,7 +413,7 @@ export default function SpecialistsPage() {
     return (
       <button
         onClick={onClick}
-        className="bg-white rounded-apple border border-primary-100 hover:border-primary-200 transition-colors p-4 sm:p-6 lg:p-8 text-left w-full flex flex-col"
+        className="bg-white rounded-apple border border-primary-100 hover:border-primary-200 hover:scale-[1.01] transition-all duration-200 ease-out active:scale-[0.99] p-4 sm:p-6 lg:p-8 text-left w-full flex flex-col"
       >
         <div className="flex items-start gap-3 sm:gap-5 mb-3 sm:mb-4 flex-shrink-0">
           {specialist.avatarUrl ? (
@@ -423,9 +475,30 @@ export default function SpecialistsPage() {
   if (isLoading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
-        <div className="mb-8 sm:mb-12">
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-light text-primary-900 mb-2 sm:mb-3 tracking-tight">Каталог специалистов</h1>
-          <p className="text-base sm:text-lg font-light text-primary-600">Найдите специалиста для вашего проекта</p>
+        <div className="mb-8 sm:mb-12 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+          <div>
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-light text-primary-900 mb-2 sm:mb-3 tracking-tight">Таланты</h1>
+            <p className="text-base sm:text-lg font-light text-primary-600">Найдите специалиста для вашего проекта</p>
+          </div>
+          {currentUserId && (
+            <div className="flex flex-col sm:flex-row items-center gap-0">
+              <Link
+                href="/profile/edit"
+                className="inline-flex flex-col items-center justify-center gap-1.5 px-4 sm:px-5 py-3 sm:py-4 transition-all duration-200 font-normal tracking-tight text-primary-700 hover:bg-primary-50 active:scale-95"
+              >
+                <UserIcon className="w-5 h-5" />
+                <span className="text-xs sm:text-sm whitespace-nowrap">Моя карточка</span>
+              </Link>
+              <div className="w-px h-12 bg-primary-200 mx-1"></div>
+              <button
+                onClick={() => setIsSearchModalOpen(true)}
+                className="inline-flex flex-col items-center justify-center gap-1.5 px-4 sm:px-5 py-3 sm:py-4 transition-all duration-200 font-normal tracking-tight text-primary-700 hover:bg-primary-50 active:scale-95"
+              >
+                <MagnifyingGlassIcon className="w-5 h-5" />
+                <span className="text-xs sm:text-sm whitespace-nowrap">Поиск</span>
+              </button>
+            </div>
+          )}
         </div>
         <div className="grid sm:grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -438,64 +511,64 @@ export default function SpecialistsPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
-      <div className="mb-8 sm:mb-12">
-        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-light text-primary-900 mb-2 sm:mb-3 tracking-tight">Каталог специалистов</h1>
-        <p className="text-base sm:text-lg font-light text-primary-600">Найдите специалиста для вашего проекта</p>
+      <div className="mb-8 sm:mb-12 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+        <div>
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-light text-primary-900 mb-2 sm:mb-3 tracking-tight">Таланты</h1>
+          <p className="text-base sm:text-lg font-light text-primary-600">Найдите специалиста для вашего проекта</p>
+        </div>
+        {currentUserId && (
+          <div className="flex flex-col sm:flex-row items-center gap-0">
+            <Link
+              href="/profile/edit"
+              className="inline-flex flex-col items-center justify-center gap-1.5 px-4 sm:px-5 py-3 sm:py-4 transition-colors font-normal tracking-tight text-primary-700 hover:bg-primary-50"
+            >
+              <UserIcon className="w-5 h-5" />
+              <span className="text-xs sm:text-sm whitespace-nowrap">Моя карточка</span>
+            </Link>
+            <div className="w-px h-12 bg-primary-200 mx-1"></div>
+            <button
+              onClick={() => setIsSearchModalOpen(true)}
+              className="inline-flex flex-col items-center justify-center gap-1.5 px-4 sm:px-5 py-3 sm:py-4 transition-colors font-normal tracking-tight text-primary-700 hover:bg-primary-50"
+            >
+              <MagnifyingGlassIcon className="w-5 h-5" />
+              <span className="text-xs sm:text-sm whitespace-nowrap">Поиск</span>
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="mb-6 sm:mb-10">
-        {/* Search - Mobile First */}
-        <div className="mb-4 sm:mb-0 sm:hidden">
-          <div className="relative">
-            <MagnifyingGlassIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 text-primary-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="Поиск"
-              className="w-full pl-12 pr-4 py-2.5 border border-primary-200 rounded-apple focus:ring-1 focus:ring-primary-900 focus:border-primary-900 bg-white text-primary-900 placeholder-primary-400 font-light text-sm"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-        </div>
-
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6 pb-4 border-b border-primary-200">
-          {/* Segmented Controls */}
-          <div className="flex items-center gap-3 sm:gap-6 overflow-x-auto scrollbar-hide -mx-4 sm:mx-0 px-4 sm:px-0">
+        <div className="border-b border-primary-200">
+          <div className="flex gap-6 overflow-x-auto scrollbar-hide -mx-4 sm:mx-0 px-4 sm:px-0">
             <button
               onClick={() => setSelectedSpecialization('')}
-              className={`text-sm font-normal transition-colors tracking-tight whitespace-nowrap ${
+              className={`relative text-sm font-normal transition-colors tracking-tight pb-4 whitespace-nowrap ${
                 selectedSpecialization === ''
                   ? 'text-[#FF4600]'
                   : 'text-primary-400 hover:text-primary-600'
               }`}
             >
               Все
+              {selectedSpecialization === '' && (
+                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FF4600]"></span>
+              )}
             </button>
             {specializations.map((spec) => (
               <button
                 key={spec}
                 onClick={() => setSelectedSpecialization(spec)}
-                className={`text-sm font-normal transition-colors tracking-tight whitespace-nowrap ${
+                className={`relative text-sm font-normal transition-all duration-200 tracking-tight pb-4 whitespace-nowrap ${
                   selectedSpecialization === spec
                     ? 'text-[#FF4600]'
                     : 'text-primary-400 hover:text-primary-600'
                 }`}
               >
                 {spec}
+                {selectedSpecialization === spec && (
+                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FF4600]"></span>
+                )}
               </button>
             ))}
-          </div>
-          
-          {/* Search - Desktop */}
-          <div className="relative flex-shrink-0 hidden sm:block">
-            <MagnifyingGlassIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 text-primary-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="Поиск"
-              className="w-64 pl-12 pr-4 py-2.5 border border-primary-200 rounded-apple focus:ring-1 focus:ring-primary-900 focus:border-primary-900 bg-white text-primary-900 placeholder-primary-400 font-light text-sm"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
           </div>
         </div>
       </div>
@@ -524,6 +597,54 @@ export default function SpecialistsPage() {
           <p className="text-primary-600 text-base sm:text-lg font-light mb-2">Специалисты не найдены</p>
           <p className="text-primary-500 text-sm sm:text-base font-light">Попробуйте изменить параметры поиска</p>
         </div>
+      )}
+
+      {/* Модальное окно "Поиск" */}
+      {isSearchModalOpen && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 transition-opacity duration-300 ease-out"
+            onClick={() => setIsSearchModalOpen(false)}
+          />
+          <div className="fixed inset-0 z-50 flex items-start justify-center p-4 pt-20">
+            <div 
+              className="bg-white rounded-apple border border-primary-100 shadow-2xl max-w-2xl w-full overflow-hidden flex flex-col animate-fade-in"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-6">
+                <div className="relative mb-4">
+                  <MagnifyingGlassIcon className="absolute left-0 top-1/2 transform -translate-y-1/2 text-primary-400 w-5 h-5" />
+                  <input
+                    type="text"
+                    placeholder="Поиск специалистов..."
+                    className="w-full pl-8 pr-4 py-3 bg-transparent text-primary-900 placeholder-primary-400 font-light text-sm focus:outline-none"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    autoFocus
+                  />
+                </div>
+                {searchSuggestions.length > 0 && (
+                  <div className="space-y-0">
+                    {searchSuggestions.map((specialist) => (
+                      <button
+                        key={specialist.id}
+                        onClick={() => {
+                          handleSpecialistClick(specialist)
+                          setIsSearchModalOpen(false)
+                          setSearchQuery('')
+                        }}
+                        className="w-full flex items-center justify-between px-0 py-3 text-left hover:bg-primary-50 transition-colors border-b border-primary-100 last:border-b-0"
+                      >
+                        <span className="text-sm font-light text-primary-900">{specialist.firstName} {specialist.lastName}</span>
+                        <span className="text-xs font-light text-primary-500">{specialist.specialization}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </>
       )}
     </div>
   )

@@ -106,7 +106,7 @@ export default function Navbar() {
                   <>
                     {/* Безопасная зона между кнопкой и меню */}
                     <div className="absolute right-0 top-full w-full h-0.5" />
-                    <div className="absolute right-0 top-full mt-0.5 w-48 bg-white rounded-apple border border-primary-100 shadow-lg py-2 z-50">
+                    <div className="absolute right-0 top-full mt-0.5 w-48 bg-white rounded-apple border border-primary-100 shadow-lg py-2 z-50 animate-fade-in">
                       <Link
                         href="/profile/edit"
                         className="flex items-center gap-3 px-4 py-2 mx-2 text-sm font-normal text-primary-700 hover:bg-primary-50 rounded-apple transition-colors"
@@ -133,13 +133,13 @@ export default function Navbar() {
               <>
                 <Link
                   href="/login"
-                  className="text-primary-700 hover:text-primary-900 px-4 py-2 text-sm font-normal transition-colors tracking-tight"
+                  className="text-primary-700 hover:text-primary-900 px-4 py-2 text-sm font-normal transition-all duration-200 tracking-tight active:scale-95"
                 >
                   Войти
                 </Link>
                 <Link
                   href="/register"
-                  className="bg-primary-900 text-white px-5 py-2 rounded-apple text-sm font-normal hover:bg-primary-800 transition-colors tracking-tight"
+                  className="bg-primary-900 text-white px-5 py-2 rounded-apple text-sm font-normal hover:bg-primary-800 transition-all duration-200 tracking-tight active:scale-95"
                 >
                   Регистрация
                 </Link>

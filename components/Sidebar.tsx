@@ -155,7 +155,7 @@ export default function Sidebar() {
                 <>
                   {/* Безопасная зона между кнопкой и меню */}
                   <div className="absolute bottom-full left-0 w-full h-0.5" />
-                  <div className="absolute bottom-full left-0 mb-0.5 w-full bg-white rounded-apple border border-primary-100 shadow-lg py-2 z-50">
+                  <div className="absolute bottom-full left-0 mb-0.5 w-full bg-white rounded-apple border border-primary-100 shadow-lg py-2 z-50 animate-fade-in">
                     <Link
                       href="/profile/edit"
                       onClick={() => {

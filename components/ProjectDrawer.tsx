@@ -276,12 +276,14 @@ export default function ProjectDrawer({
   return (
     <>
       {/* Overlay */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 transition-opacity"
-          onClick={onClose}
-        />
-      )}
+      <div
+        className={`
+          fixed inset-0 bg-black/20 backdrop-blur-sm z-50
+          transition-opacity duration-300 ease-out
+          ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}
+        `}
+        onClick={onClose}
+      />
 
       {/* Drawer */}
       <div
@@ -296,7 +298,7 @@ export default function ProjectDrawer({
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-3 sm:top-4 right-3 sm:right-4 z-40 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/90 backdrop-blur-sm border border-primary-200 flex items-center justify-center hover:bg-white active:bg-white transition-colors shadow-sm"
+          className="absolute top-3 sm:top-4 right-3 sm:right-4 z-40 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/90 backdrop-blur-sm border border-primary-200 flex items-center justify-center hover:bg-white active:scale-95 transition-all duration-200 shadow-sm"
           aria-label="Закрыть"
         >
           <XMarkIcon className="w-4 h-4 sm:w-5 sm:h-5 text-primary-700" />
