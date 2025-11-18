@@ -6,10 +6,13 @@ import { CheckIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import { createProject, getCurrentUser, isSupabaseAvailable } from '@/lib/supabase'
 import { getActiveUser } from '@/lib/storage'
 
+type Specialization = 'Дизайн' | 'SMM' | 'Веб-разработка' | 'Другое'
+
 interface ProjectData {
   title: string
   description: string
   deadline: string
+  specialization: Specialization
 }
 
 export default function NewProjectPage() {
@@ -42,6 +45,7 @@ export default function NewProjectPage() {
     title: '',
     description: '',
     deadline: '',
+    specialization: 'Другое',
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -71,7 +75,7 @@ export default function NewProjectPage() {
           title: formData.title.trim(),
           description: formData.description.trim(),
           full_description: formData.description.trim(),
-          specialization: 'Другое',
+          specialization: formData.specialization,
           skills: [],
           location: '',
           deadline: formData.deadline,
@@ -144,6 +148,24 @@ export default function NewProjectPage() {
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             />
+          </div>
+
+          <div>
+            <label htmlFor="specialization" className="block text-sm font-light text-primary-700 mb-2">
+              Направление *
+            </label>
+            <select
+              id="specialization"
+              required
+              className="w-full px-4 sm:px-5 py-3 sm:py-4 border border-primary-200 rounded-apple text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white text-sm sm:text-base"
+              value={formData.specialization}
+              onChange={(e) => setFormData({ ...formData, specialization: e.target.value as Specialization })}
+            >
+              <option value="Дизайн">Дизайн</option>
+              <option value="SMM">SMM</option>
+              <option value="Веб-разработка">Веб-разработка</option>
+              <option value="Другое">Другое</option>
+            </select>
           </div>
 
           <div>

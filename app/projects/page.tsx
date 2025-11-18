@@ -8,6 +8,8 @@ import { getProjects, getCurrentUser, isSupabaseAvailable } from '@/lib/supabase
 import { ProjectCardSkeleton } from '@/components/SkeletonLoader'
 import ProjectDrawer from '@/components/ProjectDrawer'
 
+type Specialization = 'Дизайн' | 'SMM' | 'Веб-разработка' | 'Другое'
+
 interface Project {
   id: string
   title: string
@@ -15,9 +17,10 @@ interface Project {
   deadline: string
   status: 'open' | 'in_progress' | 'completed'
   applicationsCount: number
+  specialization?: Specialization
+  created_at?: string
+  user_id?: string
 }
-
-type Category = 'all' | 'my' | 'my-applications'
 
 const SUPABASE_AVAILABLE = isSupabaseAvailable()
 
@@ -26,10 +29,11 @@ export default function ProjectsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState<Category>('all')
+  const [selectedSpecialization, setSelectedSpecialization] = useState<Specialization | ''>('')
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  const [viewMode, setViewMode] = useState<'all' | 'my' | 'my-applications'>('all')
 
   // Debounce для поиска
   useEffect(() => {
@@ -69,10 +73,10 @@ export default function ProjectsPage() {
         if (SUPABASE_AVAILABLE) {
           let supabaseProjects: any[] = []
           
-          if (selectedCategory === 'my' && currentUserId) {
+          if (viewMode === 'my' && currentUserId) {
             // Мои задачи
             supabaseProjects = await getProjects({ userId: currentUserId })
-          } else if (selectedCategory === 'my-applications' && currentUserId) {
+          } else if (viewMode === 'my-applications' && currentUserId) {
             // Мои отклики
             supabaseProjects = await getProjects({ specialistId: currentUserId })
           } else {
@@ -88,6 +92,9 @@ export default function ProjectsPage() {
             deadline: p.deadline || '',
             status: p.status || 'open',
             applicationsCount: p.applicationsCount || 0,
+            specialization: p.specialization as Specialization,
+            created_at: p.created_at,
+            user_id: p.user_id,
           }))
           
           setProjects(formattedProjects)
@@ -112,12 +119,12 @@ export default function ProjectsPage() {
         }
       })
       
-      // Фильтруем по категории
+      // Фильтруем по режиму просмотра
       let filtered = allProjects
-      if (selectedCategory === 'my' && currentUserId) {
+      if (viewMode === 'my' && currentUserId) {
         // В localStorage нет связи с пользователем, показываем все
         filtered = allProjects
-      } else if (selectedCategory === 'my-applications' && currentUserId) {
+      } else if (viewMode === 'my-applications' && currentUserId) {
         const applications = readJson<any[]>('applications', [])
         const userEmail = readJson<any>('user', null)?.email || 'guest'
         const appliedProjectIds = new Set(
@@ -161,7 +168,7 @@ export default function ProjectsPage() {
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCategory, currentUserId])
+  }, [viewMode, currentUserId])
 
   const filteredProjects = useMemo(() => {
     const normalizedQuery = debouncedSearchQuery.trim().toLowerCase()
@@ -171,18 +178,21 @@ export default function ProjectsPage() {
         project.title.toLowerCase().includes(normalizedQuery) ||
         project.description.toLowerCase().includes(normalizedQuery)
       
-      return matchesSearch
+      const matchesSpecialization = !selectedSpecialization || project.specialization === selectedSpecialization
+      
+      return matchesSearch && matchesSpecialization
     })
 
+    // Сортировка от новых к старым по времени создания
     return matches.sort((a, b) => {
-      const aTime = new Date(a.deadline).getTime()
-      const bTime = new Date(b.deadline).getTime()
+      const aTime = a.created_at ? new Date(a.created_at).getTime() : 0
+      const bTime = b.created_at ? new Date(b.created_at).getTime() : 0
       if (isNaN(aTime) && isNaN(bTime)) return 0
       if (isNaN(aTime)) return 1
       if (isNaN(bTime)) return -1
-      return aTime - bTime
+      return bTime - aTime // От новых к старым
     })
-  }, [projects, debouncedSearchQuery])
+  }, [projects, debouncedSearchQuery, selectedSpecialization])
 
   const formatDate = (dateString: string) => {
     try {
@@ -248,6 +258,37 @@ export default function ProjectsPage() {
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-light text-primary-900 mb-2 sm:mb-3 tracking-tight">Задачи</h1>
             <p className="text-base sm:text-lg font-light text-primary-600">Найдите задачу для получения опыта и портфолио</p>
           </div>
+          {currentUserId && (
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+              <Link
+                href="/projects/new"
+                className="inline-flex items-center justify-center gap-2 bg-[#FF4600] text-white px-4 sm:px-5 py-2 sm:py-3 rounded-apple hover:bg-[#E63E00] transition-colors font-normal tracking-tight"
+              >
+                <PlusIcon className="w-4 h-4" />
+                <span className="whitespace-nowrap">Новая задача</span>
+              </Link>
+              <button
+                onClick={() => setViewMode('my')}
+                className={`inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-2 sm:py-3 rounded-apple transition-colors font-normal tracking-tight whitespace-nowrap ${
+                  viewMode === 'my'
+                    ? 'bg-primary-900 text-white'
+                    : 'border border-primary-200 text-primary-700 hover:bg-primary-50'
+                }`}
+              >
+                Мои задачи
+              </button>
+              <button
+                onClick={() => setViewMode('my-applications')}
+                className={`inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-2 sm:py-3 rounded-apple transition-colors font-normal tracking-tight whitespace-nowrap ${
+                  viewMode === 'my-applications'
+                    ? 'bg-primary-900 text-white'
+                    : 'border border-primary-200 text-primary-700 hover:bg-primary-50'
+                }`}
+              >
+                Мои отклики
+              </button>
+            </div>
+          )}
         </div>
         <div className="space-y-4">
           {[1, 2, 3, 4, 5].map((i) => (
@@ -266,13 +307,41 @@ export default function ProjectsPage() {
           <p className="text-base sm:text-lg font-light text-primary-600">Найдите задачу для получения опыта и портфолио</p>
         </div>
         {currentUserId && (
-          <Link
-            href="/projects/new"
-            className="inline-flex items-center justify-center gap-2 bg-primary-900 text-white px-4 sm:px-5 py-2 sm:py-3 rounded-apple hover:bg-primary-800 transition-colors font-normal tracking-tight"
-          >
-            <PlusIcon className="w-4 h-4" />
-            <span className="whitespace-nowrap">Создать задачу</span>
-          </Link>
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+            <Link
+              href="/projects/new"
+              className="inline-flex items-center justify-center gap-2 bg-[#FF4600] text-white px-4 sm:px-5 py-2 sm:py-3 rounded-apple hover:bg-[#E63E00] transition-colors font-normal tracking-tight"
+            >
+              <PlusIcon className="w-4 h-4" />
+              <span className="whitespace-nowrap">Новая задача</span>
+            </Link>
+            <button
+              onClick={() => {
+                setViewMode('my')
+                setSelectedSpecialization('')
+              }}
+              className={`inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-2 sm:py-3 rounded-apple transition-colors font-normal tracking-tight whitespace-nowrap ${
+                viewMode === 'my'
+                  ? 'bg-primary-900 text-white'
+                  : 'border border-primary-200 text-primary-700 hover:bg-primary-50'
+              }`}
+            >
+              Мои задачи
+            </button>
+            <button
+              onClick={() => {
+                setViewMode('my-applications')
+                setSelectedSpecialization('')
+              }}
+              className={`inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-2 sm:py-3 rounded-apple transition-colors font-normal tracking-tight whitespace-nowrap ${
+                viewMode === 'my-applications'
+                  ? 'bg-primary-900 text-white'
+                  : 'border border-primary-200 text-primary-700 hover:bg-primary-50'
+              }`}
+            >
+              Мои отклики
+            </button>
+          </div>
         )}
       </div>
 
@@ -292,42 +361,73 @@ export default function ProjectsPage() {
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6 pb-4 border-b border-primary-200">
-          {/* Segmented Controls */}
+          {/* Category Filters */}
           <div className="flex items-center gap-3 sm:gap-6 overflow-x-auto scrollbar-hide -mx-4 sm:mx-0 px-4 sm:px-0">
             <button
-              onClick={() => setSelectedCategory('all')}
+              onClick={() => {
+                setSelectedSpecialization('')
+                setViewMode('all')
+              }}
               className={`text-sm font-normal transition-colors tracking-tight whitespace-nowrap ${
-                selectedCategory === 'all'
+                selectedSpecialization === ''
                   ? 'text-[#FF4600]'
                   : 'text-primary-400 hover:text-primary-600'
               }`}
             >
-              Все проекты
+              Все
             </button>
-            {currentUserId && (
-              <>
-                <button
-                  onClick={() => setSelectedCategory('my')}
-                  className={`text-sm font-normal transition-colors tracking-tight whitespace-nowrap ${
-                    selectedCategory === 'my'
-                      ? 'text-[#FF4600]'
-                      : 'text-primary-400 hover:text-primary-600'
-                  }`}
-                >
-                  Мои проекты
-                </button>
-                <button
-                  onClick={() => setSelectedCategory('my-applications')}
-                  className={`text-sm font-normal transition-colors tracking-tight whitespace-nowrap ${
-                    selectedCategory === 'my-applications'
-                      ? 'text-[#FF4600]'
-                      : 'text-primary-400 hover:text-primary-600'
-                  }`}
-                >
-                  Мои отклики
-                </button>
-              </>
-            )}
+            <button
+              onClick={() => {
+                setSelectedSpecialization('Дизайн')
+                setViewMode('all')
+              }}
+              className={`text-sm font-normal transition-colors tracking-tight whitespace-nowrap ${
+                selectedSpecialization === 'Дизайн'
+                  ? 'text-[#FF4600]'
+                  : 'text-primary-400 hover:text-primary-600'
+              }`}
+            >
+              Дизайн
+            </button>
+            <button
+              onClick={() => {
+                setSelectedSpecialization('SMM')
+                setViewMode('all')
+              }}
+              className={`text-sm font-normal transition-colors tracking-tight whitespace-nowrap ${
+                selectedSpecialization === 'SMM'
+                  ? 'text-[#FF4600]'
+                  : 'text-primary-400 hover:text-primary-600'
+              }`}
+            >
+              SMM
+            </button>
+            <button
+              onClick={() => {
+                setSelectedSpecialization('Веб-разработка')
+                setViewMode('all')
+              }}
+              className={`text-sm font-normal transition-colors tracking-tight whitespace-nowrap ${
+                selectedSpecialization === 'Веб-разработка'
+                  ? 'text-[#FF4600]'
+                  : 'text-primary-400 hover:text-primary-600'
+              }`}
+            >
+              Веб-разработка
+            </button>
+            <button
+              onClick={() => {
+                setSelectedSpecialization('Другое')
+                setViewMode('all')
+              }}
+              className={`text-sm font-normal transition-colors tracking-tight whitespace-nowrap ${
+                selectedSpecialization === 'Другое'
+                  ? 'text-[#FF4600]'
+                  : 'text-primary-400 hover:text-primary-600'
+              }`}
+            >
+              Другое
+            </button>
           </div>
           
           {/* Search - Desktop */}

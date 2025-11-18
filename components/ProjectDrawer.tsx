@@ -125,13 +125,39 @@ export default function ProjectDrawer({
               setCurrentUserId(user.id)
             }
             
-            const applications = JSON.parse(localStorage.getItem('applications') || '[]')
-            const userEmail = user?.email || 'guest'
-            const userApplication = applications.find(
-              (app: any) => app.projectId === projectId && app.applicantEmail === userEmail
-            )
-            if (userApplication) {
-              setSubmitted(true)
+            // Проверяем, является ли пользователь владельцем задачи
+            // В localStorage проверяем по user_id или по user (для старых данных)
+            const isOwnerLocal = foundProject.user_id === user?.id || foundProject.user === user?.name || foundProject.user === user?.email
+            
+            if (isOwnerLocal) {
+              setIsOwner(true)
+              // Загружаем отклики для владельца
+              const applications = JSON.parse(localStorage.getItem('applications') || '[]')
+              const projectApplications = applications.filter((app: any) => app.projectId === projectId)
+              setApplications(projectApplications.map((app: any) => ({
+                id: app.id,
+                message: app.text || app.message || '',
+                created_at: app.date || app.created_at || new Date().toISOString(),
+                specialists: app.specialist ? {
+                  id: app.specialist.id || '',
+                  first_name: app.specialist.firstName || app.specialist.first_name || '',
+                  last_name: app.specialist.lastName || app.specialist.last_name || '',
+                  email: app.specialist.email || '',
+                  telegram: app.specialist.telegram || '',
+                  specialization: app.specialist.specialization || '',
+                  bio: app.specialist.bio || '',
+                } : undefined,
+              })))
+            } else {
+              // Проверяем, подал ли пользователь заявку
+              const applications = JSON.parse(localStorage.getItem('applications') || '[]')
+              const userEmail = user?.email || 'guest'
+              const userApplication = applications.find(
+                (app: any) => app.projectId === projectId && app.applicantEmail === userEmail
+              )
+              if (userApplication) {
+                setSubmitted(true)
+              }
             }
             setProject(foundProject)
           }
