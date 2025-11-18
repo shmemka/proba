@@ -215,8 +215,9 @@ export default function SpecialistsPage() {
     }
   }, [])
 
-  // Основной список - фильтруется только по специализации и сортировке, без поиска
   const filteredSpecialists = useMemo(() => {
+    const normalizedQuery = debouncedSearchQuery.trim().toLowerCase()
+
     return specialists
       .filter(specialist => {
         // Фильтруем по настройке "Показывать в поиске"
@@ -224,9 +225,16 @@ export default function SpecialistsPage() {
           return false
         }
         
+        const firstName = specialist.firstName || ''
+        const lastName = specialist.lastName || ''
+        const fullName = `${firstName} ${lastName}`.toLowerCase()
         const specialization = specialist.specialization || ''
+        const matchesSearch =
+          fullName.includes(normalizedQuery) ||
+          specialization.toLowerCase().includes(normalizedQuery) ||
+          (specialist.bio && specialist.bio.toLowerCase().includes(normalizedQuery))
         const matchesSpecialization = !selectedSpecialization || specialization === selectedSpecialization
-        return matchesSpecialization
+        return matchesSearch && matchesSpecialization
       })
       .sort((a, b) => {
         if (sortBy === 'name') {
@@ -239,31 +247,7 @@ export default function SpecialistsPage() {
         }
         return (b.hiredCount || 0) - (a.hiredCount || 0)
       })
-  }, [specialists, selectedSpecialization, sortBy])
-
-  // Предложения для поиска - отдельный список, не влияет на основной
-  const searchSuggestions = useMemo(() => {
-    const normalizedQuery = debouncedSearchQuery.trim().toLowerCase()
-    if (!normalizedQuery) return []
-
-    return specialists
-      .filter(specialist => {
-        if (specialist.showInSearch === false) {
-          return false
-        }
-        
-        const firstName = specialist.firstName || ''
-        const lastName = specialist.lastName || ''
-        const fullName = `${firstName} ${lastName}`.toLowerCase()
-        const specialization = specialist.specialization || ''
-        return (
-          fullName.includes(normalizedQuery) ||
-          specialization.toLowerCase().includes(normalizedQuery) ||
-          (specialist.bio && specialist.bio.toLowerCase().includes(normalizedQuery))
-        )
-      })
-      .slice(0, 10) // Ограничиваем до 10 предложений
-  }, [specialists, debouncedSearchQuery])
+  }, [specialists, debouncedSearchQuery, selectedSpecialization, sortBy])
 
   const handleSpecialistClick = useCallback(async (specialistSummary: Specialist) => {
     try {
@@ -606,41 +590,32 @@ export default function SpecialistsPage() {
             className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 transition-opacity duration-300 ease-out"
             onClick={() => setIsSearchModalOpen(false)}
           />
-          <div className="fixed inset-0 z-50 flex items-start justify-center p-4 pt-20">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div 
               className="bg-white rounded-apple border border-primary-100 shadow-2xl max-w-2xl w-full overflow-hidden flex flex-col animate-fade-in"
               onClick={(e) => e.stopPropagation()}
             >
+              <div className="flex items-center justify-between p-6 border-b border-primary-100">
+                <h2 className="text-2xl font-light text-primary-900 tracking-tight">Поиск</h2>
+                <button
+                  onClick={() => setIsSearchModalOpen(false)}
+                  className="w-9 h-9 rounded-full bg-white border border-primary-200 flex items-center justify-center hover:bg-primary-50 active:scale-95 transition-all duration-200"
+                >
+                  <XMarkIcon className="w-5 h-5 text-primary-700" />
+                </button>
+              </div>
               <div className="p-6">
-                <div className="relative mb-4">
-                  <MagnifyingGlassIcon className="absolute left-0 top-1/2 transform -translate-y-1/2 text-primary-400 w-5 h-5" />
+                <div className="relative">
+                  <MagnifyingGlassIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 text-primary-400 w-5 h-5" />
                   <input
                     type="text"
                     placeholder="Поиск специалистов..."
-                    className="w-full pl-8 pr-4 py-3 bg-transparent text-primary-900 placeholder-primary-400 font-light text-sm focus:outline-none"
+                    className="w-full pl-12 pr-4 py-3 border border-primary-200 rounded-apple focus:ring-1 focus:ring-primary-900 focus:border-primary-900 bg-white text-primary-900 placeholder-primary-400 font-light text-sm"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     autoFocus
                   />
                 </div>
-                {searchSuggestions.length > 0 && (
-                  <div className="space-y-0">
-                    {searchSuggestions.map((specialist) => (
-                      <button
-                        key={specialist.id}
-                        onClick={() => {
-                          handleSpecialistClick(specialist)
-                          setIsSearchModalOpen(false)
-                          setSearchQuery('')
-                        }}
-                        className="w-full flex items-center justify-between px-0 py-3 text-left hover:bg-primary-50 transition-colors border-b border-primary-100 last:border-b-0"
-                      >
-                        <span className="text-sm font-light text-primary-900">{specialist.firstName} {specialist.lastName}</span>
-                        <span className="text-xs font-light text-primary-500">{specialist.specialization}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
               </div>
             </div>
           </div>

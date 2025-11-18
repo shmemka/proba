@@ -209,11 +209,17 @@ export default function ProjectsPage() {
     }
   }, [isMyProjectsModalOpen, isMyApplicationsModalOpen, isSearchModalOpen])
 
-  // Основной список - фильтруется только по специализации, без поиска
   const filteredProjects = useMemo(() => {
+    const normalizedQuery = debouncedSearchQuery.trim().toLowerCase()
+
     const matches = projects.filter(project => {
+      const matchesSearch =
+        project.title.toLowerCase().includes(normalizedQuery) ||
+        project.description.toLowerCase().includes(normalizedQuery)
+      
       const matchesSpecialization = !selectedSpecialization || project.specialization === selectedSpecialization
-      return matchesSpecialization
+      
+      return matchesSearch && matchesSpecialization
     })
 
     // Сортировка от новых к старым по времени создания
@@ -225,22 +231,7 @@ export default function ProjectsPage() {
       if (isNaN(bTime)) return -1
       return bTime - aTime // От новых к старым
     })
-  }, [projects, selectedSpecialization])
-
-  // Предложения для поиска - отдельный список, не влияет на основной
-  const searchSuggestions = useMemo(() => {
-    const normalizedQuery = debouncedSearchQuery.trim().toLowerCase()
-    if (!normalizedQuery) return []
-
-    return projects
-      .filter(project => {
-        return (
-          project.title.toLowerCase().includes(normalizedQuery) ||
-          project.description.toLowerCase().includes(normalizedQuery)
-        )
-      })
-      .slice(0, 10) // Ограничиваем до 10 предложений
-  }, [projects, debouncedSearchQuery])
+  }, [projects, debouncedSearchQuery, selectedSpecialization])
 
   const formatDate = (dateString: string) => {
     try {
@@ -569,41 +560,32 @@ export default function ProjectsPage() {
             className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 transition-opacity duration-300 ease-out"
             onClick={() => setIsSearchModalOpen(false)}
           />
-          <div className="fixed inset-0 z-50 flex items-start justify-center p-4 pt-20">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div 
               className="bg-white rounded-apple border border-primary-100 shadow-2xl max-w-2xl w-full overflow-hidden flex flex-col animate-fade-in"
               onClick={(e) => e.stopPropagation()}
             >
+              <div className="flex items-center justify-between p-6 border-b border-primary-100">
+                <h2 className="text-2xl font-light text-primary-900 tracking-tight">Поиск</h2>
+                <button
+                  onClick={() => setIsSearchModalOpen(false)}
+                  className="w-9 h-9 rounded-full bg-white border border-primary-200 flex items-center justify-center hover:bg-primary-50 active:scale-95 transition-all duration-200"
+                >
+                  <XMarkIcon className="w-5 h-5 text-primary-700" />
+                </button>
+              </div>
               <div className="p-6">
-                <div className="relative mb-4">
-                  <MagnifyingGlassIcon className="absolute left-0 top-1/2 transform -translate-y-1/2 text-primary-400 w-5 h-5" />
+                <div className="relative">
+                  <MagnifyingGlassIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 text-primary-400 w-5 h-5" />
                   <input
                     type="text"
                     placeholder="Поиск задач..."
-                    className="w-full pl-8 pr-4 py-3 bg-transparent text-primary-900 placeholder-primary-400 font-light text-sm focus:outline-none"
+                    className="w-full pl-12 pr-4 py-3 border border-primary-200 rounded-apple focus:ring-1 focus:ring-primary-900 focus:border-primary-900 bg-white text-primary-900 placeholder-primary-400 font-light text-sm"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     autoFocus
                   />
                 </div>
-                {searchSuggestions.length > 0 && (
-                  <div className="space-y-0">
-                    {searchSuggestions.map((project) => (
-                      <button
-                        key={project.id}
-                        onClick={() => {
-                          handleProjectClick(project.id)
-                          setIsSearchModalOpen(false)
-                          setSearchQuery('')
-                        }}
-                        className="w-full flex items-center justify-between px-0 py-3 text-left hover:bg-primary-50 transition-colors border-b border-primary-100 last:border-b-0"
-                      >
-                        <span className="text-xs font-light text-primary-500">{formatDate(project.deadline)}</span>
-                        <span className="text-sm font-light text-primary-900">{project.title}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
               </div>
             </div>
           </div>
