@@ -294,43 +294,41 @@ export default function ProjectsPage() {
   if (isLoading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
-        <div className="mb-8 sm:mb-12 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
-          <div>
+        <div className="mb-8 sm:mb-12">
+          <div className="mb-4 sm:mb-6">
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-light text-primary-900 mb-2 sm:mb-3 tracking-tight">Задачи</h1>
             <p className="text-base sm:text-lg font-light text-primary-600">Найдите задачу для получения опыта и портфолио</p>
           </div>
           {currentUserId && (
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
+            <div className="flex gap-2 sm:gap-3 overflow-x-auto scrollbar-hide -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 pb-2">
               <button
                 onClick={() => setIsSearchModalOpen(true)}
-                className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 rounded-apple bg-primary-50 text-primary-700 hover:bg-primary-100 transition-colors font-normal tracking-tight"
+                className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 rounded-apple bg-primary-50 text-primary-700 hover:bg-primary-100 transition-colors font-normal tracking-tight whitespace-nowrap flex-shrink-0"
               >
                 <MagnifyingGlassIcon className="w-5 h-5" />
                 <span className="text-xs sm:text-sm whitespace-nowrap">Поиск</span>
               </button>
-              <div className="flex flex-row items-center gap-2 sm:gap-3 flex-wrap">
-                <Link
-                  href="/projects/new"
-                  className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 rounded-apple bg-primary-900 text-white hover:bg-primary-800 transition-colors font-normal tracking-tight"
-                >
-                  <PlusIcon className="w-5 h-5" />
-                  <span className="text-xs sm:text-sm whitespace-nowrap">Новая задача</span>
-                </Link>
-                <button
-                  onClick={() => setIsMyProjectsModalOpen(true)}
-                  className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 rounded-apple bg-primary-50 text-primary-700 hover:bg-primary-100 transition-colors font-normal tracking-tight"
-                >
-                  <BriefcaseIcon className="w-5 h-5" />
-                  <span className="text-xs sm:text-sm whitespace-nowrap">Мои задачи</span>
-                </button>
-                <button
-                  onClick={() => setIsMyApplicationsModalOpen(true)}
-                  className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 rounded-apple bg-primary-50 text-primary-700 hover:bg-primary-100 transition-colors font-normal tracking-tight"
-                >
-                  <PaperAirplaneIcon className="w-5 h-5" />
-                  <span className="text-xs sm:text-sm whitespace-nowrap">Мои отклики</span>
-                </button>
-              </div>
+              <Link
+                href="/projects/new"
+                className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 rounded-apple bg-primary-900 text-white hover:bg-primary-800 transition-colors font-normal tracking-tight whitespace-nowrap flex-shrink-0"
+              >
+                <PlusIcon className="w-5 h-5" />
+                <span className="text-xs sm:text-sm whitespace-nowrap">Новая задача</span>
+              </Link>
+              <button
+                onClick={() => setIsMyProjectsModalOpen(true)}
+                className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 rounded-apple bg-primary-50 text-primary-700 hover:bg-primary-100 transition-colors font-normal tracking-tight whitespace-nowrap flex-shrink-0"
+              >
+                <BriefcaseIcon className="w-5 h-5" />
+                <span className="text-xs sm:text-sm whitespace-nowrap">Мои задачи</span>
+              </button>
+              <button
+                onClick={() => setIsMyApplicationsModalOpen(true)}
+                className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 rounded-apple bg-primary-50 text-primary-700 hover:bg-primary-100 transition-colors font-normal tracking-tight whitespace-nowrap flex-shrink-0"
+              >
+                <PaperAirplaneIcon className="w-5 h-5" />
+                <span className="text-xs sm:text-sm whitespace-nowrap">Мои отклики</span>
+              </button>
             </div>
           )}
         </div>
@@ -345,45 +343,43 @@ export default function ProjectsPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
-      <div className="mb-8 sm:mb-12 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
-        <div>
+      <div className="mb-8 sm:mb-12">
+        <div className="mb-4 sm:mb-6">
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-light text-primary-900 mb-2 sm:mb-3 tracking-tight">Задачи</h1>
           <p className="text-base sm:text-lg font-light text-primary-600">Найдите задачу для получения опыта и портфолио</p>
         </div>
-          {currentUserId && (
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
-              <button
-                onClick={() => setIsSearchModalOpen(true)}
-                className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 rounded-apple bg-primary-50 text-primary-700 hover:bg-primary-100 transition-colors font-normal tracking-tight"
-              >
-                <MagnifyingGlassIcon className="w-5 h-5" />
-                <span className="text-xs sm:text-sm whitespace-nowrap">Поиск</span>
-              </button>
-              <div className="flex flex-row items-center gap-2 sm:gap-3 flex-wrap">
-                <Link
-                  href="/projects/new"
-                  className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 rounded-apple bg-primary-900 text-white hover:bg-primary-800 transition-colors font-normal tracking-tight"
-                >
-                  <PlusIcon className="w-5 h-5" />
-                  <span className="text-xs sm:text-sm whitespace-nowrap">Новая задача</span>
-                </Link>
-                <button
-                  onClick={() => setIsMyProjectsModalOpen(true)}
-                  className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 rounded-apple bg-primary-50 text-primary-700 hover:bg-primary-100 transition-colors font-normal tracking-tight"
-                >
-                  <BriefcaseIcon className="w-5 h-5" />
-                  <span className="text-xs sm:text-sm whitespace-nowrap">Мои задачи</span>
-                </button>
-                <button
-                  onClick={() => setIsMyApplicationsModalOpen(true)}
-                  className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 rounded-apple bg-primary-50 text-primary-700 hover:bg-primary-100 transition-colors font-normal tracking-tight"
-                >
-                  <PaperAirplaneIcon className="w-5 h-5" />
-                  <span className="text-xs sm:text-sm whitespace-nowrap">Мои отклики</span>
-                </button>
-              </div>
-            </div>
-          )}
+        {currentUserId && (
+          <div className="flex gap-2 sm:gap-3 overflow-x-auto scrollbar-hide -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 pb-2">
+            <button
+              onClick={() => setIsSearchModalOpen(true)}
+              className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 rounded-apple bg-primary-50 text-primary-700 hover:bg-primary-100 transition-colors font-normal tracking-tight whitespace-nowrap flex-shrink-0"
+            >
+              <MagnifyingGlassIcon className="w-5 h-5" />
+              <span className="text-xs sm:text-sm whitespace-nowrap">Поиск</span>
+            </button>
+            <Link
+              href="/projects/new"
+              className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 rounded-apple bg-primary-900 text-white hover:bg-primary-800 transition-colors font-normal tracking-tight whitespace-nowrap flex-shrink-0"
+            >
+              <PlusIcon className="w-5 h-5" />
+              <span className="text-xs sm:text-sm whitespace-nowrap">Новая задача</span>
+            </Link>
+            <button
+              onClick={() => setIsMyProjectsModalOpen(true)}
+              className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 rounded-apple bg-primary-50 text-primary-700 hover:bg-primary-100 transition-colors font-normal tracking-tight whitespace-nowrap flex-shrink-0"
+            >
+              <BriefcaseIcon className="w-5 h-5" />
+              <span className="text-xs sm:text-sm whitespace-nowrap">Мои задачи</span>
+            </button>
+            <button
+              onClick={() => setIsMyApplicationsModalOpen(true)}
+              className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 rounded-apple bg-primary-50 text-primary-700 hover:bg-primary-100 transition-colors font-normal tracking-tight whitespace-nowrap flex-shrink-0"
+            >
+              <PaperAirplaneIcon className="w-5 h-5" />
+              <span className="text-xs sm:text-sm whitespace-nowrap">Мои отклики</span>
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="mb-6 sm:mb-10">
