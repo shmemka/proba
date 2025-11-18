@@ -300,37 +300,37 @@ export default function ProjectsPage() {
             <p className="text-base sm:text-lg font-light text-primary-600">Найдите задачу для получения опыта и портфолио</p>
           </div>
           {currentUserId && (
-            <div className="flex flex-row items-center justify-center sm:justify-start gap-0 flex-wrap">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center sm:justify-start gap-px sm:gap-0 w-full sm:w-auto -mx-4 sm:mx-0 px-4 sm:px-0 border border-primary-200 sm:border-0 rounded-apple sm:rounded-none overflow-hidden">
+              <button
+                onClick={() => setIsSearchModalOpen(true)}
+                className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 transition-all duration-200 font-normal tracking-tight text-primary-700 hover:bg-primary-50 active:scale-95 bg-white sm:bg-transparent border-0 sm:border-none"
+              >
+                <MagnifyingGlassIcon className="w-5 h-5" />
+                <span className="text-xs sm:text-sm whitespace-nowrap">Поиск</span>
+              </button>
+              <div className="hidden sm:block w-px h-12 bg-primary-200 mx-1"></div>
               <Link
                 href="/projects/new"
-                className="inline-flex flex-col items-center justify-center gap-1.5 px-4 sm:px-5 py-3 sm:py-4 transition-all duration-200 font-normal tracking-tight text-[#FF4600] hover:bg-primary-50 active:scale-95"
+                className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 transition-all duration-200 font-normal tracking-tight text-[#FF4600] hover:bg-primary-50 active:scale-95 bg-white sm:bg-transparent border-0 sm:border-none border-t border-primary-200 sm:border-t-0"
               >
                 <PlusIcon className="w-5 h-5" />
                 <span className="text-xs sm:text-sm whitespace-nowrap">Новая задача</span>
               </Link>
-              <div className="w-px h-12 bg-primary-200 mx-1"></div>
+              <div className="hidden sm:block w-px h-12 bg-primary-200 mx-1"></div>
               <button
                 onClick={() => setIsMyProjectsModalOpen(true)}
-                className="inline-flex flex-col items-center justify-center gap-1.5 px-4 sm:px-5 py-3 sm:py-4 transition-all duration-200 font-normal tracking-tight text-primary-700 hover:bg-primary-50 active:scale-95"
+                className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 transition-all duration-200 font-normal tracking-tight text-primary-700 hover:bg-primary-50 active:scale-95 bg-white sm:bg-transparent border-0 sm:border-none border-t border-primary-200 sm:border-t-0"
               >
                 <BriefcaseIcon className="w-5 h-5" />
                 <span className="text-xs sm:text-sm whitespace-nowrap">Мои задачи</span>
               </button>
-              <div className="w-px h-12 bg-primary-200 mx-1"></div>
+              <div className="hidden sm:block w-px h-12 bg-primary-200 mx-1"></div>
               <button
                 onClick={() => setIsMyApplicationsModalOpen(true)}
-                className="inline-flex flex-col items-center justify-center gap-1.5 px-4 sm:px-5 py-3 sm:py-4 transition-all duration-200 font-normal tracking-tight text-primary-700 hover:bg-primary-50 active:scale-95"
+                className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 transition-all duration-200 font-normal tracking-tight text-primary-700 hover:bg-primary-50 active:scale-95 bg-white sm:bg-transparent border-0 sm:border-none border-t border-primary-200 sm:border-t-0"
               >
                 <PaperAirplaneIcon className="w-5 h-5" />
                 <span className="text-xs sm:text-sm whitespace-nowrap">Мои отклики</span>
-              </button>
-              <div className="w-px h-12 bg-primary-200 mx-1"></div>
-              <button
-                onClick={() => setIsSearchModalOpen(true)}
-                className="inline-flex flex-col items-center justify-center gap-1.5 px-4 sm:px-5 py-3 sm:py-4 transition-all duration-200 font-normal tracking-tight text-primary-700 hover:bg-primary-50 active:scale-95"
-              >
-                <MagnifyingGlassIcon className="w-5 h-5" />
-                <span className="text-xs sm:text-sm whitespace-nowrap">Поиск</span>
               </button>
             </div>
           )}
@@ -352,37 +352,37 @@ export default function ProjectsPage() {
           <p className="text-base sm:text-lg font-light text-primary-600">Найдите задачу для получения опыта и портфолио</p>
         </div>
           {currentUserId && (
-            <div className="flex flex-row items-center justify-center sm:justify-start gap-0 flex-wrap">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center sm:justify-start gap-px sm:gap-0 w-full sm:w-auto -mx-4 sm:mx-0 px-4 sm:px-0 border border-primary-200 sm:border-0 rounded-apple sm:rounded-none overflow-hidden">
+              <button
+                onClick={() => setIsSearchModalOpen(true)}
+                className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 transition-all duration-200 font-normal tracking-tight text-primary-700 hover:bg-primary-50 active:scale-95 bg-white sm:bg-transparent border-0 sm:border-none"
+              >
+                <MagnifyingGlassIcon className="w-5 h-5" />
+                <span className="text-xs sm:text-sm whitespace-nowrap">Поиск</span>
+              </button>
+              <div className="hidden sm:block w-px h-12 bg-primary-200 mx-1"></div>
               <Link
                 href="/projects/new"
-                className="inline-flex flex-col items-center justify-center gap-1.5 px-4 sm:px-5 py-3 sm:py-4 transition-all duration-200 font-normal tracking-tight text-[#FF4600] hover:bg-primary-50 active:scale-95"
+                className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 transition-all duration-200 font-normal tracking-tight text-[#FF4600] hover:bg-primary-50 active:scale-95 bg-white sm:bg-transparent border-0 sm:border-none border-t border-primary-200 sm:border-t-0"
               >
                 <PlusIcon className="w-5 h-5" />
                 <span className="text-xs sm:text-sm whitespace-nowrap">Новая задача</span>
               </Link>
-              <div className="w-px h-12 bg-primary-200 mx-1"></div>
+              <div className="hidden sm:block w-px h-12 bg-primary-200 mx-1"></div>
               <button
                 onClick={() => setIsMyProjectsModalOpen(true)}
-                className="inline-flex flex-col items-center justify-center gap-1.5 px-4 sm:px-5 py-3 sm:py-4 transition-all duration-200 font-normal tracking-tight text-primary-700 hover:bg-primary-50 active:scale-95"
+                className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 transition-all duration-200 font-normal tracking-tight text-primary-700 hover:bg-primary-50 active:scale-95 bg-white sm:bg-transparent border-0 sm:border-none border-t border-primary-200 sm:border-t-0"
               >
                 <BriefcaseIcon className="w-5 h-5" />
                 <span className="text-xs sm:text-sm whitespace-nowrap">Мои задачи</span>
               </button>
-              <div className="w-px h-12 bg-primary-200 mx-1"></div>
+              <div className="hidden sm:block w-px h-12 bg-primary-200 mx-1"></div>
               <button
                 onClick={() => setIsMyApplicationsModalOpen(true)}
-                className="inline-flex flex-col items-center justify-center gap-1.5 px-4 sm:px-5 py-3 sm:py-4 transition-all duration-200 font-normal tracking-tight text-primary-700 hover:bg-primary-50 active:scale-95"
+                className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 transition-all duration-200 font-normal tracking-tight text-primary-700 hover:bg-primary-50 active:scale-95 bg-white sm:bg-transparent border-0 sm:border-none border-t border-primary-200 sm:border-t-0"
               >
                 <PaperAirplaneIcon className="w-5 h-5" />
                 <span className="text-xs sm:text-sm whitespace-nowrap">Мои отклики</span>
-              </button>
-              <div className="w-px h-12 bg-primary-200 mx-1"></div>
-              <button
-                onClick={() => setIsSearchModalOpen(true)}
-                className="inline-flex flex-col items-center justify-center gap-1.5 px-4 sm:px-5 py-3 sm:py-4 transition-all duration-200 font-normal tracking-tight text-primary-700 hover:bg-primary-50 active:scale-95"
-              >
-                <MagnifyingGlassIcon className="w-5 h-5" />
-                <span className="text-xs sm:text-sm whitespace-nowrap">Поиск</span>
               </button>
             </div>
           )}

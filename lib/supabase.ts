@@ -138,6 +138,7 @@ export const ensureSpecialistProfile = async ({
     first_name: firstName || safeDisplayName,
     last_name: lastName || '',
     specialization: DEFAULT_SPECIALIZATION,
+    show_in_search: false, // По умолчанию карточка не публикуется
   })
 
   if (insertError) {

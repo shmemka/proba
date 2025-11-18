@@ -133,7 +133,8 @@ export default function EditProfilePage() {
   
   const [formData, setFormData] = useState<ProfileData>(createEmptyProfile)
   const [projects, setProjects] = useState<Project[]>([])
-  const [activeTab, setActiveTab] = useState<'general' | 'profile' | 'portfolio'>('general')
+  const [activeTab, setActiveTab] = useState<'general' | 'freelancers' | 'companies'>('general')
+  const [freelancerSubTab, setFreelancerSubTab] = useState<'profile' | 'portfolio'>('profile')
   const [avatarPreview, setAvatarPreview] = useState<string>('')
   const [generalData, setGeneralData] = useState({
     name: '',
@@ -158,7 +159,7 @@ export default function EditProfilePage() {
               telegram: specialist.telegram || '',
               email: specialist.email || currentUser.email || '',
               avatarUrl: specialist.avatar_url || '',
-              showInSearch: specialist.show_in_search !== undefined ? specialist.show_in_search : true,
+              showInSearch: specialist.show_in_search === true,
             })
             
             // Загружаем аватарку
@@ -202,7 +203,7 @@ export default function EditProfilePage() {
                 ...savedProfile,
                 email: savedProfile.email || currentUser.email || '',
                 avatarUrl: (savedProfile as any).avatarUrl || '',
-                showInSearch: savedProfile.showInSearch !== undefined ? savedProfile.showInSearch : true,
+                showInSearch: savedProfile.showInSearch === true,
               })
               if ((savedProfile as any).avatarUrl) {
                 setAvatarPreview((savedProfile as any).avatarUrl)
@@ -535,11 +536,33 @@ export default function EditProfilePage() {
     try {
       if (SUPABASE_ENABLED) {
         // Сохраняем профиль специалиста (если есть данные)
-        if (activeTab === 'profile' || activeTab === 'portfolio') {
+        if (activeTab === 'freelancers') {
           // Валидация для профиля
-          if (activeTab === 'profile' && (!formData.firstName.trim() || !formData.lastName.trim() || !formData.telegram.trim())) {
-            alert('Заполните обязательные поля: имя, фамилия и Telegram')
-            return
+          if (freelancerSubTab === 'profile') {
+            // Проверяем обязательные поля
+            if (!formData.firstName.trim() || !formData.lastName.trim()) {
+              alert('Заполните обязательные поля: имя и фамилия')
+              setIsSaving(false)
+              return
+            }
+            
+            // Проверяем, что указан хотя бы один способ связи
+            const hasTelegram = formData.telegram.trim().length > 0
+            const hasEmail = (formData.email || currentUser.email || '').trim().length > 0
+            if (!hasTelegram && !hasEmail) {
+              alert('Укажите хотя бы один способ связи: Telegram или почта')
+              setIsSaving(false)
+              return
+            }
+            
+            // Если пользователь хочет опубликовать карточку, проверяем полноту данных
+            if (formData.showInSearch !== false) {
+              if (!hasTelegram) {
+                alert('Для публикации карточки необходимо указать Telegram')
+                setIsSaving(false)
+                return
+              }
+            }
           }
 
           // Создаем профиль специалиста, если его нет
@@ -563,6 +586,16 @@ export default function EditProfilePage() {
           }))
           const portfolioPreview = buildPortfolioPreview(uploadedProjects)
 
+          // Определяем, можно ли опубликовать карточку
+          // Карточка публикуется только если заполнены все обязательные поля и указан хотя бы один способ связи
+          const canPublish = 
+            formData.firstName.trim() &&
+            formData.lastName.trim() &&
+            (formData.telegram.trim() || (formData.email || currentUser.email || '').trim()) &&
+            formData.telegram.trim() // Для публикации обязательно нужен Telegram
+            
+          const shouldPublish = formData.showInSearch !== false && canPublish
+
           await updateSpecialist(currentUser.id, {
             first_name: formData.firstName.trim(),
             last_name: formData.lastName.trim(),
@@ -571,10 +604,15 @@ export default function EditProfilePage() {
             telegram: formData.telegram.trim(),
             email: formData.email || currentUser.email,
             avatar_url: uploadedAvatarUrl || '',
-            show_in_search: formData.showInSearch !== false,
+            show_in_search: shouldPublish,
             portfolio: portfolioData,
             portfolio_preview: portfolioPreview,
           })
+          
+          // Обновляем состояние, если карточка не может быть опубликована
+          if (formData.showInSearch !== false && !canPublish) {
+            setFormData(prev => ({ ...prev, showInSearch: false }))
+          }
 
           setFormData((prev) => ({
             ...prev,
@@ -612,10 +650,32 @@ export default function EditProfilePage() {
         alert('Изменения сохранены')
       } else {
         // Fallback на localStorage
-        if (activeTab === 'profile' || activeTab === 'portfolio') {
-          if (activeTab === 'profile' && (!formData.firstName.trim() || !formData.lastName.trim() || !formData.telegram.trim())) {
-            alert('Заполните обязательные поля: имя, фамилия и Telegram')
-            return
+        if (activeTab === 'freelancers') {
+          if (freelancerSubTab === 'profile') {
+            // Проверяем обязательные поля
+            if (!formData.firstName.trim() || !formData.lastName.trim()) {
+              alert('Заполните обязательные поля: имя и фамилия')
+              setIsSaving(false)
+              return
+            }
+            
+            // Проверяем, что указан хотя бы один способ связи
+            const hasTelegram = formData.telegram.trim().length > 0
+            const hasEmail = (formData.email || currentUser.email || '').trim().length > 0
+            if (!hasTelegram && !hasEmail) {
+              alert('Укажите хотя бы один способ связи: Telegram или почта')
+              setIsSaving(false)
+              return
+            }
+            
+            // Если пользователь хочет опубликовать карточку, проверяем полноту данных
+            if (formData.showInSearch !== false) {
+              if (!hasTelegram) {
+                alert('Для публикации карточки необходимо указать Telegram')
+                setIsSaving(false)
+                return
+              }
+            }
           }
 
           const projectsPayload = projects.map(p => ({
@@ -624,12 +684,30 @@ export default function EditProfilePage() {
             description: p.description,
             images: p.images.map(img => ({ url: img.url }))
           }))
+          
+          // Определяем, можно ли опубликовать карточку
+          const hasTelegram = formData.telegram.trim().length > 0
+          const hasEmail = (formData.email || currentUser.email || '').trim().length > 0
+          const canPublish = 
+            formData.firstName.trim() &&
+            formData.lastName.trim() &&
+            (hasTelegram || hasEmail) &&
+            hasTelegram // Для публикации обязательно нужен Telegram
+            
+          const shouldPublish = formData.showInSearch === true && canPublish
+          
           const profileDataWithProjects = {
             ...formData,
+            showInSearch: shouldPublish,
             projects: projectsPayload,
             portfolioPreview: buildPortfolioPreview(projectsPayload),
           }
           saveSpecialistProfile(currentUser.id, profileDataWithProjects)
+          
+          // Обновляем состояние, если карточка не может быть опубликована
+          if (formData.showInSearch === true && !canPublish) {
+            setFormData(prev => ({ ...prev, showInSearch: false }))
+          }
           
           const specialists = readJson<any[]>('specialists', [])
           const existingIndex = specialists.findIndex((s: any) => s.id === currentUser.id)
@@ -698,34 +776,73 @@ export default function EditProfilePage() {
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab('profile')}
+            onClick={() => {
+              setActiveTab('freelancers')
+              setFreelancerSubTab('profile')
+            }}
             className={`relative text-sm font-normal transition-colors tracking-tight pb-4 whitespace-nowrap ${
-              activeTab === 'profile'
+              activeTab === 'freelancers'
                 ? 'text-[#FF4600]'
                 : 'text-primary-400 hover:text-primary-600'
             }`}
           >
-            Профиль
-            {activeTab === 'profile' && (
+            Для фрилансеров
+            {activeTab === 'freelancers' && (
               <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FF4600]"></span>
             )}
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab('portfolio')}
+            onClick={() => setActiveTab('companies')}
             className={`relative text-sm font-normal transition-colors tracking-tight pb-4 whitespace-nowrap ${
-              activeTab === 'portfolio'
+              activeTab === 'companies'
                 ? 'text-[#FF4600]'
                 : 'text-primary-400 hover:text-primary-600'
             }`}
           >
-            Портфолио
-            {activeTab === 'portfolio' && (
+            Для компаний
+            {activeTab === 'companies' && (
               <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FF4600]"></span>
             )}
           </button>
         </div>
       </div>
+
+      {/* Sub-tabs для фрилансеров */}
+      {activeTab === 'freelancers' && (
+        <div className="mb-6 border-b border-primary-200">
+          <div className="flex gap-6 overflow-x-auto scrollbar-hide -mx-4 sm:mx-0 px-4 sm:px-0">
+            <button
+              type="button"
+              onClick={() => setFreelancerSubTab('profile')}
+              className={`relative text-sm font-normal transition-colors tracking-tight pb-4 whitespace-nowrap ${
+                freelancerSubTab === 'profile'
+                  ? 'text-[#FF4600]'
+                  : 'text-primary-400 hover:text-primary-600'
+              }`}
+            >
+              Карточка
+              {freelancerSubTab === 'profile' && (
+                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FF4600]"></span>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => setFreelancerSubTab('portfolio')}
+              className={`relative text-sm font-normal transition-colors tracking-tight pb-4 whitespace-nowrap ${
+                freelancerSubTab === 'portfolio'
+                  ? 'text-[#FF4600]'
+                  : 'text-primary-400 hover:text-primary-600'
+              }`}
+            >
+              Портфолио
+              {freelancerSubTab === 'portfolio' && (
+                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FF4600]"></span>
+              )}
+            </button>
+          </div>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit}>
         {activeTab === 'general' && (
@@ -796,7 +913,7 @@ export default function EditProfilePage() {
           </div>
         )}
 
-        {activeTab === 'profile' && (
+        {activeTab === 'freelancers' && freelancerSubTab === 'profile' && (
           <div className="space-y-4 sm:space-y-6">
             {/* Загрузка аватарки */}
             <div>
@@ -924,17 +1041,19 @@ export default function EditProfilePage() {
 
             <div>
               <label htmlFor="telegram" className="block text-sm font-light text-primary-700 mb-2">
-                Телеграм для связи <span className="text-primary-400">*</span>
+                Телеграм для связи
               </label>
               <input
                 id="telegram"
                 type="text"
-                required
                 placeholder="@username"
                 className="w-full px-5 py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white"
                 value={formData.telegram}
                 onChange={(e) => setFormData({ ...formData, telegram: e.target.value })}
               />
+              <p className="text-xs font-light text-primary-500 mt-2">
+                Обязательно для публикации карточки. Укажите хотя бы один способ связи: Telegram или почту.
+              </p>
             </div>
 
             <div>
@@ -949,17 +1068,40 @@ export default function EditProfilePage() {
                 value={formData.email || ''}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               />
+              <p className="text-xs font-light text-primary-500 mt-2">
+                Укажите хотя бы один способ связи: Telegram или почту.
+              </p>
             </div>
 
             <div className="pt-6 border-t border-primary-100">
-              <label className="flex items-center gap-3 cursor-pointer">
+              <label className="flex items-start gap-3 cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={formData.showInSearch !== false}
-                  onChange={(e) => setFormData({ ...formData, showInSearch: e.target.checked })}
-                  className="w-5 h-5 rounded border-primary-200 text-[#FF4600] focus:ring-1 focus:ring-[#FF4600] focus:ring-offset-0"
+                  checked={formData.showInSearch === true}
+                  onChange={(e) => {
+                    const checked = e.target.checked
+                    // Проверяем, можно ли опубликовать карточку
+                    const hasTelegram = formData.telegram.trim().length > 0
+                    const hasEmail = (formData.email || currentUser?.email || '').trim().length > 0
+                    const hasRequiredFields = formData.firstName.trim() && formData.lastName.trim()
+                    
+                    if (checked && (!hasRequiredFields || !hasTelegram)) {
+                      alert('Для публикации карточки необходимо заполнить все обязательные поля (имя, фамилия) и указать Telegram')
+                      return
+                    }
+                    
+                    setFormData({ ...formData, showInSearch: checked })
+                  }}
+                  className="w-5 h-5 rounded border-primary-200 text-[#FF4600] focus:ring-1 focus:ring-[#FF4600] focus:ring-offset-0 mt-0.5"
                 />
-                <span className="text-sm font-light text-primary-700">Показывать меня в поиске</span>
+                <div className="flex-1">
+                  <span className="text-sm font-light text-primary-700 block">Показывать меня в поиске</span>
+                  {formData.showInSearch !== true && (
+                    <p className="text-xs font-light text-primary-500 mt-1">
+                      Ваша карточка не опубликована. Заполните все обязательные поля и укажите Telegram для публикации.
+                    </p>
+                  )}
+                </div>
               </label>
             </div>
 
@@ -983,7 +1125,7 @@ export default function EditProfilePage() {
           </div>
         )}
 
-        {activeTab === 'portfolio' && (
+        {activeTab === 'freelancers' && freelancerSubTab === 'portfolio' && (
           <div>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6 mb-4 sm:mb-6">
               <div>
@@ -1114,6 +1256,15 @@ export default function EditProfilePage() {
               >
                 Отмена
               </button>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'companies' && (
+          <div className="space-y-4 sm:space-y-6">
+            <div>
+              <h2 className="text-xl sm:text-2xl font-light text-primary-900 mb-4 tracking-tight">Для компаний</h2>
+              <p className="text-sm font-light text-primary-600 mb-6">Настройки для компаний будут доступны в ближайшее время</p>
             </div>
           </div>
         )}

@@ -174,12 +174,12 @@ export default function Navbar() {
                 {link.label}
               </Link>
             ))}
-            <div className="pt-4 border-t border-primary-100 space-y-2">
+            <div className="pt-4 border-t border-primary-100">
               {user ? (
-                <>
-                  <div className="px-3 py-3 flex items-center gap-3">
+                <div className="px-3 py-3 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
                     {user.avatarUrl ? (
-                      <div className="relative w-10 h-10 rounded-[10px] overflow-hidden">
+                      <div className="relative w-10 h-10 rounded-[10px] overflow-hidden flex-shrink-0">
                         <Image 
                           src={user.avatarUrl} 
                           alt={user.name || user.email}
@@ -189,35 +189,35 @@ export default function Navbar() {
                         />
                       </div>
                     ) : (
-                      <div className="w-10 h-10 rounded-[10px] bg-primary-50 flex items-center justify-center text-primary-700 text-sm font-normal">
+                      <div className="w-10 h-10 rounded-[10px] bg-primary-50 flex items-center justify-center text-primary-700 text-sm font-normal flex-shrink-0">
                         {(user.name?.[0] || user.email?.[0] || '?').toUpperCase()}
                       </div>
                     )}
-                    <span className="text-base font-normal text-primary-900">
+                    <span className="text-base font-normal text-primary-900 truncate">
                       {user.name || user.email}
                     </span>
                   </div>
-                  {user.type === 'specialist' && (
-                    <Link
-                      href="/profile/edit"
-                      className="block px-3 py-3 text-base font-normal text-primary-600 hover:text-primary-900 tracking-tight flex items-center gap-2"
-                      onClick={() => setIsMenuOpen(false)}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {user.type === 'specialist' && (
+                      <Link
+                        href="/profile/edit"
+                        className="p-2 text-primary-600 hover:text-primary-900 hover:bg-primary-50 rounded-apple transition-colors"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        <Cog6ToothIcon className="w-5 h-5" />
+                      </Link>
+                    )}
+                    <button
+                      onClick={() => {
+                        handleLogout()
+                        setIsMenuOpen(false)
+                      }}
+                      className="p-2 text-primary-600 hover:text-primary-900 hover:bg-primary-50 rounded-apple transition-colors"
                     >
-                      <Cog6ToothIcon className="w-4 h-4" />
-                      Настройки
-                    </Link>
-                  )}
-                  <button
-                    onClick={() => {
-                      handleLogout()
-                      setIsMenuOpen(false)
-                    }}
-                    className="w-full flex items-center gap-2 px-3 py-3 text-base font-normal text-primary-600 hover:text-primary-900 tracking-tight"
-                  >
-                    <ArrowRightOnRectangleIcon className="w-4 h-4" />
-                    Выйти
-                  </button>
-                </>
+                      <ArrowRightOnRectangleIcon className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
               ) : (
                 <>
                   <Link
