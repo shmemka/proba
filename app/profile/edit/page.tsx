@@ -439,16 +439,34 @@ export default function EditProfilePage() {
     let avatarUrl = formData.avatarUrl || ''
 
     if (pendingAvatarFile) {
-      const extension = getFileExtension(pendingAvatarFile)
-      const { publicUrl } = await uploadPublicAsset({
-        file: pendingAvatarFile,
-        path: createAvatarPath(currentUser.id, extension),
-        cacheControl: STORAGE_CACHE_TTL,
-        upsert: true,
-      })
-      avatarUrl = publicUrl
-      setPendingAvatarFile(null)
-      setAvatarPreview(publicUrl)
+      try {
+        const extension = getFileExtension(pendingAvatarFile)
+        const { publicUrl } = await uploadPublicAsset({
+          file: pendingAvatarFile,
+          path: createAvatarPath(currentUser.id, extension),
+          cacheControl: STORAGE_CACHE_TTL,
+          upsert: true,
+        })
+        avatarUrl = publicUrl
+        setPendingAvatarFile(null)
+        setAvatarPreview(publicUrl)
+      } catch (error: any) {
+        // Если bucket не найден, используем data URL как fallback
+        if (error?.message?.includes('Bucket') && error?.message?.includes('не найден')) {
+          const reader = new FileReader()
+          const dataUrl = await new Promise<string>((resolve, reject) => {
+            reader.onload = (e) => resolve(e.target?.result as string)
+            reader.onerror = reject
+            reader.readAsDataURL(pendingAvatarFile)
+          })
+          avatarUrl = dataUrl
+          setPendingAvatarFile(null)
+          setAvatarPreview(dataUrl)
+          alert('⚠️ Supabase Storage не настроен. Используется локальное хранилище. Создайте bucket "public-assets" для постоянного хранения файлов.')
+        } else {
+          throw error
+        }
+      }
     }
 
     const uploadedProjects: PersistedProject[] = await Promise.all(
@@ -459,15 +477,29 @@ export default function EditProfilePage() {
               return { url: image.url }
             }
 
-            const extension = getFileExtension(image.file)
-            const { publicUrl } = await uploadPublicAsset({
-              file: image.file,
-              path: createPortfolioPath(currentUser.id, project.id || `project-${projectIndex}`, imageIndex, extension),
-              cacheControl: STORAGE_CACHE_TTL,
-              upsert: true,
-            })
+            try {
+              const extension = getFileExtension(image.file)
+              const { publicUrl } = await uploadPublicAsset({
+                file: image.file,
+                path: createPortfolioPath(currentUser.id, project.id || `project-${projectIndex}`, imageIndex, extension),
+                cacheControl: STORAGE_CACHE_TTL,
+                upsert: true,
+              })
 
-            return { url: publicUrl }
+              return { url: publicUrl }
+            } catch (error: any) {
+              // Если bucket не найден, используем data URL как fallback
+              if (error?.message?.includes('Bucket') && error?.message?.includes('не найден')) {
+                const reader = new FileReader()
+                const dataUrl = await new Promise<string>((resolve, reject) => {
+                  reader.onload = (e) => resolve(e.target?.result as string)
+                  reader.onerror = reject
+                  reader.readAsDataURL(image.file!)
+                })
+                return { url: dataUrl }
+              }
+              throw error
+            }
           }),
         )
 
