@@ -49,7 +49,15 @@ const normalizePreviewArray = (values?: unknown[]): string[] => {
   }
 
   return values
-    .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+    .filter((value): value is string => {
+      if (typeof value !== 'string' || value.trim().length === 0) {
+        return false
+      }
+      // Фильтруем data URLs (они могут быть очень длинными и не подходят для превью)
+      // Оставляем только HTTP(S) URLs
+      const trimmed = value.trim()
+      return trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('/')
+    })
     .slice(0, MAX_PREVIEW_IMAGES)
 }
 
@@ -309,14 +317,45 @@ export default function SpecialistsPage() {
 
   const SpecialistCard = memo(({ specialist, onClick }: { specialist: Specialist; onClick: () => void }) => {
     const portfolioImages = useMemo(() => {
+      // Сначала пробуем portfolioPreview (быстрее, уже готовые URL)
       if (specialist.portfolioPreview && specialist.portfolioPreview.length > 0) {
-        return specialist.portfolioPreview.slice(0, MAX_PREVIEW_IMAGES).map((url) => ({ url }))
+        const validUrls = specialist.portfolioPreview
+          .filter((url): url is string => {
+            if (!url || typeof url !== 'string') return false
+            const trimmed = url.trim()
+            // Проверяем что это валидный URL (не data URL)
+            return (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('/')) && trimmed.length > 0
+          })
+          .slice(0, MAX_PREVIEW_IMAGES)
+          .map((url) => ({ url }))
+        
+        if (validUrls.length > 0) {
+          return validUrls
+        }
       }
 
+      // Fallback на projects (если portfolioPreview пустой)
       if (!specialist.projects || specialist.projects.length === 0) return []
-      return specialist.projects
-        .flatMap(project => project.images || [])
+      
+      const projectImages = specialist.projects
+        .flatMap(project => {
+          if (!project.images || !Array.isArray(project.images)) return []
+          return project.images
+            .filter((img: any) => {
+              const url = typeof img === 'string' ? img : img?.url
+              if (!url || typeof url !== 'string') return false
+              const trimmed = url.trim()
+              // Проверяем что это валидный URL (не data URL)
+              return (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('/')) && trimmed.length > 0
+            })
+            .map((img: any) => {
+              const url = typeof img === 'string' ? img : img?.url
+              return { url }
+            })
+        })
         .slice(0, MAX_PREVIEW_IMAGES)
+      
+      return projectImages
     }, [specialist.portfolioPreview, specialist.projects])
 
     return (

@@ -56,7 +56,15 @@ const STORAGE_CACHE_TTL = '604800'
 const buildPortfolioPreview = (projectList: Array<{ images: Array<{ url: string }> }>) => {
   return projectList
     .flatMap((project) => project.images.map((image) => image.url))
-    .filter((url): url is string => typeof url === 'string' && url.trim().length > 0)
+    .filter((url): url is string => {
+      if (typeof url !== 'string' || url.trim().length === 0) {
+        return false
+      }
+      const trimmed = url.trim()
+      // Исключаем data URLs (они слишком большие и не подходят для превью)
+      // Оставляем только HTTP(S) URLs или относительные пути
+      return (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('/')) && !trimmed.startsWith('data:')
+    })
     .slice(0, MAX_PORTFOLIO_PREVIEW)
 }
 

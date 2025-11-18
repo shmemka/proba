@@ -342,10 +342,32 @@ export async function getSpecialists(options?: { force?: boolean }) {
           }
 
           // Добавляем пустой portfolio_preview для совместимости
-          return (fallbackData || []).map((item: any) => ({
-            ...item,
-            portfolio_preview: [],
-          }))
+          // Пытаемся извлечь URL из portfolio JSONB если есть
+          return (fallbackData || []).map((item: any) => {
+            let preview: string[] = []
+            
+            // Пытаемся извлечь URL из portfolio если он есть
+            if (item.portfolio && Array.isArray(item.portfolio)) {
+              preview = item.portfolio
+                .flatMap((project: any) => {
+                  if (!project.images || !Array.isArray(project.images)) return []
+                  return project.images.map((img: any) => {
+                    const url = typeof img === 'string' ? img : img?.url
+                    return url
+                  }).filter((url: any): url is string => {
+                    if (typeof url !== 'string' || !url.trim()) return false
+                    const trimmed = url.trim()
+                    return (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('/')) && !trimmed.startsWith('data:')
+                  })
+                })
+                .slice(0, 5)
+            }
+            
+            return {
+              ...item,
+              portfolio_preview: preview,
+            }
+          })
         }
 
         console.error('Ошибка загрузки специалистов:', error)
@@ -353,10 +375,21 @@ export async function getSpecialists(options?: { force?: boolean }) {
       }
 
       // Добавляем portfolio_preview если его нет (для старых записей)
-      return (data || []).map((item: any) => ({
-        ...item,
-        portfolio_preview: item.portfolio_preview || [],
-      }))
+      // Фильтруем валидные URL (исключаем data URLs)
+      return (data || []).map((item: any) => {
+        const preview = Array.isArray(item.portfolio_preview) 
+          ? item.portfolio_preview.filter((url: any) => {
+              if (typeof url !== 'string' || !url.trim()) return false
+              const trimmed = url.trim()
+              return (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('/')) && !trimmed.startsWith('data:')
+            })
+          : []
+        
+        return {
+          ...item,
+          portfolio_preview: preview,
+        }
+      })
     },
     60_000,
     options?.force,
