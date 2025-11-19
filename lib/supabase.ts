@@ -300,11 +300,26 @@ export async function signInWithGoogle(redirectTo?: string) {
 
   try {
     // Получаем текущий URL для редиректа после OAuth
-    const baseUrl = typeof window !== 'undefined' 
-      ? window.location.origin 
-      : process.env.NEXT_PUBLIC_SITE_URL || ''
+    let baseUrl = ''
+    
+    if (typeof window !== 'undefined') {
+      baseUrl = window.location.origin
+    } else if (process.env.NEXT_PUBLIC_SITE_URL) {
+      baseUrl = process.env.NEXT_PUBLIC_SITE_URL
+    } else {
+      // Fallback для SSR
+      baseUrl = 'https://www.proba.space'
+    }
+    
+    // Убеждаемся, что baseUrl не заканчивается на /
+    baseUrl = baseUrl.replace(/\/$/, '')
     
     const emailRedirectTo = redirectTo || `${baseUrl}/auth/callback`
+
+    // Логирование для отладки (можно убрать после исправления)
+    if (typeof window !== 'undefined') {
+      console.log('OAuth redirect URL:', emailRedirectTo)
+    }
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -318,6 +333,7 @@ export async function signInWithGoogle(redirectTo?: string) {
     })
 
     if (error) {
+      console.error('OAuth error:', error)
       throw error
     }
 
