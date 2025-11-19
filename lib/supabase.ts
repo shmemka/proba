@@ -175,10 +175,15 @@ export async function signUp(
     // Инвалидируем кеш перед регистрацией
     invalidateCache('auth:')
 
+    // Получаем базовый URL для redirect
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
+    const emailRedirectTo = `${baseUrl}/auth/confirm`
+
     const { data, error } = await supabase.auth.signUp({
       email: normalizedEmail,
       password,
       options: {
+        emailRedirectTo,
         data: {
           userType: 'specialist',
           displayName: safeDisplayName,

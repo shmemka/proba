@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { UserPlusIcon } from '@heroicons/react/24/outline'
+import { UserPlusIcon, EnvelopeIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import { signUp, getCurrentUser, isSupabaseAvailable } from '@/lib/supabase'
 import { findUserByEmail, getActiveUser, registerUser, saveSpecialistProfile, setActiveUser } from '@/lib/storage'
 
@@ -19,6 +19,8 @@ function RegisterForm() {
   })
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showEmailModal, setShowEmailModal] = useState(false)
+  const [registeredEmail, setRegisteredEmail] = useState('')
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -71,10 +73,17 @@ function RegisterForm() {
       
       if (isSupabaseAvailable()) {
         // Используем Supabase Auth - регистрируем как специалиста по умолчанию
-        await signUp(normalizedEmail, formData.password, 'specialist', fullName)
+        const result = await signUp(normalizedEmail, formData.password, 'specialist', fullName)
         
-        // После регистрации перенаправляем на страницу "Таланты"
-        router.push('/specialists')
+        // Проверяем, подтвержден ли email
+        if (result.user && !result.user.email_confirmed_at) {
+          // Показываем модальное окно с просьбой подтвердить email
+          setRegisteredEmail(normalizedEmail)
+          setShowEmailModal(true)
+        } else {
+          // Если email уже подтвержден (маловероятно, но возможно), перенаправляем
+          router.push('/specialists')
+        }
       } else {
         // Fallback на localStorage
         if (findUserByEmail(normalizedEmail)) {
@@ -112,8 +121,56 @@ function RegisterForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white py-12 sm:py-16 lg:py-20 px-4 sm:px-6">
-      <div className="max-w-md w-full space-y-8 sm:space-y-10">
+    <>
+      {/* Модальное окно подтверждения email */}
+      {showEmailModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-apple max-w-md w-full p-6 sm:p-8 space-y-6 relative">
+            <button
+              onClick={() => setShowEmailModal(false)}
+              className="absolute top-4 right-4 text-primary-400 hover:text-primary-600 transition-colors"
+            >
+              <XMarkIcon className="w-6 h-6" />
+            </button>
+            
+            <div className="flex justify-center mb-4">
+              <div className="w-16 h-16 rounded-apple bg-primary-50 flex items-center justify-center">
+                <EnvelopeIcon className="w-8 h-8 text-primary-700" />
+              </div>
+            </div>
+            
+            <div className="text-center space-y-4">
+              <h2 className="text-2xl sm:text-3xl font-light text-primary-900 tracking-tight">
+                Проверьте почту
+              </h2>
+              <p className="text-sm sm:text-base font-light text-primary-600">
+                Мы отправили письмо с подтверждением на адрес
+              </p>
+              <p className="text-base sm:text-lg font-normal text-primary-900 break-all">
+                {registeredEmail}
+              </p>
+              <p className="text-sm font-light text-primary-600 pt-2">
+                Перейдите по ссылке в письме, чтобы подтвердить ваш email и завершить регистрацию.
+              </p>
+            </div>
+            
+            <div className="pt-4">
+              <button
+                onClick={() => {
+                  setShowEmailModal(false)
+                  router.push('/login')
+                }}
+                className="w-full flex justify-center py-4 px-5 border border-transparent text-base font-normal rounded-apple text-white bg-primary-900 hover:bg-primary-800 focus:outline-none focus:ring-1 focus:ring-primary-900 transition-colors tracking-tight"
+              >
+                Понятно
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="min-h-screen flex items-center justify-center bg-white py-12 sm:py-16 lg:py-20 px-4 sm:px-6">
+        <div className="max-w-md w-full space-y-8 sm:space-y-10">
         <div>
           <div className="flex justify-center mb-8">
             <div className="w-16 h-16 rounded-apple bg-primary-50 flex items-center justify-center">
@@ -236,6 +293,7 @@ function RegisterForm() {
         </form>
       </div>
     </div>
+    </>
   )
 }
 

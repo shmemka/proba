@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Подтвердите регистрацию</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #ffffff; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;">
+    <!-- Wrapper Table -->
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #ffffff; padding: 40px 0;">
+        <tr>
+            <td align="center">
+                <!-- Main Container -->
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width: 600px; background-color: #ffffff; border: 1px solid #e8e8ed; border-radius: 12px; overflow: hidden;">
+                    
+                    <!-- Header -->
+                    <tr>
+                        <td style="background-color: #f5f5f7; padding: 40px 30px; text-align: center; border-bottom: 1px solid #e8e8ed;">
+                            <h1 style="margin: 0; color: #09090b; font-size: 28px; font-weight: 300; letter-spacing: -0.01em; line-height: 1.2;">
+                                Подтвердите регистрацию
+                            </h1>
+                        </td>
+                    </tr>
+                    
+                    <!-- Content -->
+                    <tr>
+                        <td style="padding: 40px 30px;">
+                            <p style="margin: 0 0 20px 0; color: #09090b; font-size: 16px; line-height: 24px; font-weight: 300;">
+                                Здравствуйте!
+                            </p>
+                            <p style="margin: 0 0 30px 0; color: #3f3f46; font-size: 16px; line-height: 24px; font-weight: 300;">
+                                Благодарим за регистрацию на нашем сервисе. Чтобы завершить регистрацию и начать пользоваться всеми возможностями платформы, пожалуйста, подтвердите ваш email адрес:
+                            </p>
+                            
+                            <!-- Email Display -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 20px 0 30px 0;">
+                                <tr>
+                                    <td style="background-color: #f5f5f7; border: 1px solid #e8e8ed; border-left: 4px solid #09090b; padding: 16px 20px; border-radius: 12px;">
+                                        <p style="margin: 0; color: #09090b; font-size: 16px; font-weight: 400; word-break: break-all; letter-spacing: -0.01em;">
+                                            {{ .Email }}
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <!-- CTA Button -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 30px 0;">
+                                <tr>
+                                    <td align="center" style="padding: 0;">
+                                        <a href="{{ .ConfirmationURL }}" style="display: inline-block; padding: 16px 40px; background-color: #09090b; color: #ffffff; text-decoration: none; border-radius: 12px; font-size: 16px; font-weight: 400; letter-spacing: -0.01em; transition: background-color 0.2s ease;">
+                                            Подтвердить Email
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <!-- Alternative Link -->
+                            <p style="margin: 30px 0 20px 0; color: #71717a; font-size: 14px; line-height: 20px; font-weight: 300;">
+                                Если кнопка не работает, скопируйте и вставьте следующую ссылку в браузер:
+                            </p>
+                            <p style="margin: 0 0 30px 0; word-break: break-all;">
+                                <a href="{{ .ConfirmationURL }}" style="color: #27272a; text-decoration: underline; font-size: 14px; font-weight: 300;">
+                                    {{ .ConfirmationURL }}
+                                </a>
+                            </p>
+                            
+                            <!-- Divider -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 30px 0;">
+                                <tr>
+                                    <td style="border-top: 1px solid #e8e8ed;"></td>
+                                </tr>
+                            </table>
+                            
+                            <!-- Footer Text -->
+                            <p style="margin: 0 0 10px 0; color: #71717a; font-size: 14px; line-height: 20px; font-weight: 300;">
+                                <strong style="font-weight: 400; color: #09090b;">Важно:</strong> Эта ссылка действительна в течение ограниченного времени.
+                            </p>
+                            <p style="margin: 0; color: #71717a; font-size: 14px; line-height: 20px; font-weight: 300;">
+                                Если вы не регистрировались на нашем сервисе, просто проигнорируйте это письмо.
+                            </p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color: #f5f5f7; padding: 30px; text-align: center; border-top: 1px solid #e8e8ed;">
+                            <p style="margin: 0 0 10px 0; color: #71717a; font-size: 14px; font-weight: 300;">
+                                <a href="{{ .SiteURL }}" style="color: #27272a; text-decoration: none; font-weight: 400; letter-spacing: -0.01em;">
+                                    {{ .SiteURL }}
+                                </a>
+                            </p>
+                            <p style="margin: 0; color: #a1a1aa; font-size: 12px; font-weight: 300;">
+                                © 2024 Все права защищены
+                            </p>
+                        </td>
+                    </tr>
+                    
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+
