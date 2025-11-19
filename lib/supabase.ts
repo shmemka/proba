@@ -101,12 +101,14 @@ type EnsureSpecialistProfileParams = {
   id: string
   email: string
   displayName?: string
+  avatarUrl?: string
 }
 
 export const ensureSpecialistProfile = async ({
   id,
   email,
   displayName,
+  avatarUrl,
 }: EnsureSpecialistProfileParams) => {
   const supabase = getSupabaseClient()
   if (!supabase) {
@@ -117,7 +119,7 @@ export const ensureSpecialistProfile = async ({
 
   const { data: existing, error: lookupError } = await supabase
     .from('specialists')
-    .select('id')
+    .select('id, avatar_url')
     .eq('id', id)
     .limit(1)
 
@@ -125,7 +127,22 @@ export const ensureSpecialistProfile = async ({
     throw lookupError
   }
 
+  // Если профиль существует, обновляем аватарку, если её нет, но есть новая
   if (existing && existing.length > 0) {
+    const currentProfile = existing[0]
+    // Обновляем аватарку, если её нет в профиле, но есть в параметрах
+    if (avatarUrl && !currentProfile.avatar_url) {
+      const { error: updateError } = await supabase
+        .from('specialists')
+        .update({ avatar_url: avatarUrl })
+        .eq('id', id)
+
+      if (updateError) {
+        console.debug('Не удалось обновить аватарку в профиле:', updateError)
+      } else {
+        invalidateCache(`specialist:${id}`)
+      }
+    }
     return
   }
 
@@ -139,6 +156,7 @@ export const ensureSpecialistProfile = async ({
     last_name: lastName || '',
     specialization: DEFAULT_SPECIALIZATION,
     show_in_search: false, // По умолчанию карточка не публикуется
+    avatar_url: avatarUrl || null,
   })
 
   if (insertError) {
@@ -176,7 +194,9 @@ export async function signUp(
     invalidateCache('auth:')
 
     // Получаем базовый URL для redirect
-    const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
+    const baseUrl = typeof window !== 'undefined' 
+      ? window.location.origin 
+      : process.env.NEXT_PUBLIC_SITE_URL || ''
     const emailRedirectTo = `${baseUrl}/auth/confirm`
 
     const { data, error } = await supabase.auth.signUp({

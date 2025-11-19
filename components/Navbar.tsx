@@ -99,7 +99,7 @@ export default function Navbar() {
                       {(user.name?.[0] || user.email?.[0] || '?').toUpperCase()}
                     </div>
                   )}
-                  <span className="text-primary-900 text-sm font-normal">{user.name || user.email}</span>
+                  <span className="text-primary-900 text-sm font-normal">{user.name || 'Пользователь'}</span>
                 </button>
                 
                 {isProfileMenuOpen && (
@@ -194,7 +194,7 @@ export default function Navbar() {
                       </div>
                     )}
                     <span className="text-base font-normal text-primary-900 truncate">
-                      {user.name || user.email}
+                      {user.name || 'Пользователь'}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">

@@ -47,7 +47,7 @@
        (замените `yourdomain.com` на ваш домен)
      - **Authorized redirect URIs**:
        ```
-       https://[YOUR-PROJECT-REF].supabase.co/auth/v1/callback
+       https://xcmmvgxlzfamqewdeqej.supabase.co/auth/v1/callback
        ```
        (замените `[YOUR-PROJECT-REF]` на ваш Project Reference из Supabase)
    

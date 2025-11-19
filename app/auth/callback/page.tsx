@@ -71,10 +71,17 @@ function OAuthCallback() {
                 currentUser.user_metadata?.name ||
                 deriveDisplayName(email || '', 'specialist')
               
+              // Получаем аватарку из Google аккаунта
+              const avatarUrl = 
+                currentUser.user_metadata?.avatar_url ||
+                currentUser.user_metadata?.picture ||
+                null
+              
               await ensureSpecialistProfile({
                 id: currentUser.id,
                 email: email || '',
                 displayName,
+                avatarUrl: avatarUrl || undefined,
               })
             } catch (profileError) {
               // Не критично, профиль можно создать позже
@@ -102,10 +109,17 @@ function OAuthCallback() {
                   retrySession.user.user_metadata?.name ||
                   deriveDisplayName(email || '', 'specialist')
                 
+                // Получаем аватарку из Google аккаунта
+                const avatarUrl = 
+                  retrySession.user.user_metadata?.avatar_url ||
+                  retrySession.user.user_metadata?.picture ||
+                  null
+                
                 await ensureSpecialistProfile({
                   id: retrySession.user.id,
                   email: email || '',
                   displayName,
+                  avatarUrl: avatarUrl || undefined,
                 })
               } catch (profileError) {
                 console.debug('Не удалось создать профиль специалиста при OAuth входе:', profileError)
