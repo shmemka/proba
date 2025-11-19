@@ -474,7 +474,7 @@ export default function SpecialistsPage() {
                 <span className="text-xs sm:text-sm whitespace-nowrap">Поиск</span>
               </button>
               <Link
-                href="/profile/edit"
+                href="/profile/edit?tab=freelancers"
                 className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 rounded-apple bg-primary-50 text-primary-700 hover:bg-primary-100 transition-colors font-normal tracking-tight whitespace-nowrap flex-shrink-0"
               >
                 <UserIcon className="w-5 h-5" />
@@ -509,7 +509,7 @@ export default function SpecialistsPage() {
               <span className="text-xs sm:text-sm whitespace-nowrap">Поиск</span>
             </button>
             <Link
-              href="/profile/edit"
+              href="/profile/edit?tab=freelancers"
               className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 rounded-apple bg-primary-50 text-primary-700 hover:bg-primary-100 transition-colors font-normal tracking-tight whitespace-nowrap flex-shrink-0"
             >
               <UserIcon className="w-5 h-5" />

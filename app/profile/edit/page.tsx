@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { CheckIcon, PlusIcon, XMarkIcon, PhotoIcon } from '@heroicons/react/24/outline'
 import { getActiveUser, loadSpecialistProfile, readJson, saveSpecialistProfile, type StoredUser, writeJson } from '@/lib/storage'
 import { getCurrentUser, getSpecialist, updateSpecialist, isSupabaseAvailable, ensureSpecialistProfile } from '@/lib/supabase'
@@ -96,8 +96,9 @@ const createPortfolioPath = (userId: string, projectId: string, fileIndex: numbe
   return `specialists/${userId}/portfolio/${safeProjectId}/${randomId()}.${extension || 'jpg'}`
 }
 
-export default function EditProfilePage() {
+function EditProfileForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [isAuthorized, setIsAuthorized] = useState(false)
   const [currentUser, setCurrentUser] = useState<StoredUser | null>(null)
   const [isSaving, setIsSaving] = useState(false)
@@ -138,6 +139,14 @@ export default function EditProfilePage() {
   const [activeTab, setActiveTab] = useState<'general' | 'freelancers' | 'companies'>('general')
   const [freelancerSubTab, setFreelancerSubTab] = useState<'profile' | 'portfolio'>('profile')
   const [avatarPreview, setAvatarPreview] = useState<string>('')
+
+  // Читаем параметр tab из URL и устанавливаем активную вкладку
+  useEffect(() => {
+    const tabParam = searchParams.get('tab')
+    if (tabParam === 'freelancers' || tabParam === 'general' || tabParam === 'companies') {
+      setActiveTab(tabParam)
+    }
+  }, [searchParams])
 
   // Загружаем данные профиля из Supabase или localStorage
   useEffect(() => {
@@ -1227,5 +1236,17 @@ export default function EditProfilePage() {
         )}
       </form>
     </div>
+  )
+}
+
+export default function EditProfilePage() {
+  return (
+    <Suspense fallback={
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
+        <div className="text-center text-primary-600 font-light">Загрузка...</div>
+      </div>
+    }>
+      <EditProfileForm />
+    </Suspense>
   )
 }
