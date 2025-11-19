@@ -700,6 +700,23 @@ export async function getApplications(projectId?: string, specialistId?: string)
     return []
   }
 
+  // Если запрашиваются отклики на задачу, проверяем, что пользователь является владельцем
+  if (projectId) {
+    const currentUser = await getCurrentUser()
+    if (!currentUser) {
+      // Если пользователь не авторизован, не возвращаем отклики на задачи
+      return []
+    }
+
+    // Проверяем, является ли пользователь владельцем задачи
+    const project = await getProject(projectId)
+    if (!project || project.user_id !== currentUser.id) {
+      // Пользователь не является владельцем задачи - не возвращаем отклики
+      console.warn('Попытка просмотра откликов на чужую задачу')
+      return []
+    }
+  }
+
   let query = supabase
     .from('applications')
     .select(`
