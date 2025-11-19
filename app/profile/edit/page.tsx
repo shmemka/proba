@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { CheckIcon, PlusIcon, XMarkIcon, PhotoIcon } from '@heroicons/react/24/outline'
 import { getActiveUser, loadSpecialistProfile, readJson, saveSpecialistProfile, type StoredUser, writeJson } from '@/lib/storage'
@@ -138,6 +138,17 @@ export default function EditProfilePage() {
   const [activeTab, setActiveTab] = useState<'general' | 'freelancers' | 'companies'>('general')
   const [freelancerSubTab, setFreelancerSubTab] = useState<'profile' | 'portfolio'>('profile')
   const [avatarPreview, setAvatarPreview] = useState<string>('')
+  const [isCropModalOpen, setIsCropModalOpen] = useState(false)
+  const [cropImageSrc, setCropImageSrc] = useState<string>('')
+  const [cropImageFile, setCropImageFile] = useState<File | null>(null)
+  const [cropArea, setCropArea] = useState({ x: 0, y: 0, size: 200 })
+  const [imageSize, setImageSize] = useState({ width: 0, height: 0 })
+  const [isDragging, setIsDragging] = useState(false)
+  const [isResizing, setIsResizing] = useState(false)
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
+  const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, size: 0 })
+  const cropImageRef = useRef<HTMLImageElement>(null)
+  const cropContainerRef = useRef<HTMLDivElement>(null)
 
   // Загружаем данные профиля из Supabase или localStorage
   useEffect(() => {
@@ -305,18 +316,366 @@ export default function EditProfilePage() {
 
   const handleAvatarUpload = async (file: File) => {
     try {
-      const { file: processedFile, preview } = await processAvatar(file)
-      setAvatarPreview(preview)
-      if (SUPABASE_ENABLED) {
-        setPendingAvatarFile(processedFile)
-      } else {
-        setFormData({ ...formData, avatarUrl: preview })
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        const src = e.target?.result as string
+        if (!src) {
+          alert('Не удалось прочитать файл')
+          return
+        }
+        
+        const img = new Image()
+        img.onload = () => {
+          setCropImageSrc(src)
+          setCropImageFile(file)
+          
+          // Устанавливаем начальные размеры для отображения
+          const maxContainerSize = Math.min(500, window.innerWidth - 128)
+          const imageAspect = img.width / img.height
+          let displayWidth = img.width
+          let displayHeight = img.height
+          
+          // Масштабируем, если изображение больше контейнера
+          if (displayWidth > maxContainerSize || displayHeight > maxContainerSize) {
+            if (displayWidth > displayHeight) {
+              displayWidth = maxContainerSize
+              displayHeight = maxContainerSize / imageAspect
+            } else {
+              displayHeight = maxContainerSize
+              displayWidth = maxContainerSize * imageAspect
+            }
+          }
+          
+          setImageSize({ width: displayWidth, height: displayHeight })
+          
+          // Начальная позиция обрезки по центру (квадрат 80% от меньшей стороны)
+          const initialSize = Math.min(displayWidth, displayHeight) * 0.8
+          setCropArea({
+            x: (displayWidth - initialSize) / 2,
+            y: (displayHeight - initialSize) / 2,
+            size: initialSize
+          })
+          
+          setIsCropModalOpen(true)
+        }
+        img.onerror = () => {
+          alert('Не удалось загрузить изображение')
+        }
+        img.src = src
       }
+      reader.onerror = () => {
+        alert('Не удалось прочитать файл')
+      }
+      reader.readAsDataURL(file)
     } catch (error) {
       console.error('Ошибка обработки аватарки:', error)
       alert('Не удалось обработать аватарку')
     }
   }
+
+  const handleCropApply = () => {
+    if (!cropImageFile || !cropImageRef.current) return
+
+    const img = cropImageRef.current
+    const scaleX = img.naturalWidth / img.width
+    const scaleY = img.naturalHeight / img.height
+
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    const targetSize = 400
+    canvas.width = targetSize
+    canvas.height = targetSize
+
+    const sourceX = cropArea.x * scaleX
+    const sourceY = cropArea.y * scaleY
+    const sourceSize = cropArea.size * Math.min(scaleX, scaleY)
+
+    ctx.drawImage(
+      img,
+      sourceX, sourceY, sourceSize, sourceSize,
+      0, 0, targetSize, targetSize
+    )
+
+    canvasToProcessedFile(canvas, `avatar-${Date.now()}.jpg`)
+      .then(({ file: processedFile, preview }) => {
+        setAvatarPreview(preview)
+        if (SUPABASE_ENABLED) {
+          setPendingAvatarFile(processedFile)
+        } else {
+          setFormData({ ...formData, avatarUrl: preview })
+        }
+        setIsCropModalOpen(false)
+        setCropImageSrc('')
+        setCropImageFile(null)
+      })
+      .catch((error) => {
+        console.error('Ошибка обработки обрезки:', error)
+        alert('Не удалось применить обрезку')
+      })
+  }
+
+  const handleCropCancel = () => {
+    setIsCropModalOpen(false)
+    setCropImageSrc('')
+    setCropImageFile(null)
+  }
+
+  const getCropAreaCorner = (x: number, y: number, cornerSize: number = 20) => {
+    const corners = [
+      { name: 'top-left', x: cropArea.x, y: cropArea.y },
+      { name: 'top-right', x: cropArea.x + cropArea.size, y: cropArea.y },
+      { name: 'bottom-left', x: cropArea.x, y: cropArea.y + cropArea.size },
+      { name: 'bottom-right', x: cropArea.x + cropArea.size, y: cropArea.y + cropArea.size },
+    ]
+    
+    for (const corner of corners) {
+      const distance = Math.sqrt(Math.pow(x - corner.x, 2) + Math.pow(y - corner.y, 2))
+      if (distance <= cornerSize) {
+        return corner.name
+      }
+    }
+    return null
+  }
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!cropContainerRef.current) return
+    e.preventDefault()
+    const rect = cropContainerRef.current.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
+
+    const corner = getCropAreaCorner(x, y)
+    if (corner) {
+      setIsResizing(true)
+      setResizeStart({ x, y, size: cropArea.size })
+    } else if (
+      x >= cropArea.x && x <= cropArea.x + cropArea.size &&
+      y >= cropArea.y && y <= cropArea.y + cropArea.size
+    ) {
+      setIsDragging(true)
+      setDragStart({ x: x - cropArea.x, y: y - cropArea.y })
+    }
+  }
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!cropContainerRef.current) return
+    
+    if (isDragging) {
+      e.preventDefault()
+      const rect = cropContainerRef.current.getBoundingClientRect()
+      const x = e.clientX - rect.left - dragStart.x
+      const y = e.clientY - rect.top - dragStart.y
+
+      const maxX = imageSize.width - cropArea.size
+      const maxY = imageSize.height - cropArea.size
+
+      setCropArea({
+        ...cropArea,
+        x: Math.max(0, Math.min(x, maxX)),
+        y: Math.max(0, Math.min(y, maxY))
+      })
+    } else if (isResizing) {
+      e.preventDefault()
+      const rect = cropContainerRef.current.getBoundingClientRect()
+      const currentX = e.clientX - rect.left
+      const currentY = e.clientY - rect.top
+      
+      const deltaX = currentX - resizeStart.x
+      const deltaY = currentY - resizeStart.y
+      const delta = (deltaX + deltaY) / 2
+      
+      const newSize = Math.max(50, Math.min(
+        resizeStart.size + delta,
+        Math.min(imageSize.width - cropArea.x, imageSize.height - cropArea.y)
+      ))
+      
+      setCropArea({
+        ...cropArea,
+        size: newSize
+      })
+    }
+  }
+
+  const handleMouseUp = () => {
+    setIsDragging(false)
+    setIsResizing(false)
+  }
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (!cropContainerRef.current) return
+    e.preventDefault()
+    const touch = e.touches[0]
+    const rect = cropContainerRef.current.getBoundingClientRect()
+    const x = touch.clientX - rect.left
+    const y = touch.clientY - rect.top
+
+    const corner = getCropAreaCorner(x, y, 30)
+    if (corner) {
+      setIsResizing(true)
+      setResizeStart({ x, y, size: cropArea.size })
+    } else if (
+      x >= cropArea.x && x <= cropArea.x + cropArea.size &&
+      y >= cropArea.y && y <= cropArea.y + cropArea.size
+    ) {
+      setIsDragging(true)
+      setDragStart({ x: x - cropArea.x, y: y - cropArea.y })
+    }
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!cropContainerRef.current) return
+    e.preventDefault()
+    
+    if (isDragging || isResizing) {
+      const touch = e.touches[0]
+      const rect = cropContainerRef.current.getBoundingClientRect()
+      const x = touch.clientX - rect.left
+      const y = touch.clientY - rect.top
+
+      if (isDragging) {
+        const newX = x - dragStart.x
+        const newY = y - dragStart.y
+        const maxX = imageSize.width - cropArea.size
+        const maxY = imageSize.height - cropArea.size
+
+        setCropArea({
+          ...cropArea,
+          x: Math.max(0, Math.min(newX, maxX)),
+          y: Math.max(0, Math.min(newY, maxY))
+        })
+      } else if (isResizing) {
+        const deltaX = x - resizeStart.x
+        const deltaY = y - resizeStart.y
+        const delta = (deltaX + deltaY) / 2
+        
+        const newSize = Math.max(50, Math.min(
+          resizeStart.size + delta,
+          Math.min(imageSize.width - cropArea.x, imageSize.height - cropArea.y)
+        ))
+        
+        setCropArea({
+          ...cropArea,
+          size: newSize
+        })
+      }
+    }
+  }
+
+  const handleTouchEnd = () => {
+    setIsDragging(false)
+    setIsResizing(false)
+  }
+
+  useEffect(() => {
+    if (isDragging || isResizing) {
+      const handleMouseMoveGlobal = (e: MouseEvent) => {
+        if (!cropContainerRef.current) return
+        e.preventDefault()
+        const rect = cropContainerRef.current.getBoundingClientRect()
+        const x = e.clientX - rect.left
+        const y = e.clientY - rect.top
+
+        if (isDragging) {
+          const newX = x - dragStart.x
+          const newY = y - dragStart.y
+          const maxX = imageSize.width - cropArea.size
+          const maxY = imageSize.height - cropArea.size
+
+          setCropArea({
+            ...cropArea,
+            x: Math.max(0, Math.min(newX, maxX)),
+            y: Math.max(0, Math.min(newY, maxY))
+          })
+        } else if (isResizing) {
+          const deltaX = x - resizeStart.x
+          const deltaY = y - resizeStart.y
+          const delta = (deltaX + deltaY) / 2
+          
+          const newSize = Math.max(50, Math.min(
+            resizeStart.size + delta,
+            Math.min(imageSize.width - cropArea.x, imageSize.height - cropArea.y)
+          ))
+          
+          setCropArea({
+            ...cropArea,
+            size: newSize
+          })
+        }
+      }
+
+      const handleMouseUpGlobal = () => {
+        setIsDragging(false)
+        setIsResizing(false)
+      }
+
+      const handleTouchMoveGlobal = (e: TouchEvent) => {
+        if (!cropContainerRef.current || (!isDragging && !isResizing)) return
+        e.preventDefault()
+        const touch = e.touches[0]
+        const rect = cropContainerRef.current.getBoundingClientRect()
+        const x = touch.clientX - rect.left
+        const y = touch.clientY - rect.top
+
+        if (isDragging) {
+          const newX = x - dragStart.x
+          const newY = y - dragStart.y
+          const maxX = imageSize.width - cropArea.size
+          const maxY = imageSize.height - cropArea.size
+
+          setCropArea({
+            ...cropArea,
+            x: Math.max(0, Math.min(newX, maxX)),
+            y: Math.max(0, Math.min(newY, maxY))
+          })
+        } else if (isResizing) {
+          const deltaX = x - resizeStart.x
+          const deltaY = y - resizeStart.y
+          const delta = (deltaX + deltaY) / 2
+          
+          const newSize = Math.max(50, Math.min(
+            resizeStart.size + delta,
+            Math.min(imageSize.width - cropArea.x, imageSize.height - cropArea.y)
+          ))
+          
+          setCropArea({
+            ...cropArea,
+            size: newSize
+          })
+        }
+      }
+
+      const handleTouchEndGlobal = () => {
+        setIsDragging(false)
+        setIsResizing(false)
+      }
+
+      document.addEventListener('mousemove', handleMouseMoveGlobal, { passive: false })
+      document.addEventListener('mouseup', handleMouseUpGlobal)
+      document.addEventListener('touchmove', handleTouchMoveGlobal, { passive: false })
+      document.addEventListener('touchend', handleTouchEndGlobal)
+
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMoveGlobal)
+        document.removeEventListener('mouseup', handleMouseUpGlobal)
+        document.removeEventListener('touchmove', handleTouchMoveGlobal)
+        document.removeEventListener('touchend', handleTouchEndGlobal)
+      }
+    }
+  }, [isDragging, isResizing, dragStart, resizeStart, imageSize, cropArea])
+
+  // Блокируем скролл страницы при открытии модального окна обрезки
+  useEffect(() => {
+    if (isCropModalOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+    return () => {
+      document.body.style.overflow = 'unset'
+    }
+  }, [isCropModalOpen])
 
   // Функция для обрезки изображения в формат 4:3 (альбомная ориентация)
   const cropImageTo4_3 = (file: File, projectId: string): Promise<{ file: File; preview: string }> => {
@@ -1226,6 +1585,120 @@ export default function EditProfilePage() {
           </div>
         )}
       </form>
+
+      {/* Модальное окно для обрезки аватарки */}
+      {isCropModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-apple border border-primary-200 shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between p-6 border-b border-primary-100">
+              <h2 className="text-xl font-normal text-primary-900 tracking-tight">Обрезка фотографии</h2>
+              <button
+                type="button"
+                onClick={handleCropCancel}
+                className="w-9 h-9 rounded-full bg-white border border-primary-200 flex items-center justify-center hover:bg-primary-50 active:scale-95 transition-all duration-200"
+              >
+                <XMarkIcon className="w-5 h-5 text-primary-700" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-auto p-6">
+              <div
+                ref={cropContainerRef}
+                className="relative mx-auto bg-primary-50 rounded-apple overflow-hidden touch-none"
+                style={{ width: imageSize.width, height: imageSize.height, touchAction: 'none' }}
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+              >
+                {cropImageSrc && (
+                  <img
+                    ref={cropImageRef}
+                    src={cropImageSrc}
+                    alt="Обрезка"
+                    className="block w-full h-full object-contain"
+                    style={{ width: imageSize.width, height: imageSize.height }}
+                    draggable={false}
+                  />
+                )}
+                
+                {/* Затемнение вне области обрезки */}
+                {imageSize.width > 0 && imageSize.height > 0 && (
+                  <div
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                      background: `
+                        linear-gradient(to right, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.5) ${(cropArea.x / imageSize.width) * 100}%,
+                        transparent ${(cropArea.x / imageSize.width) * 100}%, transparent ${((cropArea.x + cropArea.size) / imageSize.width) * 100}%,
+                        rgba(0,0,0,0.5) ${((cropArea.x + cropArea.size) / imageSize.width) * 100}%, rgba(0,0,0,0.5) 100%),
+                        linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.5) ${(cropArea.y / imageSize.height) * 100}%,
+                        transparent ${(cropArea.y / imageSize.height) * 100}%, transparent ${((cropArea.y + cropArea.size) / imageSize.height) * 100}%,
+                        rgba(0,0,0,0.5) ${((cropArea.y + cropArea.size) / imageSize.height) * 100}%, rgba(0,0,0,0.5) 100%)
+                      `
+                    }}
+                  />
+                )}
+
+                {/* Рамка области обрезки */}
+                <div
+                  className="absolute border-2 border-white shadow-lg cursor-move"
+                  style={{
+                    left: cropArea.x,
+                    top: cropArea.y,
+                    width: cropArea.size,
+                    height: cropArea.size,
+                    touchAction: 'none',
+                  }}
+                >
+                  {/* Углы для изменения размера */}
+                  <div 
+                    className="absolute -top-2 -left-2 w-6 h-6 bg-white border-2 border-primary-700 rounded-full cursor-nwse-resize touch-none"
+                    style={{ touchAction: 'none' }}
+                  />
+                  <div 
+                    className="absolute -top-2 -right-2 w-6 h-6 bg-white border-2 border-primary-700 rounded-full cursor-nesw-resize touch-none"
+                    style={{ touchAction: 'none' }}
+                  />
+                  <div 
+                    className="absolute -bottom-2 -left-2 w-6 h-6 bg-white border-2 border-primary-700 rounded-full cursor-nesw-resize touch-none"
+                    style={{ touchAction: 'none' }}
+                  />
+                  <div 
+                    className="absolute -bottom-2 -right-2 w-6 h-6 bg-white border-2 border-primary-700 rounded-full cursor-nwse-resize touch-none"
+                    style={{ touchAction: 'none' }}
+                  />
+                </div>
+              </div>
+
+              <div className="mt-4 text-center">
+                <p className="text-sm font-light text-primary-600">
+                  Перетащите рамку для перемещения, углы для изменения размера
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 p-6 border-t border-primary-100">
+              <button
+                type="button"
+                onClick={handleCropCancel}
+                className="px-6 py-3 border border-primary-200 text-primary-700 rounded-apple hover:bg-primary-50 transition-colors font-normal tracking-tight"
+              >
+                Отмена
+              </button>
+              <button
+                type="button"
+                onClick={handleCropApply}
+                className="inline-flex items-center justify-center gap-2 bg-primary-900 text-white px-6 py-3 rounded-apple hover:bg-primary-800 transition-colors font-normal tracking-tight"
+              >
+                <CheckIcon className="w-5 h-5" />
+                Применить
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
