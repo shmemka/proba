@@ -11,15 +11,14 @@ function AuthForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   
-  // Состояние для этапов
-  const [step, setStep] = useState<'email' | 'login' | 'register'>('email')
+  // Состояние для режима (вход или регистрация)
+  const [mode, setMode] = useState<'login' | 'register'>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [error, setError] = useState('')
-  const [isCheckingEmail, setIsCheckingEmail] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
 
@@ -43,89 +42,6 @@ function AuthForm() {
     checkAuth()
   }, [router, searchParams])
 
-  // Проверка существования email
-  const checkEmailExists = async (emailValue: string): Promise<boolean> => {
-    const normalizedEmail = emailValue.trim().toLowerCase()
-    
-    if (!isSupabaseAvailable()) {
-      // Fallback на localStorage
-      const user = findUserByEmail(normalizedEmail)
-      return !!user
-    }
-
-    const supabase = getSupabaseClient()
-    if (!supabase) {
-      return false
-    }
-
-    try {
-      // Пытаемся войти с несуществующим паролем
-      // Если ошибка "Invalid login credentials" - пользователь существует
-      // Если другая ошибка - пользователя нет
-      const { error } = await supabase.auth.signInWithPassword({
-        email: normalizedEmail,
-        password: '___CHECKING_EMAIL_EXISTS___',
-      })
-
-      if (error) {
-        // Если ошибка "Invalid login credentials" - значит пользователь существует
-        if (error.message?.toLowerCase().includes('invalid login credentials') || 
-            error.message?.toLowerCase().includes('invalid credentials')) {
-          return true
-        }
-        // Если ошибка "Email not confirmed" - значит пользователь существует
-        if (error.message?.toLowerCase().includes('email not confirmed')) {
-          return true
-        }
-        // Другие ошибки обычно означают, что пользователя нет
-        return false
-      }
-
-      // Если вход успешен (не должно произойти с фейковым паролем) - пользователь существует
-      return true
-    } catch (err: any) {
-      console.debug('Ошибка при проверке email:', err)
-      return false
-    }
-  }
-
-  // Обработка кнопки "Продолжить" после ввода email
-  const handleContinueWithEmail = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
-
-    const normalizedEmail = email.trim().toLowerCase()
-    if (!normalizedEmail) {
-      setError('Введите email')
-      return
-    }
-
-    // Валидация email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(normalizedEmail)) {
-      setError('Введите корректный email')
-      return
-    }
-
-    setIsCheckingEmail(true)
-    
-    try {
-      const emailExists = await checkEmailExists(normalizedEmail)
-      
-      if (emailExists) {
-        // Пользователь существует - показываем форму входа
-        setStep('login')
-      } else {
-        // Пользователя нет - показываем форму регистрации
-        setStep('register')
-      }
-    } catch (err: any) {
-      console.error('Ошибка при проверке email:', err)
-      setError('Не удалось проверить email. Попробуйте снова.')
-    } finally {
-      setIsCheckingEmail(false)
-    }
-  }
 
   // Вход через Google
   const handleGoogleSignIn = async () => {
@@ -151,17 +67,39 @@ function AuthForm() {
     }
   }
 
+  // Переключение режима
+  const handleModeChange = (newMode: 'login' | 'register') => {
+    setMode(newMode)
+    setError('')
+    setPassword('')
+    setConfirmPassword('')
+    setFirstName('')
+    setLastName('')
+  }
+
   // Вход через email и пароль
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+
+    const normalizedEmail = email.trim().toLowerCase()
+    if (!normalizedEmail) {
+      setError('Введите email')
+      return
+    }
+
+    // Валидация email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(normalizedEmail)) {
+      setError('Введите корректный email')
+      return
+    }
     
     if (!password) {
       setError('Введите пароль')
       return
     }
 
-    const normalizedEmail = email.trim().toLowerCase()
     const passwordValue = password.trim()
 
     setIsSubmitting(true)
@@ -198,6 +136,18 @@ function AuthForm() {
     setError('')
 
     const normalizedEmail = email.trim().toLowerCase()
+    if (!normalizedEmail) {
+      setError('Введите email')
+      return
+    }
+
+    // Валидация email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(normalizedEmail)) {
+      setError('Введите корректный email')
+      return
+    }
+
     const trimmedFirstName = firstName.trim()
     const trimmedLastName = lastName.trim()
 
@@ -257,15 +207,6 @@ function AuthForm() {
     }
   }
 
-  // Сброс к начальному этапу
-  const handleBack = () => {
-    setStep('email')
-    setPassword('')
-    setConfirmPassword('')
-    setFirstName('')
-    setLastName('')
-    setError('')
-  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-white py-12 sm:py-16 lg:py-20 px-4 sm:px-6">
@@ -280,20 +221,42 @@ function AuthForm() {
             Добро пожаловать
           </h2>
           <p className="text-center text-sm sm:text-base font-light text-primary-600">
-            {step === 'email' 
-              ? 'Продолжите с Google или введите email'
-              : step === 'login'
-              ? 'Введите пароль для входа'
-              : 'Создайте аккаунт'}
+            {mode === 'login' ? 'Войдите в свой аккаунт' : 'Создайте новый аккаунт'}
           </p>
         </div>
 
+        {/* Segmented Controls */}
+        <div className="flex rounded-apple border border-primary-200 bg-white p-1">
+          <button
+            type="button"
+            onClick={() => handleModeChange('login')}
+            className={`flex-1 py-2.5 px-4 text-sm font-normal rounded-apple transition-all ${
+              mode === 'login'
+                ? 'bg-primary-900 text-white shadow-sm'
+                : 'text-primary-600 hover:text-primary-900'
+            }`}
+          >
+            Вход
+          </button>
+          <button
+            type="button"
+            onClick={() => handleModeChange('register')}
+            className={`flex-1 py-2.5 px-4 text-sm font-normal rounded-apple transition-all ${
+              mode === 'register'
+                ? 'bg-primary-900 text-white shadow-sm'
+                : 'text-primary-600 hover:text-primary-900'
+            }`}
+          >
+            Регистрация
+          </button>
+        </div>
+
         {/* Google Sign In Button */}
-        {isSupabaseAvailable() && step === 'email' && (
+        {isSupabaseAvailable() && (
           <button
             type="button"
             onClick={handleGoogleSignIn}
-            disabled={isGoogleLoading || isSubmitting || isCheckingEmail}
+            disabled={isGoogleLoading || isSubmitting}
             className="w-full flex items-center justify-center gap-3 py-4 px-5 border border-primary-200 rounded-apple text-base font-normal text-primary-900 bg-white hover:bg-primary-50 focus:outline-none focus:ring-1 focus:ring-primary-900 transition-colors tracking-tight disabled:opacity-70 disabled:cursor-not-allowed shadow-sm"
           >
             {isGoogleLoading ? (
@@ -327,28 +290,26 @@ function AuthForm() {
           </button>
         )}
 
-        {/* Divider - показываем только на этапе email */}
-        {step === 'email' && (
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-primary-200"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white text-primary-500 font-light">или</span>
-            </div>
+        {/* Divider */}
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-primary-200"></div>
           </div>
-        )}
+          <div className="relative flex justify-center text-sm">
+            <span className="px-4 bg-white text-primary-500 font-light">или</span>
+          </div>
+        </div>
 
-        {/* Форма ввода email */}
-        {step === 'email' && (
-          <form onSubmit={handleContinueWithEmail} className="space-y-6">
+        {/* Форма входа */}
+        {mode === 'login' && (
+          <form onSubmit={handleLogin} className="space-y-6">
             {error && (
               <div className="bg-primary-50 border border-primary-200 text-primary-700 px-5 py-4 rounded-apple text-sm font-light">
                 {error}
               </div>
             )}
             <div>
-              <label htmlFor="email" className="sr-only">
+              <label htmlFor="email" className="block text-sm font-light text-primary-700 mb-2">
                 Email
               </label>
               <input
@@ -361,34 +322,7 @@ function AuthForm() {
                 placeholder="Email адрес"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                disabled={isCheckingEmail}
               />
-            </div>
-            <button
-              type="submit"
-              disabled={isCheckingEmail || isGoogleLoading}
-              className="w-full flex justify-center py-4 px-5 border border-transparent text-base font-normal rounded-apple text-white bg-primary-900 hover:bg-primary-800 focus:outline-none focus:ring-1 focus:ring-primary-900 transition-colors tracking-tight disabled:opacity-70 disabled:cursor-not-allowed"
-            >
-              {isCheckingEmail ? 'Проверка...' : 'Продолжить'}
-            </button>
-          </form>
-        )}
-
-        {/* Форма входа */}
-        {step === 'login' && (
-          <form onSubmit={handleLogin} className="space-y-6">
-            {error && (
-              <div className="bg-primary-50 border border-primary-200 text-primary-700 px-5 py-4 rounded-apple text-sm font-light">
-                {error}
-              </div>
-            )}
-            <div>
-              <label className="block text-sm font-light text-primary-700 mb-2">
-                Email
-              </label>
-              <div className="px-5 py-4 border border-primary-200 rounded-apple bg-primary-50 text-primary-600 font-light">
-                {email}
-              </div>
             </div>
             <div>
               <label htmlFor="password" className="block text-sm font-light text-primary-700 mb-2">
@@ -415,19 +349,12 @@ function AuthForm() {
               >
                 {isSubmitting ? 'Вход...' : 'Войти'}
               </button>
-              <button
-                type="button"
-                onClick={handleBack}
-                className="w-full text-sm font-light text-primary-600 hover:text-primary-900 transition-colors"
-              >
-                ← Изменить email
-              </button>
             </div>
           </form>
         )}
 
         {/* Форма регистрации */}
-        {step === 'register' && (
+        {mode === 'register' && (
           <form onSubmit={handleRegister} className="space-y-6">
             {error && (
               <div className="bg-primary-50 border border-primary-200 text-primary-700 px-5 py-4 rounded-apple text-sm font-light">
@@ -435,12 +362,20 @@ function AuthForm() {
               </div>
             )}
             <div>
-              <label className="block text-sm font-light text-primary-700 mb-2">
+              <label htmlFor="email-register" className="block text-sm font-light text-primary-700 mb-2">
                 Email
               </label>
-              <div className="px-5 py-4 border border-primary-200 rounded-apple bg-primary-50 text-primary-600 font-light">
-                {email}
-              </div>
+              <input
+                id="email-register"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                className="w-full px-5 py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white"
+                placeholder="Email адрес"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -514,13 +449,6 @@ function AuthForm() {
                 className="w-full flex justify-center py-4 px-5 border border-transparent text-base font-normal rounded-apple text-white bg-primary-900 hover:bg-primary-800 focus:outline-none focus:ring-1 focus:ring-primary-900 transition-colors tracking-tight disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? 'Создание аккаунта...' : 'Зарегистрироваться'}
-              </button>
-              <button
-                type="button"
-                onClick={handleBack}
-                className="w-full text-sm font-light text-primary-600 hover:text-primary-900 transition-colors"
-              >
-                ← Изменить email
               </button>
             </div>
           </form>

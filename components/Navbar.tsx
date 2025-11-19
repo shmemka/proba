@@ -196,12 +196,6 @@ export default function Navbar() {
                     )}
                   </button>
                 )}
-                <Link
-                  href="/auth"
-                  className="bg-primary-900 text-white px-5 py-2 rounded-apple text-sm font-normal hover:bg-primary-800 transition-all duration-200 tracking-tight active:scale-95"
-                >
-                  Войти
-                </Link>
               </>
             )}
           </div>
@@ -214,7 +208,7 @@ export default function Navbar() {
             {isMenuOpen ? (
               <XMarkIcon className="w-6 h-6" />
             ) : (
-              <Bars3Icon className="w-6 h-6" />
+            <Bars3Icon className="w-6 h-6" />
             )}
           </button>
         </div>
@@ -235,21 +229,21 @@ export default function Navbar() {
           >
             <div className="px-4 sm:px-6 pt-4 pb-6 space-y-3">
               {/* Ссылки навигации */}
-              {navLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  prefetch={true}
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                prefetch={true}
                   className={`block px-4 py-3 text-base font-normal tracking-tight rounded-apple transition-colors ${
-                    pathname === link.href
+                  pathname === link.href
                       ? 'text-primary-900 bg-primary-50'
                       : 'text-primary-700 hover:text-primary-900 hover:bg-primary-50'
-                  }`}
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  {link.label}
-                </Link>
-              ))}
+                }`}
+                onClick={() => setIsMenuOpen(false)}
+              >
+                {link.label}
+              </Link>
+            ))}
               
               {/* Разделитель */}
               <div className="border-t border-primary-100 my-3"></div>
@@ -257,14 +251,14 @@ export default function Navbar() {
               {/* Профиль или кнопки входа */}
               {user ? (
                 <>
-                  <Link
-                    href="/profile/edit"
+                    <Link
+                      href="/profile/edit"
                     className="flex items-center gap-3 px-4 py-3 text-base font-normal text-primary-700 hover:text-primary-900 hover:bg-primary-50 rounded-apple transition-colors"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    <Cog6ToothIcon className="w-5 h-5" />
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                        <Cog6ToothIcon className="w-5 h-5" />
                     Настройки
-                  </Link>
+                    </Link>
                   <button
                     onClick={() => {
                       handleLogout()
@@ -272,7 +266,7 @@ export default function Navbar() {
                     }}
                     className="w-full flex items-center gap-3 px-4 py-3 text-base font-normal text-primary-700 hover:text-primary-900 hover:bg-primary-50 rounded-apple transition-colors text-left"
                   >
-                    <ArrowRightOnRectangleIcon className="w-5 h-5" />
+                      <ArrowRightOnRectangleIcon className="w-5 h-5" />
                     Выйти
                   </button>
                 </>

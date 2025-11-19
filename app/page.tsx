@@ -70,7 +70,7 @@ export default function Home() {
                 onClick={handleGoogleSignIn}
                 disabled={isGoogleLoading}
                 className="bg-primary-900 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-apple font-normal hover:bg-primary-800 transition-colors inline-flex items-center justify-center gap-2 text-sm sm:text-base tracking-tight disabled:opacity-70 disabled:cursor-not-allowed shadow-sm"
-              >
+            >
                 {isGoogleLoading ? (
                   <>
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
