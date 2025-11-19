@@ -97,14 +97,43 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
               setCurrentUserId(user.id)
             }
             
+            // Проверяем, является ли пользователь владельцем задачи
+            const userEmail = user?.email || ''
+            const isProjectOwner = foundProject.user_id === user?.id || 
+                                   (foundProject as any).company_id === user?.id ||
+                                   (foundProject as any).createdBy === userEmail
+            
+            if (isProjectOwner) {
+              setIsOwner(true)
+              // Загружаем отклики для владельца из localStorage
+              const applications = JSON.parse(localStorage.getItem('applications') || '[]')
+              const projectApplications = applications
+                .filter((app: any) => app.projectId === params.id)
+                .map((app: any) => ({
+                  id: app.id,
+                  message: app.text,
+                  created_at: app.date,
+                  specialists: {
+                    id: app.applicantEmail,
+                    first_name: app.applicantName?.split(' ')[0] || '',
+                    last_name: app.applicantName?.split(' ').slice(1).join(' ') || '',
+                    email: app.applicantEmail,
+                    telegram: '',
+                    specialization: '',
+                  }
+                }))
+              setApplications(projectApplications)
+            } else {
+              // Проверяем, подал ли пользователь уже заявку
             const applications = JSON.parse(localStorage.getItem('applications') || '[]')
-            const userEmail = user?.email || 'guest'
             const userApplication = applications.find(
               (app: any) => app.projectId === params.id && app.applicantEmail === userEmail
             )
             if (userApplication) {
               setSubmitted(true)
             }
+            }
+            
             setProject(foundProject)
           } else {
             router.push('/projects')

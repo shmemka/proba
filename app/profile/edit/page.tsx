@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, Suspense, useRef } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { CheckIcon, PlusIcon, XMarkIcon, PhotoIcon } from '@heroicons/react/24/outline'
 import { getActiveUser, loadSpecialistProfile, readJson, saveSpecialistProfile, type StoredUser, writeJson } from '@/lib/storage'
 import { getCurrentUser, getSpecialist, updateSpecialist, isSupabaseAvailable, ensureSpecialistProfile } from '@/lib/supabase'
@@ -96,8 +96,9 @@ const createPortfolioPath = (userId: string, projectId: string, fileIndex: numbe
   return `specialists/${userId}/portfolio/${safeProjectId}/${randomId()}.${extension || 'jpg'}`
 }
 
-export default function EditProfilePage() {
+function EditProfileForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [isAuthorized, setIsAuthorized] = useState(false)
   const [currentUser, setCurrentUser] = useState<StoredUser | null>(null)
   const [isSaving, setIsSaving] = useState(false)
@@ -149,6 +150,26 @@ export default function EditProfilePage() {
   const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, size: 0 })
   const cropImageRef = useRef<HTMLImageElement>(null)
   const cropContainerRef = useRef<HTMLDivElement>(null)
+
+  // Читаем параметр tab из URL и устанавливаем активную вкладку
+  useEffect(() => {
+    const tabParam = searchParams.get('tab')
+    if (tabParam === 'freelancers' || tabParam === 'general' || tabParam === 'companies') {
+      setActiveTab(tabParam)
+    }
+  }, [searchParams])
+
+  // Блокируем скролл страницы при открытии модального окна обрезки
+  useEffect(() => {
+    if (isCropModalOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+    return () => {
+      document.body.style.overflow = 'unset'
+    }
+  }, [isCropModalOpen])
 
   // Загружаем данные профиля из Supabase или localStorage
   useEffect(() => {
@@ -400,12 +421,12 @@ export default function EditProfilePage() {
 
     canvasToProcessedFile(canvas, `avatar-${Date.now()}.jpg`)
       .then(({ file: processedFile, preview }) => {
-        setAvatarPreview(preview)
-        if (SUPABASE_ENABLED) {
-          setPendingAvatarFile(processedFile)
-        } else {
-          setFormData({ ...formData, avatarUrl: preview })
-        }
+      setAvatarPreview(preview)
+      if (SUPABASE_ENABLED) {
+        setPendingAvatarFile(processedFile)
+      } else {
+        setFormData({ ...formData, avatarUrl: preview })
+      }
         setIsCropModalOpen(false)
         setCropImageSrc('')
         setCropImageFile(null)
@@ -448,12 +469,14 @@ export default function EditProfilePage() {
 
     const corner = getCropAreaCorner(x, y)
     if (corner) {
+      // Начинаем изменение размера
       setIsResizing(true)
       setResizeStart({ x, y, size: cropArea.size })
     } else if (
       x >= cropArea.x && x <= cropArea.x + cropArea.size &&
       y >= cropArea.y && y <= cropArea.y + cropArea.size
     ) {
+      // Начинаем перемещение
       setIsDragging(true)
       setDragStart({ x: x - cropArea.x, y: y - cropArea.y })
     }
@@ -664,18 +687,6 @@ export default function EditProfilePage() {
       }
     }
   }, [isDragging, isResizing, dragStart, resizeStart, imageSize, cropArea])
-
-  // Блокируем скролл страницы при открытии модального окна обрезки
-  useEffect(() => {
-    if (isCropModalOpen) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = 'unset'
-    }
-    return () => {
-      document.body.style.overflow = 'unset'
-    }
-  }, [isCropModalOpen])
 
   // Функция для обрезки изображения в формат 4:3 (альбомная ориентация)
   const cropImageTo4_3 = (file: File, projectId: string): Promise<{ file: File; preview: string }> => {
@@ -1142,8 +1153,7 @@ export default function EditProfilePage() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
       <div className="mb-6 sm:mb-8">
-        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-light text-primary-900 mb-2 sm:mb-3 tracking-tight">Настройки профиля</h1>
-        <p className="text-base sm:text-lg font-light text-primary-600">Управляйте информацией о себе и портфолио</p>
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-light text-primary-900 mb-2 sm:mb-3 tracking-tight">Настройки</h1>
       </div>
 
       {/* Tabs */}
@@ -1311,6 +1321,45 @@ export default function EditProfilePage() {
 
         {activeTab === 'freelancers' && (
           <div className="space-y-4 sm:space-y-6">
+            {/* Toggle: Показывать меня в поиске */}
+            <div className="flex items-center justify-between p-4 bg-primary-50 rounded-apple border border-primary-100">
+              <div className="flex-1">
+                <span className="text-sm font-light text-primary-700 block">Показывать меня в поиске</span>
+                {formData.showInSearch !== true && (
+                  <p className="text-xs font-light text-primary-500 mt-1">
+                    Ваша карточка не опубликована. Заполните все обязательные поля и укажите Telegram для публикации.
+                  </p>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const checked = !formData.showInSearch
+                  // Проверяем, можно ли опубликовать карточку
+                  const hasTelegram = formData.telegram.trim().length > 0
+                  const hasRequiredFields = formData.firstName.trim() && formData.lastName.trim()
+                  
+                  if (checked && (!hasRequiredFields || !hasTelegram)) {
+                    alert('Для публикации карточки необходимо заполнить все обязательные поля (имя, фамилия) и указать Telegram')
+                    return
+                  }
+                  
+                  setFormData({ ...formData, showInSearch: checked })
+                }}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#FF4600] focus:ring-offset-2 ${
+                  formData.showInSearch === true ? 'bg-[#FF4600]' : 'bg-primary-300'
+                }`}
+                role="switch"
+                aria-checked={formData.showInSearch === true}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    formData.showInSearch === true ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+
             {/* Segmented Controls */}
             <div className="flex gap-2 p-1 bg-primary-50 rounded-apple border border-primary-100">
               <button
@@ -1405,36 +1454,6 @@ export default function EditProfilePage() {
               </label>
             </div>
 
-            <div className="pt-4 border-t border-primary-100">
-              <label className="flex items-start gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formData.showInSearch === true}
-                  onChange={(e) => {
-                    const checked = e.target.checked
-                    // Проверяем, можно ли опубликовать карточку
-                    const hasTelegram = formData.telegram.trim().length > 0
-                    const hasRequiredFields = formData.firstName.trim() && formData.lastName.trim()
-                    
-                    if (checked && (!hasRequiredFields || !hasTelegram)) {
-                      alert('Для публикации карточки необходимо заполнить все обязательные поля (имя, фамилия) и указать Telegram')
-                      return
-                    }
-                    
-                    setFormData({ ...formData, showInSearch: checked })
-                  }}
-                  className="w-5 h-5 rounded border-primary-200 text-[#FF4600] focus:ring-1 focus:ring-[#FF4600] focus:ring-offset-0 mt-0.5"
-                />
-                <div className="flex-1">
-                  <span className="text-sm font-light text-primary-700 block">Показывать меня в поиске</span>
-                  {formData.showInSearch !== true && (
-                    <p className="text-xs font-light text-primary-500 mt-1">
-                      Ваша карточка не опубликована. Заполните все обязательные поля и укажите Telegram для публикации.
-                    </p>
-                  )}
-                </div>
-              </label>
-            </div>
               </div>
             )}
 
@@ -1700,5 +1719,17 @@ export default function EditProfilePage() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function EditProfilePage() {
+  return (
+    <Suspense fallback={
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
+        <div className="text-center text-primary-600 font-light">Загрузка...</div>
+      </div>
+    }>
+      <EditProfileForm />
+    </Suspense>
   )
 }
