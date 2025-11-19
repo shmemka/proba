@@ -73,8 +73,8 @@ function RegisterForm() {
         // Используем Supabase Auth - регистрируем как специалиста по умолчанию
         await signUp(normalizedEmail, formData.password, 'specialist', fullName)
         
-        // После регистрации перенаправляем на редактирование профиля
-        router.push('/profile/edit')
+        // После регистрации перенаправляем на страницу "Таланты"
+        router.push('/specialists')
       } else {
         // Fallback на localStorage
         if (findUserByEmail(normalizedEmail)) {
@@ -101,7 +101,7 @@ function RegisterForm() {
         }
         saveSpecialistProfile(newUser.id, specialistProfile)
 
-        router.push('/profile/edit')
+        router.push('/specialists')
       }
     } catch (err: any) {
       console.error(err)
