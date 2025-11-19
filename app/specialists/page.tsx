@@ -455,22 +455,22 @@ export default function SpecialistsPage() {
           </div>
           {currentUserId && (
             <div className="flex gap-2 sm:gap-3 overflow-x-auto scrollbar-hide -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 pb-2">
-              <div className={`relative flex items-center transition-all duration-300 ${isSearchExpanded ? 'flex-1 min-w-[200px]' : 'flex-shrink-0'}`}>
+              <div className={`relative flex items-center transition-all duration-300 h-[48px] sm:h-[56px] ${isSearchExpanded ? 'flex-1 min-w-[200px]' : 'flex-shrink-0'}`}>
                 {!isSearchExpanded ? (
                   <button
                     onClick={() => setIsSearchExpanded(true)}
-                    className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 rounded-apple bg-primary-50 text-primary-700 hover:bg-primary-100 transition-colors font-normal tracking-tight whitespace-nowrap"
+                    className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 rounded-apple bg-primary-50 text-primary-700 hover:bg-primary-100 transition-colors font-normal tracking-tight whitespace-nowrap focus:outline-none"
                   >
                     <MagnifyingGlassIcon className="w-5 h-5" />
                     <span className="text-xs sm:text-sm whitespace-nowrap">Поиск</span>
                   </button>
                 ) : (
-                  <div className="relative w-full">
+                  <div className="relative w-full h-full flex items-center">
                     <MagnifyingGlassIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 text-primary-400 w-5 h-5 pointer-events-none" />
                     <input
                       type="text"
-                      placeholder="Поиск специалистов..."
-                      className="w-full pl-12 pr-10 py-3 sm:py-4 border border-primary-200 rounded-apple bg-primary-50 text-primary-700 focus:ring-1 focus:ring-primary-900 focus:border-primary-900 focus:bg-white placeholder-primary-400 font-normal text-xs sm:text-sm transition-all"
+                      placeholder="Поиск"
+                      className="w-full h-full pl-12 pr-10 py-3 sm:py-4 border border-primary-200 rounded-apple bg-primary-50 text-primary-700 focus:outline-none focus:border-primary-900 focus:bg-white placeholder-primary-400 font-normal text-xs sm:text-sm transition-all"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       onBlur={() => {
@@ -486,7 +486,7 @@ export default function SpecialistsPage() {
                           setSearchQuery('')
                           setIsSearchExpanded(false)
                         }}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-primary-400 hover:text-primary-700"
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-primary-400 hover:text-primary-700 focus:outline-none"
                       >
                         <XMarkIcon className="w-4 h-4" />
                       </button>
@@ -522,22 +522,22 @@ export default function SpecialistsPage() {
         </div>
         {currentUserId && (
           <div className="flex gap-2 sm:gap-3 overflow-x-auto scrollbar-hide -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 pb-2">
-            <div className={`relative flex items-center transition-all duration-300 ${isSearchExpanded ? 'flex-1 min-w-[200px]' : 'flex-shrink-0'}`}>
+            <div className={`relative flex items-center transition-all duration-300 h-[48px] sm:h-[56px] ${isSearchExpanded ? 'flex-1 min-w-[200px]' : 'flex-shrink-0'}`}>
               {!isSearchExpanded ? (
                 <button
                   onClick={() => setIsSearchExpanded(true)}
-                  className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 rounded-apple bg-primary-50 text-primary-700 hover:bg-primary-100 transition-colors font-normal tracking-tight whitespace-nowrap"
+                  className="flex flex-row items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-4 rounded-apple bg-primary-50 text-primary-700 hover:bg-primary-100 transition-colors font-normal tracking-tight whitespace-nowrap focus:outline-none"
                 >
                   <MagnifyingGlassIcon className="w-5 h-5" />
                   <span className="text-xs sm:text-sm whitespace-nowrap">Поиск</span>
                 </button>
               ) : (
-                <div className="relative w-full">
+                <div className="relative w-full h-full flex items-center">
                   <MagnifyingGlassIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 text-primary-400 w-5 h-5 pointer-events-none" />
                   <input
                     type="text"
-                    placeholder="Поиск специалистов..."
-                    className="w-full pl-12 pr-10 py-3 sm:py-4 border border-primary-200 rounded-apple bg-primary-50 text-primary-700 focus:ring-1 focus:ring-primary-900 focus:border-primary-900 focus:bg-white placeholder-primary-400 font-normal text-xs sm:text-sm transition-all"
+                    placeholder="Поиск"
+                    className="w-full h-full pl-12 pr-10 py-3 sm:py-4 border border-primary-200 rounded-apple bg-primary-50 text-primary-700 focus:outline-none focus:border-primary-900 focus:bg-white placeholder-primary-400 font-normal text-xs sm:text-sm transition-all"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onBlur={() => {
@@ -553,7 +553,7 @@ export default function SpecialistsPage() {
                         setSearchQuery('')
                         setIsSearchExpanded(false)
                       }}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-primary-400 hover:text-primary-700"
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-primary-400 hover:text-primary-700 focus:outline-none"
                     >
                       <XMarkIcon className="w-4 h-4" />
                     </button>

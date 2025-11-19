@@ -145,7 +145,9 @@ function EditProfileForm() {
   const [cropArea, setCropArea] = useState({ x: 0, y: 0, size: 200 })
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 })
   const [isDragging, setIsDragging] = useState(false)
+  const [isResizing, setIsResizing] = useState(false)
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
+  const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, size: 0 })
   const cropImageRef = useRef<HTMLImageElement>(null)
   const cropContainerRef = useRef<HTMLDivElement>(null)
 
@@ -156,6 +158,18 @@ function EditProfileForm() {
       setActiveTab(tabParam)
     }
   }, [searchParams])
+
+  // Блокируем скролл страницы при открытии модального окна обрезки
+  useEffect(() => {
+    if (isCropModalOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+    return () => {
+      document.body.style.overflow = 'unset'
+    }
+  }, [isCropModalOpen])
 
   // Загружаем данные профиля из Supabase или localStorage
   useEffect(() => {
@@ -429,14 +443,102 @@ function EditProfileForm() {
     setCropImageFile(null)
   }
 
+  const getCropAreaCorner = (x: number, y: number, cornerSize: number = 20) => {
+    const corners = [
+      { name: 'top-left', x: cropArea.x, y: cropArea.y },
+      { name: 'top-right', x: cropArea.x + cropArea.size, y: cropArea.y },
+      { name: 'bottom-left', x: cropArea.x, y: cropArea.y + cropArea.size },
+      { name: 'bottom-right', x: cropArea.x + cropArea.size, y: cropArea.y + cropArea.size },
+    ]
+    
+    for (const corner of corners) {
+      const distance = Math.sqrt(Math.pow(x - corner.x, 2) + Math.pow(y - corner.y, 2))
+      if (distance <= cornerSize) {
+        return corner.name
+      }
+    }
+    return null
+  }
+
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!cropContainerRef.current) return
+    e.preventDefault()
     const rect = cropContainerRef.current.getBoundingClientRect()
     const x = e.clientX - rect.left
     const y = e.clientY - rect.top
 
-    // Проверяем, что клик внутри области обрезки
-    if (
+    const corner = getCropAreaCorner(x, y)
+    if (corner) {
+      // Начинаем изменение размера
+      setIsResizing(true)
+      setResizeStart({ x, y, size: cropArea.size })
+    } else if (
+      x >= cropArea.x && x <= cropArea.x + cropArea.size &&
+      y >= cropArea.y && y <= cropArea.y + cropArea.size
+    ) {
+      // Начинаем перемещение
+      setIsDragging(true)
+      setDragStart({ x: x - cropArea.x, y: y - cropArea.y })
+    }
+  }
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!cropContainerRef.current) return
+    
+    if (isDragging) {
+      e.preventDefault()
+      const rect = cropContainerRef.current.getBoundingClientRect()
+      const x = e.clientX - rect.left - dragStart.x
+      const y = e.clientY - rect.top - dragStart.y
+
+      const maxX = imageSize.width - cropArea.size
+      const maxY = imageSize.height - cropArea.size
+
+      setCropArea({
+        ...cropArea,
+        x: Math.max(0, Math.min(x, maxX)),
+        y: Math.max(0, Math.min(y, maxY))
+      })
+    } else if (isResizing) {
+      e.preventDefault()
+      const rect = cropContainerRef.current.getBoundingClientRect()
+      const currentX = e.clientX - rect.left
+      const currentY = e.clientY - rect.top
+      
+      const deltaX = currentX - resizeStart.x
+      const deltaY = currentY - resizeStart.y
+      const delta = (deltaX + deltaY) / 2
+      
+      const newSize = Math.max(50, Math.min(
+        resizeStart.size + delta,
+        Math.min(imageSize.width - cropArea.x, imageSize.height - cropArea.y)
+      ))
+      
+      setCropArea({
+        ...cropArea,
+        size: newSize
+      })
+    }
+  }
+
+  const handleMouseUp = () => {
+    setIsDragging(false)
+    setIsResizing(false)
+  }
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (!cropContainerRef.current) return
+    e.preventDefault()
+    const touch = e.touches[0]
+    const rect = cropContainerRef.current.getBoundingClientRect()
+    const x = touch.clientX - rect.left
+    const y = touch.clientY - rect.top
+
+    const corner = getCropAreaCorner(x, y, 30)
+    if (corner) {
+      setIsResizing(true)
+      setResizeStart({ x, y, size: cropArea.size })
+    } else if (
       x >= cropArea.x && x <= cropArea.x + cropArea.size &&
       y >= cropArea.y && y <= cropArea.y + cropArea.size
     ) {
@@ -445,57 +547,146 @@ function EditProfileForm() {
     }
   }
 
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging || !cropContainerRef.current) return
-    const rect = cropContainerRef.current.getBoundingClientRect()
-    const x = e.clientX - rect.left - dragStart.x
-    const y = e.clientY - rect.top - dragStart.y
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!cropContainerRef.current) return
+    e.preventDefault()
+    
+    if (isDragging || isResizing) {
+      const touch = e.touches[0]
+      const rect = cropContainerRef.current.getBoundingClientRect()
+      const x = touch.clientX - rect.left
+      const y = touch.clientY - rect.top
 
-    const maxX = imageSize.width - cropArea.size
-    const maxY = imageSize.height - cropArea.size
-
-    setCropArea({
-      ...cropArea,
-      x: Math.max(0, Math.min(x, maxX)),
-      y: Math.max(0, Math.min(y, maxY))
-    })
-  }
-
-  const handleMouseUp = () => {
-    setIsDragging(false)
-  }
-
-  useEffect(() => {
-    if (isDragging) {
-      const handleMouseMoveGlobal = (e: MouseEvent) => {
-        if (!cropContainerRef.current) return
-        const rect = cropContainerRef.current.getBoundingClientRect()
-        const x = e.clientX - rect.left - dragStart.x
-        const y = e.clientY - rect.top - dragStart.y
-
+      if (isDragging) {
+        const newX = x - dragStart.x
+        const newY = y - dragStart.y
         const maxX = imageSize.width - cropArea.size
         const maxY = imageSize.height - cropArea.size
 
         setCropArea({
           ...cropArea,
-          x: Math.max(0, Math.min(x, maxX)),
-          y: Math.max(0, Math.min(y, maxY))
+          x: Math.max(0, Math.min(newX, maxX)),
+          y: Math.max(0, Math.min(newY, maxY))
         })
+      } else if (isResizing) {
+        const deltaX = x - resizeStart.x
+        const deltaY = y - resizeStart.y
+        const delta = (deltaX + deltaY) / 2
+        
+        const newSize = Math.max(50, Math.min(
+          resizeStart.size + delta,
+          Math.min(imageSize.width - cropArea.x, imageSize.height - cropArea.y)
+        ))
+        
+        setCropArea({
+          ...cropArea,
+          size: newSize
+        })
+      }
+    }
+  }
+
+  const handleTouchEnd = () => {
+    setIsDragging(false)
+    setIsResizing(false)
+  }
+
+  useEffect(() => {
+    if (isDragging || isResizing) {
+      const handleMouseMoveGlobal = (e: MouseEvent) => {
+        if (!cropContainerRef.current) return
+        e.preventDefault()
+        const rect = cropContainerRef.current.getBoundingClientRect()
+        const x = e.clientX - rect.left
+        const y = e.clientY - rect.top
+
+        if (isDragging) {
+          const newX = x - dragStart.x
+          const newY = y - dragStart.y
+          const maxX = imageSize.width - cropArea.size
+          const maxY = imageSize.height - cropArea.size
+
+          setCropArea({
+            ...cropArea,
+            x: Math.max(0, Math.min(newX, maxX)),
+            y: Math.max(0, Math.min(newY, maxY))
+          })
+        } else if (isResizing) {
+          const deltaX = x - resizeStart.x
+          const deltaY = y - resizeStart.y
+          const delta = (deltaX + deltaY) / 2
+          
+          const newSize = Math.max(50, Math.min(
+            resizeStart.size + delta,
+            Math.min(imageSize.width - cropArea.x, imageSize.height - cropArea.y)
+          ))
+          
+          setCropArea({
+            ...cropArea,
+            size: newSize
+          })
+        }
       }
 
       const handleMouseUpGlobal = () => {
         setIsDragging(false)
+        setIsResizing(false)
       }
 
-      document.addEventListener('mousemove', handleMouseMoveGlobal)
+      const handleTouchMoveGlobal = (e: TouchEvent) => {
+        if (!cropContainerRef.current || (!isDragging && !isResizing)) return
+        e.preventDefault()
+        const touch = e.touches[0]
+        const rect = cropContainerRef.current.getBoundingClientRect()
+        const x = touch.clientX - rect.left
+        const y = touch.clientY - rect.top
+
+        if (isDragging) {
+          const newX = x - dragStart.x
+          const newY = y - dragStart.y
+          const maxX = imageSize.width - cropArea.size
+          const maxY = imageSize.height - cropArea.size
+
+          setCropArea({
+            ...cropArea,
+            x: Math.max(0, Math.min(newX, maxX)),
+            y: Math.max(0, Math.min(newY, maxY))
+          })
+        } else if (isResizing) {
+          const deltaX = x - resizeStart.x
+          const deltaY = y - resizeStart.y
+          const delta = (deltaX + deltaY) / 2
+          
+          const newSize = Math.max(50, Math.min(
+            resizeStart.size + delta,
+            Math.min(imageSize.width - cropArea.x, imageSize.height - cropArea.y)
+          ))
+          
+          setCropArea({
+            ...cropArea,
+            size: newSize
+          })
+        }
+      }
+
+      const handleTouchEndGlobal = () => {
+        setIsDragging(false)
+        setIsResizing(false)
+      }
+
+      document.addEventListener('mousemove', handleMouseMoveGlobal, { passive: false })
       document.addEventListener('mouseup', handleMouseUpGlobal)
+      document.addEventListener('touchmove', handleTouchMoveGlobal, { passive: false })
+      document.addEventListener('touchend', handleTouchEndGlobal)
 
       return () => {
         document.removeEventListener('mousemove', handleMouseMoveGlobal)
         document.removeEventListener('mouseup', handleMouseUpGlobal)
+        document.removeEventListener('touchmove', handleTouchMoveGlobal)
+        document.removeEventListener('touchend', handleTouchEndGlobal)
       }
     }
-  }, [isDragging, dragStart, imageSize, cropArea])
+  }, [isDragging, isResizing, dragStart, resizeStart, imageSize, cropArea])
 
   // Функция для обрезки изображения в формат 4:3 (альбомная ориентация)
   const cropImageTo4_3 = (file: File, projectId: string): Promise<{ file: File; preview: string }> => {
@@ -1432,11 +1623,14 @@ function EditProfileForm() {
             <div className="flex-1 overflow-auto p-6">
               <div
                 ref={cropContainerRef}
-                className="relative mx-auto bg-primary-50 rounded-apple overflow-hidden"
-                style={{ width: imageSize.width, height: imageSize.height }}
+                className="relative mx-auto bg-primary-50 rounded-apple overflow-hidden touch-none"
+                style={{ width: imageSize.width, height: imageSize.height, touchAction: 'none' }}
                 onMouseDown={handleMouseDown}
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
               >
                 {cropImageSrc && (
                   <img
@@ -1474,19 +1668,32 @@ function EditProfileForm() {
                     top: cropArea.y,
                     width: cropArea.size,
                     height: cropArea.size,
+                    touchAction: 'none',
                   }}
                 >
-                  {/* Углы для визуального указания области обрезки */}
-                  <div className="absolute -top-1 -left-1 w-4 h-4 border-t-2 border-l-2 border-white" />
-                  <div className="absolute -top-1 -right-1 w-4 h-4 border-t-2 border-r-2 border-white" />
-                  <div className="absolute -bottom-1 -left-1 w-4 h-4 border-b-2 border-l-2 border-white" />
-                  <div className="absolute -bottom-1 -right-1 w-4 h-4 border-b-2 border-r-2 border-white" />
+                  {/* Углы для изменения размера */}
+                  <div 
+                    className="absolute -top-2 -left-2 w-6 h-6 bg-white border-2 border-primary-700 rounded-full cursor-nwse-resize touch-none"
+                    style={{ touchAction: 'none' }}
+                  />
+                  <div 
+                    className="absolute -top-2 -right-2 w-6 h-6 bg-white border-2 border-primary-700 rounded-full cursor-nesw-resize touch-none"
+                    style={{ touchAction: 'none' }}
+                  />
+                  <div 
+                    className="absolute -bottom-2 -left-2 w-6 h-6 bg-white border-2 border-primary-700 rounded-full cursor-nesw-resize touch-none"
+                    style={{ touchAction: 'none' }}
+                  />
+                  <div 
+                    className="absolute -bottom-2 -right-2 w-6 h-6 bg-white border-2 border-primary-700 rounded-full cursor-nwse-resize touch-none"
+                    style={{ touchAction: 'none' }}
+                  />
                 </div>
               </div>
 
               <div className="mt-4 text-center">
                 <p className="text-sm font-light text-primary-600">
-                  Перетащите рамку, чтобы выбрать область для обрезки
+                  Перетащите рамку для перемещения, углы для изменения размера
                 </p>
               </div>
             </div>
