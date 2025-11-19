@@ -28,7 +28,7 @@ const splitDisplayName = (displayName: string) => {
   }
 }
 
-const deriveDisplayName = (
+export const deriveDisplayName = (
   email: string,
   userType: 'specialist' | 'company',
   provided?: string,
@@ -269,6 +269,41 @@ export async function signIn(email: string, password: string) {
     return data
   } catch (error) {
     throw new Error(mapSupabaseError(error, 'Не удалось выполнить вход'))
+  }
+}
+
+export async function signInWithGoogle(redirectTo?: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) {
+    throw new Error('Supabase не настроен')
+  }
+
+  try {
+    // Получаем текущий URL для редиректа после OAuth
+    const baseUrl = typeof window !== 'undefined' 
+      ? window.location.origin 
+      : process.env.NEXT_PUBLIC_SITE_URL || ''
+    
+    const emailRedirectTo = redirectTo || `${baseUrl}/auth/callback`
+
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: emailRedirectTo,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        },
+      },
+    })
+
+    if (error) {
+      throw error
+    }
+
+    return data
+  } catch (error) {
+    throw new Error(mapSupabaseError(error, 'Не удалось выполнить вход через Google'))
   }
 }
 
