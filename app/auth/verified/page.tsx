@@ -15,7 +15,7 @@ export default function VerifiedPage() {
       const user = await getCurrentUser()
       if (!user) {
         // Если пользователь не авторизован, перенаправляем на страницу входа
-        router.push('/login')
+        router.push('/auth')
       }
     }
     checkAuth()

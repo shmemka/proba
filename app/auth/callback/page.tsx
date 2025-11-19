@@ -175,7 +175,7 @@ function OAuthCallback() {
           </div>
           <div className="pt-4 space-y-3">
             <button
-              onClick={() => router.push('/login')}
+              onClick={() => router.push('/auth')}
               className="w-full flex justify-center py-4 px-5 border border-transparent text-base font-normal rounded-apple text-white bg-primary-900 hover:bg-primary-800 focus:outline-none focus:ring-1 focus:ring-primary-900 transition-colors tracking-tight"
             >
               Перейти к входу

@@ -119,7 +119,7 @@ function EditProfileForm() {
           })
           setIsAuthorized(true)
         } else {
-          router.push('/login?redirect=/profile/edit')
+          router.push('/auth?redirect=/profile/edit')
         }
       } else {
         const user = getActiveUser()
@@ -127,7 +127,7 @@ function EditProfileForm() {
           setCurrentUser(user)
           setIsAuthorized(true)
         } else {
-          router.push('/login?redirect=/profile/edit')
+          router.push('/auth?redirect=/profile/edit')
         }
       }
     }

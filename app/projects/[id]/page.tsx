@@ -175,7 +175,7 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
         const user = await getCurrentUser()
         if (!user) {
           alert('Необходимо войти в систему')
-          router.push('/login?redirect=' + encodeURIComponent(`/projects/${params.id}`))
+          router.push('/auth?redirect=' + encodeURIComponent(`/projects/${params.id}`))
           return
         }
 

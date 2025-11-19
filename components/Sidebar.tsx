@@ -220,28 +220,16 @@ export default function Sidebar() {
               )}
             </div>
           ) : (
-            <div className="space-y-2">
-              <Link
-                href="/login"
-                onClick={() => {
-                  setIsMobileMenuOpen(false)
-                  setIsProfileMenuOpen(false)
-                }}
-                className="block w-full text-center px-4 py-3 rounded-apple text-sm font-normal text-primary-700 hover:bg-primary-50 active:bg-primary-50 transition-colors"
-              >
-                Войти
-              </Link>
-              <Link
-                href="/register"
-                onClick={() => {
-                  setIsMobileMenuOpen(false)
-                  setIsProfileMenuOpen(false)
-                }}
-                className="block w-full text-center px-4 py-3 rounded-apple text-sm font-normal bg-primary-900 text-white hover:bg-primary-800 active:bg-primary-800 transition-colors"
-              >
-                Регистрация
-              </Link>
-            </div>
+            <Link
+              href="/auth"
+              onClick={() => {
+                setIsMobileMenuOpen(false)
+                setIsProfileMenuOpen(false)
+              }}
+              className="block w-full text-center px-4 py-3 rounded-apple text-sm font-normal bg-primary-900 text-white hover:bg-primary-800 active:bg-primary-800 transition-colors"
+            >
+              Войти
+            </Link>
           )}
         </div>
       </aside>

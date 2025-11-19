@@ -170,16 +170,10 @@ export default function Navbar() {
             ) : (
               <>
                 <Link
-                  href="/login"
-                  className="text-primary-700 hover:text-primary-900 px-4 py-2 text-sm font-normal transition-all duration-200 tracking-tight active:scale-95"
-                >
-                  Войти
-                </Link>
-                <Link
-                  href="/register"
+                  href="/auth"
                   className="bg-primary-900 text-white px-5 py-2 rounded-apple text-sm font-normal hover:bg-primary-800 transition-all duration-200 tracking-tight active:scale-95"
                 >
-                  Регистрация
+                  Войти
                 </Link>
               </>
             )}
@@ -201,13 +195,17 @@ export default function Navbar() {
 
       {isMenuOpen && (
         <>
-          {/* Затемнение фона */}
+          {/* Затемнение фона - покрывает весь экран */}
           <div 
-            className="md:hidden fixed inset-0 bg-black/50 z-40 top-20"
+            className="md:hidden fixed inset-0 bg-black/50 z-40 backdrop-blur-sm"
             onClick={() => setIsMenuOpen(false)}
+            aria-hidden="true"
           />
           {/* Модальное меню */}
-          <div className="md:hidden fixed inset-x-4 top-20 bg-white z-50 shadow-lg animate-fade-in max-h-[calc(100vh-5rem)] overflow-y-auto rounded-apple">
+          <div 
+            className="md:hidden fixed inset-x-4 top-20 bg-white z-50 shadow-lg animate-fade-in max-h-[calc(100vh-5rem)] overflow-y-auto rounded-apple"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="px-4 sm:px-6 pt-4 pb-6 space-y-2">
               {navLinks.map((link) => (
                 <Link
@@ -269,22 +267,13 @@ export default function Navbar() {
                     </div>
                   </div>
                 ) : (
-                  <>
-                    <Link
-                      href="/login"
-                      className="block px-3 py-3 text-base font-normal text-primary-700 hover:text-primary-900 hover:bg-primary-50 rounded-apple transition-colors tracking-tight"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      Войти
-                    </Link>
-                    <Link
-                      href="/register"
-                      className="block px-3 py-3 text-base font-normal bg-primary-900 text-white rounded-apple hover:bg-primary-800 transition-colors tracking-tight text-center mt-2"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      Регистрация
-                    </Link>
-                  </>
+                  <Link
+                    href="/auth"
+                    className="block px-3 py-3 text-base font-normal bg-primary-900 text-white rounded-apple hover:bg-primary-800 transition-colors tracking-tight text-center"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Войти
+                  </Link>
                 )}
               </div>
             </div>
