@@ -700,6 +700,20 @@ export async function getApplications(projectId?: string, specialistId?: string)
     return []
   }
 
+  // Если запрашиваются отклики на проект, проверяем, что пользователь является владельцем
+  if (projectId && !specialistId) {
+    const currentUser = await getCurrentUser()
+    if (currentUser) {
+      const project = await getProject(projectId)
+      if (project && project.user_id !== currentUser.id) {
+        // Пользователь не является владельцем проекта - RLS политики не вернут данные
+        // Но для безопасности возвращаем пустой массив
+        console.warn('Попытка получить отклики на чужой проект заблокирована')
+        return []
+      }
+    }
+  }
+
   let query = supabase
     .from('applications')
     .select(`
