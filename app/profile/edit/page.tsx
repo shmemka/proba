@@ -325,9 +325,14 @@ function EditProfileForm() {
     try {
       const reader = new FileReader()
       reader.onload = (e) => {
+        const src = e.target?.result as string
+        if (!src) {
+          alert('Не удалось прочитать файл')
+          return
+        }
+        
         const img = new Image()
         img.onload = () => {
-          const src = e.target?.result as string
           setCropImageSrc(src)
           setCropImageFile(file)
           
