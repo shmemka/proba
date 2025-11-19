@@ -168,7 +168,7 @@ export default function Navbar() {
                     onClick={handleGoogleSignIn}
                     disabled={isGoogleLoading}
                     className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-normal text-primary-700 hover:text-primary-900 transition-all duration-200 tracking-tight active:scale-95 disabled:opacity-70"
-                  >
+                >
                     {isGoogleLoading ? (
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-900"></div>
                     ) : (
@@ -196,6 +196,12 @@ export default function Navbar() {
                     )}
                   </button>
                 )}
+                <Link
+                  href="/auth"
+                  className="bg-primary-900 text-white px-5 py-2 rounded-apple text-sm font-normal hover:bg-primary-800 transition-all duration-200 tracking-tight active:scale-95"
+                >
+                  Войти
+                </Link>
               </>
             )}
           </div>
