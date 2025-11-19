@@ -961,6 +961,45 @@ function EditProfileForm() {
 
         {activeTab === 'freelancers' && (
           <div className="space-y-4 sm:space-y-6">
+            {/* Toggle: Показывать меня в поиске */}
+            <div className="flex items-center justify-between p-4 bg-primary-50 rounded-apple border border-primary-100">
+              <div className="flex-1">
+                <span className="text-sm font-light text-primary-700 block">Показывать меня в поиске</span>
+                {formData.showInSearch !== true && (
+                  <p className="text-xs font-light text-primary-500 mt-1">
+                    Ваша карточка не опубликована. Заполните все обязательные поля и укажите Telegram для публикации.
+                  </p>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const checked = !formData.showInSearch
+                  // Проверяем, можно ли опубликовать карточку
+                  const hasTelegram = formData.telegram.trim().length > 0
+                  const hasRequiredFields = formData.firstName.trim() && formData.lastName.trim()
+                  
+                  if (checked && (!hasRequiredFields || !hasTelegram)) {
+                    alert('Для публикации карточки необходимо заполнить все обязательные поля (имя, фамилия) и указать Telegram')
+                    return
+                  }
+                  
+                  setFormData({ ...formData, showInSearch: checked })
+                }}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#FF4600] focus:ring-offset-2 ${
+                  formData.showInSearch === true ? 'bg-[#FF4600]' : 'bg-primary-300'
+                }`}
+                role="switch"
+                aria-checked={formData.showInSearch === true}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    formData.showInSearch === true ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+
             {/* Segmented Controls */}
             <div className="flex gap-2 p-1 bg-primary-50 rounded-apple border border-primary-100">
               <button
@@ -1055,36 +1094,6 @@ function EditProfileForm() {
               </label>
             </div>
 
-            <div className="pt-4 border-t border-primary-100">
-              <label className="flex items-start gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formData.showInSearch === true}
-                  onChange={(e) => {
-                    const checked = e.target.checked
-                    // Проверяем, можно ли опубликовать карточку
-                    const hasTelegram = formData.telegram.trim().length > 0
-                    const hasRequiredFields = formData.firstName.trim() && formData.lastName.trim()
-                    
-                    if (checked && (!hasRequiredFields || !hasTelegram)) {
-                      alert('Для публикации карточки необходимо заполнить все обязательные поля (имя, фамилия) и указать Telegram')
-                      return
-                    }
-                    
-                    setFormData({ ...formData, showInSearch: checked })
-                  }}
-                  className="w-5 h-5 rounded border-primary-200 text-[#FF4600] focus:ring-1 focus:ring-[#FF4600] focus:ring-offset-0 mt-0.5"
-                />
-                <div className="flex-1">
-                  <span className="text-sm font-light text-primary-700 block">Показывать меня в поиске</span>
-                  {formData.showInSearch !== true && (
-                    <p className="text-xs font-light text-primary-500 mt-1">
-                      Ваша карточка не опубликована. Заполните все обязательные поля и укажите Telegram для публикации.
-                    </p>
-                  )}
-                </div>
-              </label>
-            </div>
               </div>
             )}
 
