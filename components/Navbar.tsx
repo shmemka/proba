@@ -4,7 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { ArrowRightOnRectangleIcon, Cog6ToothIcon, Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuthUser } from '@/hooks/useAuthUser'
 import { signOut, isSupabaseAvailable } from '@/lib/supabase'
 
@@ -16,6 +16,20 @@ export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
   const { user, refresh } = useAuthUser()
+
+  // Блокируем скролл страницы когда мобильное меню открыто
+  useEffect(() => {
+    if (isMenuOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    
+    // Очистка при размонтировании
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [isMenuOpen])
 
   const handleLogout = async () => {
     try {
@@ -189,11 +203,11 @@ export default function Navbar() {
         <>
           {/* Затемнение фона */}
           <div 
-            className="md:hidden fixed inset-0 bg-black/50 z-40 top-16"
+            className="md:hidden fixed inset-0 bg-black/50 z-40 top-20"
             onClick={() => setIsMenuOpen(false)}
           />
           {/* Модальное меню */}
-          <div className="md:hidden fixed inset-x-0 top-16 bg-white z-50 shadow-lg animate-fade-in max-h-[calc(100vh-4rem)] overflow-y-auto">
+          <div className="md:hidden fixed inset-x-4 top-20 bg-white z-50 shadow-lg animate-fade-in max-h-[calc(100vh-5rem)] overflow-y-auto rounded-apple">
             <div className="px-4 sm:px-6 pt-4 pb-6 space-y-2">
               {navLinks.map((link) => (
                 <Link
