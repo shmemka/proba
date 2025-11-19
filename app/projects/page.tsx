@@ -394,19 +394,19 @@ export default function ProjectsPage() {
               ) : (
                 <div className="relative w-full h-full flex items-center">
                   <MagnifyingGlassIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 text-primary-400 w-5 h-5 pointer-events-none" />
-                  <input
-                    type="text"
-                    placeholder="Поиск"
-                    className="w-full h-full pl-12 pr-10 py-3 sm:py-4 border border-primary-200 rounded-apple bg-primary-50 text-primary-700 focus:outline-none focus:border-primary-900 focus:bg-white placeholder-primary-400 font-normal text-xs sm:text-sm transition-all"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onBlur={() => {
-                      if (!searchQuery) {
-                        setIsSearchExpanded(false)
-                      }
-                    }}
-                    autoFocus
-                  />
+                    <input
+                      type="text"
+                      placeholder="Поиск"
+                      className="w-full h-full pl-12 pr-10 py-3 sm:py-4 border border-primary-200 rounded-apple bg-primary-50 text-primary-700 focus:outline-none focus:border-primary-900 focus:bg-white placeholder-primary-400 font-normal text-base sm:text-sm transition-all"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onBlur={() => {
+                        if (!searchQuery) {
+                          setIsSearchExpanded(false)
+                        }
+                      }}
+                      autoFocus
+                    />
                   {searchQuery && (
                     <button
                       onClick={() => {

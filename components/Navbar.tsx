@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
-import { ArrowRightOnRectangleIcon, Cog6ToothIcon, Bars3Icon } from '@heroicons/react/24/outline'
+import { ArrowRightOnRectangleIcon, Cog6ToothIcon, Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline'
 import { useState } from 'react'
 import { useAuthUser } from '@/hooks/useAuthUser'
 import { signOut, isSupabaseAvailable } from '@/lib/supabase'
@@ -18,14 +18,38 @@ export default function Navbar() {
   const { user, refresh } = useAuthUser()
 
   const handleLogout = async () => {
-    if (SUPABASE_AVAILABLE) {
-      await signOut()
-    } else {
-      localStorage.removeItem('user')
-      window.dispatchEvent(new Event('storage'))
+    try {
+      if (SUPABASE_AVAILABLE) {
+        await signOut()
+        // Даем время для полной очистки сессии
+        await new Promise(resolve => setTimeout(resolve, 100))
+      } else {
+        localStorage.removeItem('user')
+        window.dispatchEvent(new Event('storage'))
+        // Устанавливаем флаг для предотвращения редиректа
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('just_logged_out', 'true')
+          setTimeout(() => {
+            sessionStorage.removeItem('just_logged_out')
+          }, 2000)
+        }
+      }
+      
+      // Принудительно обновляем состояние пользователя
+      await refresh()
+      
+      // Перенаправляем на главную
+      router.push('/')
+      
+      // Дополнительное обновление после навигации
+      setTimeout(() => {
+        refresh()
+      }, 200)
+    } catch (error) {
+      console.error('Ошибка при выходе:', error)
+      // В случае ошибки все равно перенаправляем
+      router.push('/')
     }
-    await refresh()
-    router.push('/')
   }
 
   // Для неавторизованных показываем все ссылки, для авторизованных - только рабочие
@@ -148,97 +172,110 @@ export default function Navbar() {
           </div>
 
           <button
-            className="md:hidden p-2 text-primary-700 hover:text-primary-900"
+            className="md:hidden p-2 text-primary-700 hover:text-primary-900 transition-colors"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
+            aria-label={isMenuOpen ? 'Закрыть меню' : 'Открыть меню'}
           >
-            <Bars3Icon className="w-6 h-6" />
+            {isMenuOpen ? (
+              <XMarkIcon className="w-6 h-6" />
+            ) : (
+              <Bars3Icon className="w-6 h-6" />
+            )}
           </button>
         </div>
       </div>
 
       {isMenuOpen && (
-        <div className="md:hidden border-t border-primary-100">
-          <div className="px-4 sm:px-6 pt-4 pb-6 space-y-2">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                prefetch={true}
-                className={`block px-3 py-3 text-base font-normal tracking-tight ${
-                  pathname === link.href
-                    ? 'text-primary-900'
-                    : 'text-primary-400 hover:text-primary-600'
-                }`}
-                onClick={() => setIsMenuOpen(false)}
-              >
-                {link.label}
-              </Link>
-            ))}
-            <div className="pt-4 border-t border-primary-100">
-              {user ? (
-                <div className="px-3 py-3 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    {user.avatarUrl ? (
-                      <div className="relative w-10 h-10 rounded-[10px] overflow-hidden flex-shrink-0">
-                        <Image 
-                          src={user.avatarUrl} 
-                          alt={user.name || user.email}
-                          fill
-                          className="object-cover"
-                          sizes="40px"
-                        />
-                      </div>
-                    ) : (
-                      <div className="w-10 h-10 rounded-[10px] bg-primary-50 flex items-center justify-center text-primary-700 text-sm font-normal flex-shrink-0">
-                        {(user.name?.[0] || user.email?.[0] || '?').toUpperCase()}
-                      </div>
+        <>
+          {/* Затемнение фона */}
+          <div 
+            className="md:hidden fixed inset-0 bg-black/50 z-40 top-16"
+            onClick={() => setIsMenuOpen(false)}
+          />
+          {/* Модальное меню */}
+          <div className="md:hidden fixed inset-x-0 top-16 bg-white z-50 shadow-lg animate-fade-in max-h-[calc(100vh-4rem)] overflow-y-auto">
+            <div className="px-4 sm:px-6 pt-4 pb-6 space-y-2">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  prefetch={true}
+                  className={`block px-3 py-3 text-base font-normal tracking-tight rounded-apple transition-colors ${
+                    pathname === link.href
+                      ? 'text-primary-900 bg-primary-50'
+                      : 'text-primary-700 hover:text-primary-900 hover:bg-primary-50'
+                  }`}
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  {link.label}
+                </Link>
+              ))}
+              <div className="pt-4 border-t border-primary-100">
+                {user ? (
+                  <div className="px-3 py-3 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      {user.avatarUrl ? (
+                        <div className="relative w-10 h-10 rounded-[10px] overflow-hidden flex-shrink-0">
+                          <Image 
+                            src={user.avatarUrl} 
+                            alt={user.name || user.email}
+                            fill
+                            className="object-cover"
+                            sizes="40px"
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-10 h-10 rounded-[10px] bg-primary-50 flex items-center justify-center text-primary-700 text-sm font-normal flex-shrink-0">
+                          {(user.name?.[0] || user.email?.[0] || '?').toUpperCase()}
+                        </div>
+                      )}
+                      <span className="text-base font-normal text-primary-900 truncate">
+                        {user.name || 'Пользователь'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                    {user.type === 'specialist' && (
+                      <Link
+                        href="/profile/edit"
+                          className="p-2 text-primary-600 hover:text-primary-900 hover:bg-primary-50 rounded-apple transition-colors"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                          <Cog6ToothIcon className="w-5 h-5" />
+                      </Link>
                     )}
-                    <span className="text-base font-normal text-primary-900 truncate">
-                      {user.name || 'Пользователь'}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                  {user.type === 'specialist' && (
-                    <Link
-                      href="/profile/edit"
+                    <button
+                      onClick={() => {
+                        handleLogout()
+                        setIsMenuOpen(false)
+                      }}
                         className="p-2 text-primary-600 hover:text-primary-900 hover:bg-primary-50 rounded-apple transition-colors"
+                    >
+                        <ArrowRightOnRectangleIcon className="w-5 h-5" />
+                    </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <Link
+                      href="/login"
+                      className="block px-3 py-3 text-base font-normal text-primary-700 hover:text-primary-900 hover:bg-primary-50 rounded-apple transition-colors tracking-tight"
                       onClick={() => setIsMenuOpen(false)}
                     >
-                        <Cog6ToothIcon className="w-5 h-5" />
+                      Войти
                     </Link>
-                  )}
-                  <button
-                    onClick={() => {
-                      handleLogout()
-                      setIsMenuOpen(false)
-                    }}
-                      className="p-2 text-primary-600 hover:text-primary-900 hover:bg-primary-50 rounded-apple transition-colors"
-                  >
-                      <ArrowRightOnRectangleIcon className="w-5 h-5" />
-                  </button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <Link
-                    href="/login"
-                    className="block px-3 py-3 text-base font-normal text-primary-600 hover:text-primary-900 tracking-tight"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Войти
-                  </Link>
-                  <Link
-                    href="/register"
-                    className="block px-3 py-3 text-base font-normal bg-primary-900 text-white rounded-apple hover:bg-primary-800 tracking-tight text-center"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Регистрация
-                  </Link>
-                </>
-              )}
+                    <Link
+                      href="/register"
+                      className="block px-3 py-3 text-base font-normal bg-primary-900 text-white rounded-apple hover:bg-primary-800 transition-colors tracking-tight text-center mt-2"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Регистрация
+                    </Link>
+                  </>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        </>
       )}
     </nav>
   )

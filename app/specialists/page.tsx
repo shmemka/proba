@@ -470,7 +470,7 @@ export default function SpecialistsPage() {
                     <input
                       type="text"
                       placeholder="Поиск"
-                      className="w-full h-full pl-12 pr-10 py-3 sm:py-4 border border-primary-200 rounded-apple bg-primary-50 text-primary-700 focus:outline-none focus:border-primary-900 focus:bg-white placeholder-primary-400 font-normal text-xs sm:text-sm transition-all"
+                      className="w-full h-full pl-12 pr-10 py-3 sm:py-4 border border-primary-200 rounded-apple bg-primary-50 text-primary-700 focus:outline-none focus:border-primary-900 focus:bg-white placeholder-primary-400 font-normal text-base sm:text-sm transition-all"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       onBlur={() => {

@@ -13,6 +13,16 @@ export default function Home() {
   // Проверяем авторизацию и редиректим авторизованных пользователей
   useEffect(() => {
     const checkAuth = async () => {
+      // Проверяем флаг выхода - не редиректим сразу после выхода
+      const justLoggedOut = typeof window !== 'undefined' && sessionStorage.getItem('just_logged_out')
+      if (justLoggedOut) {
+        // Если только что вышли, пропускаем проверку авторизации
+        return
+      }
+      
+      // Небольшая задержка для предотвращения гонки условий
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
       if (isSupabaseAvailable()) {
         const user = await getCurrentUser({ force: true })
         if (user) {

@@ -349,8 +349,23 @@ export async function signOut() {
     return
   }
 
-  await supabase.auth.signOut()
+  // Инвалидируем кеш до выхода, чтобы гарантировать очистку
   invalidateCache('auth:')
+  
+  // Выполняем выход из Supabase
+  await supabase.auth.signOut()
+  
+  // Дополнительная инвалидация после выхода
+  invalidateCache('auth:')
+  
+  // Устанавливаем флаг в sessionStorage, чтобы главная страница не редиректила
+  if (typeof window !== 'undefined') {
+    sessionStorage.setItem('just_logged_out', 'true')
+    // Удалим флаг через 2 секунды
+    setTimeout(() => {
+      sessionStorage.removeItem('just_logged_out')
+    }, 2000)
+  }
 }
 
 const AUTH_USER_CACHE_KEY = 'auth:user'

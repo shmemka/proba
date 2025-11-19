@@ -43,20 +43,34 @@ export function useAuthUser() {
           }
 
           let avatarUrl = ''
+          let displayName = ''
 
-          // Пытаемся загрузить профиль специалиста (если есть)
+          // Пытаемся загрузить профиль специалиста (если есть) - один раз для всего
           try {
             const specialist = await getSpecialist(supabaseUser.id, { force: options?.forceProfile })
             avatarUrl = (specialist as any)?.avatar_url || ''
+            
+            // Получаем имя из профиля специалиста
+            if (specialist && specialist.first_name) {
+              const fullName = [specialist.first_name, specialist.last_name].filter(Boolean).join(' ')
+              if (fullName) {
+                displayName = fullName
+              }
+            }
           } catch (error) {
             // Профиль специалиста может не существовать - это нормально
             console.debug('Профиль специалиста не найден:', error)
           }
-
+          
+          // Если нет имени из профиля, используем displayName из метаданных, но не email
+          if (!displayName) {
+            displayName = supabaseUser.user_metadata?.displayName || supabaseUser.user_metadata?.full_name || supabaseUser.user_metadata?.name || ''
+          }
+          
           setUser({
             id: supabaseUser.id,
             email: supabaseUser.email || '',
-            name: supabaseUser.user_metadata?.displayName || supabaseUser.email || '',
+            name: displayName || 'Пользователь', // Никогда не используем email как имя
             type: 'specialist', // Все пользователи регистрируются как специалисты
             avatarUrl,
           })
