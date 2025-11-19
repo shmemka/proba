@@ -352,6 +352,12 @@ export default function SpecialistsPage() {
   }
 
   const SpecialistCard = memo(({ specialist, onClick }: { specialist: Specialist; onClick: () => void }) => {
+    const [currentImageIndex, setCurrentImageIndex] = useState(0)
+    const [touchStart, setTouchStart] = useState<number | null>(null)
+    const [touchEnd, setTouchEnd] = useState<number | null>(null)
+    const [isSwiping, setIsSwiping] = useState(false)
+    const imageContainerRef = useRef<HTMLDivElement>(null)
+
     const portfolioImages = useMemo(() => {
       // Сначала пробуем portfolioPreview (быстрее, уже готовые URL)
       if (specialist.portfolioPreview && specialist.portfolioPreview.length > 0) {
@@ -394,10 +400,63 @@ export default function SpecialistsPage() {
       return projectImages
     }, [specialist.portfolioPreview, specialist.projects])
 
+    // Сброс индекса при изменении изображений
+    useEffect(() => {
+      setCurrentImageIndex(0)
+    }, [portfolioImages.length])
+
+    const minSwipeDistance = 50
+
+    const onTouchStart = (e: React.TouchEvent) => {
+      setTouchEnd(null)
+      setTouchStart(e.targetTouches[0].clientX)
+      setIsSwiping(false)
+    }
+
+    const onTouchMove = (e: React.TouchEvent) => {
+      setTouchEnd(e.targetTouches[0].clientX)
+      if (touchStart !== null) {
+        const distance = Math.abs(touchStart - e.targetTouches[0].clientX)
+        if (distance > 10) {
+          setIsSwiping(true)
+        }
+      }
+    }
+
+    const onTouchEnd = () => {
+      if (!touchStart || !touchEnd) {
+        setIsSwiping(false)
+        return
+      }
+      const distance = touchStart - touchEnd
+      const isLeftSwipe = distance > minSwipeDistance
+      const isRightSwipe = distance < -minSwipeDistance
+
+      if (isLeftSwipe && currentImageIndex < portfolioImages.length - 1) {
+        setCurrentImageIndex(prev => prev + 1)
+      }
+      if (isRightSwipe && currentImageIndex > 0) {
+        setCurrentImageIndex(prev => prev - 1)
+      }
+      
+      // Сбрасываем состояние свайпа через небольшую задержку
+      setTimeout(() => setIsSwiping(false), 100)
+    }
+
+    const handleCardClick = (e: React.MouseEvent) => {
+      // Предотвращаем клик, если был свайп
+      if (isSwiping) {
+        e.preventDefault()
+        e.stopPropagation()
+        return
+      }
+      onClick()
+    }
+
     return (
       <button
-        onClick={onClick}
-        className="bg-white rounded-apple border border-primary-100 hover:border-primary-200 hover:scale-[1.01] transition-all duration-200 ease-out active:scale-[0.99] p-4 sm:p-6 lg:p-8 text-left w-full flex flex-col"
+        onClick={handleCardClick}
+        className="bg-white rounded-apple border border-primary-100 hover:border-primary-200 hover:scale-[1.01] transition-all duration-200 ease-out active:scale-[0.99] p-4 sm:p-6 lg:p-8 text-left w-full flex flex-col h-[320px] sm:h-auto overflow-hidden"
       >
         <div className="flex items-start gap-3 sm:gap-5 mb-3 sm:mb-4 flex-shrink-0">
           {specialist.avatarUrl ? (
@@ -436,20 +495,72 @@ export default function SpecialistsPage() {
         </div>
 
         {portfolioImages.length > 0 && (
-          <div className="flex gap-2 sm:gap-3 overflow-x-auto -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 scrollbar-hide">
-            {portfolioImages.map((image, index) => (
-              <div key={index} className="relative flex-shrink-0 w-48 sm:w-56 lg:w-64 h-36 sm:h-44 lg:h-48 rounded-apple overflow-hidden border border-primary-100 bg-primary-50">
-                <Image
-                  src={image.url}
-                  alt={`Портфолио ${index + 1}`}
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 640px) 192px, (max-width: 1024px) 224px, 256px"
-                  loading="lazy"
-                />
+          <>
+            {/* Мобильная версия - свайп с одной картинкой */}
+            <div 
+              ref={imageContainerRef}
+              className="sm:hidden relative -mx-4 px-4 overflow-hidden flex-1 min-h-0"
+              onTouchStart={onTouchStart}
+              onTouchMove={onTouchMove}
+              onTouchEnd={onTouchEnd}
+              onClick={(e) => {
+                // Предотвращаем клик по карточке при свайпе
+                if (isSwiping) {
+                  e.stopPropagation()
+                }
+              }}
+            >
+              <div 
+                className="flex transition-transform duration-300 ease-out h-full"
+                style={{ transform: `translateX(-${currentImageIndex * 100}%)`, width: `${portfolioImages.length * 100}%` }}
+              >
+                {portfolioImages.map((image, index) => (
+                  <div 
+                    key={index} 
+                    className="relative flex-shrink-0 rounded-apple overflow-hidden border border-primary-100 bg-primary-50"
+                    style={{ width: `${100 / portfolioImages.length}%`, height: '100%' }}
+                  >
+                    <Image
+                      src={image.url}
+                      alt={`Портфолио ${index + 1}`}
+                      fill
+                      className="object-cover"
+                      sizes="100vw"
+                      loading="lazy"
+                    />
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+              {portfolioImages.length > 1 && (
+                <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex gap-1.5">
+                  {portfolioImages.map((_, index) => (
+                    <div
+                      key={index}
+                      className={`h-1.5 rounded-full transition-all ${
+                        index === currentImageIndex ? 'bg-primary-900 w-6' : 'bg-primary-300 w-1.5'
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Десктопная версия - горизонтальный скролл */}
+            <div className="hidden sm:flex gap-2 sm:gap-3 overflow-x-auto -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 scrollbar-hide">
+              {portfolioImages.map((image, index) => (
+                <div key={index} className="relative flex-shrink-0 w-48 sm:w-56 lg:w-64 h-36 sm:h-44 lg:h-48 rounded-apple overflow-hidden border border-primary-100 bg-primary-50">
+                  <Image
+                    src={image.url}
+                    alt={`Портфолио ${index + 1}`}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 640px) 192px, (max-width: 1024px) 224px, 256px"
+                    loading="lazy"
+                  />
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </button>
     )
