@@ -31,6 +31,25 @@ export default function Navbar() {
     }
   }, [isMenuOpen])
 
+  // Закрываем меню при изменении роута
+  useEffect(() => {
+    setIsMenuOpen(false)
+  }, [pathname])
+
+  // Закрываем меню при нажатии Escape
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isMenuOpen) {
+        setIsMenuOpen(false)
+      }
+    }
+    
+    if (isMenuOpen) {
+      document.addEventListener('keydown', handleEscape)
+      return () => document.removeEventListener('keydown', handleEscape)
+    }
+  }, [isMenuOpen])
+
   const handleLogout = async () => {
     try {
       if (SUPABASE_AVAILABLE) {
@@ -80,7 +99,7 @@ export default function Navbar() {
       ]
 
   return (
-    <nav className="bg-white/80 backdrop-blur-md border-b border-primary-100 sticky top-0 z-50">
+    <nav className="bg-white/80 backdrop-blur-md border-b border-primary-100 sticky top-0 z-[100]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16 relative">
           <Link 
@@ -180,39 +199,54 @@ export default function Navbar() {
           </div>
 
           <button
-            className="md:hidden p-2 text-primary-700 hover:text-primary-900 transition-colors"
+            className="md:hidden p-2 text-primary-700 hover:text-primary-900 transition-colors relative z-[101]"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             aria-label={isMenuOpen ? 'Закрыть меню' : 'Открыть меню'}
+            aria-expanded={isMenuOpen}
           >
-            {isMenuOpen ? (
-              <XMarkIcon className="w-6 h-6" />
-            ) : (
-              <Bars3Icon className="w-6 h-6" />
-            )}
+            <div className="relative w-6 h-6">
+              <XMarkIcon 
+                className={`absolute inset-0 w-6 h-6 transition-all duration-300 ${
+                  isMenuOpen ? 'opacity-100 rotate-0' : 'opacity-0 rotate-90'
+                }`}
+              />
+              <Bars3Icon 
+                className={`absolute inset-0 w-6 h-6 transition-all duration-300 ${
+                  isMenuOpen ? 'opacity-0 -rotate-90' : 'opacity-100 rotate-0'
+                }`}
+              />
+            </div>
           </button>
         </div>
       </div>
 
-      {isMenuOpen && (
-        <>
-          {/* Затемнение фона - покрывает весь экран */}
-          <div 
-            className="md:hidden fixed inset-0 bg-black/50 z-40 backdrop-blur-sm"
-            onClick={() => setIsMenuOpen(false)}
-            aria-hidden="true"
-          />
-          {/* Модальное меню */}
-          <div 
-            className="md:hidden fixed inset-x-4 top-20 bg-white z-50 shadow-lg animate-fade-in max-h-[calc(100vh-5rem)] overflow-y-auto rounded-apple"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="px-4 sm:px-6 pt-4 pb-6 space-y-2">
+      {/* Затемнение фона - покрывает весь экран */}
+      <div 
+        className={`md:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-[90] transition-opacity duration-300 ${
+          isMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={() => setIsMenuOpen(false)}
+        aria-hidden="true"
+      />
+      {/* Модальное меню */}
+      <div 
+        className={`md:hidden fixed inset-x-4 top-[4.5rem] bg-white z-[95] shadow-xl max-h-[calc(100vh-5.5rem)] overflow-y-auto rounded-apple transition-all duration-300 ease-out ${
+          isMenuOpen 
+            ? 'opacity-100 translate-y-0 pointer-events-auto' 
+            : 'opacity-0 translate-y-[-10px] pointer-events-none'
+        }`}
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Мобильное меню"
+      >
+            <div className="px-4 sm:px-6 pt-5 pb-6 space-y-1">
               {navLinks.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
                   prefetch={true}
-                  className={`block px-3 py-3 text-base font-normal tracking-tight rounded-apple transition-colors ${
+                  className={`block px-4 py-3.5 text-base font-normal tracking-tight rounded-apple transition-colors active:bg-primary-100 ${
                     pathname === link.href
                       ? 'text-primary-900 bg-primary-50'
                       : 'text-primary-700 hover:text-primary-900 hover:bg-primary-50'
@@ -222,9 +256,9 @@ export default function Navbar() {
                   {link.label}
                 </Link>
               ))}
-              <div className="pt-4 border-t border-primary-100">
+              <div className="pt-4 mt-2 border-t border-primary-100">
                 {user ? (
-                  <div className="px-3 py-3 flex items-center justify-between gap-3">
+                  <div className="px-4 py-3 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                       {user.avatarUrl ? (
                         <div className="relative w-10 h-10 rounded-[10px] overflow-hidden flex-shrink-0">
@@ -269,7 +303,7 @@ export default function Navbar() {
                 ) : (
                   <Link
                     href="/auth"
-                    className="block px-3 py-3 text-base font-normal bg-primary-900 text-white rounded-apple hover:bg-primary-800 transition-colors tracking-tight text-center"
+                    className="block px-4 py-3.5 text-base font-normal bg-primary-900 text-white rounded-apple hover:bg-primary-800 active:bg-primary-700 transition-colors tracking-tight text-center"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     Войти
@@ -278,8 +312,6 @@ export default function Navbar() {
               </div>
             </div>
           </div>
-        </>
-      )}
     </nav>
   )
 }
