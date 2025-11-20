@@ -99,148 +99,146 @@ export default function Navbar() {
       ]
 
   return (
-    <nav className="bg-white/80 backdrop-blur-md border-b border-primary-100 sticky top-0 z-[100]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16 relative">
-          <Link 
-            href={user ? '/specialists' : '/'} 
-            className="flex items-center gap-2 text-primary-900 font-normal text-lg tracking-tight"
-          >
-            <Image 
-              src="/logo.svg" 
-              alt="Logo" 
-              width={120}
-              height={24}
-              className="h-6 w-auto"
-              priority
-            />
-          </Link>
+    <>
+      <nav className="bg-white/80 backdrop-blur-md border-b border-primary-100 sticky top-0 z-[100]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16 relative">
+            <Link 
+              href={user ? '/specialists' : '/'} 
+              className="flex items-center gap-2 text-primary-900 font-normal text-lg tracking-tight flex-shrink-0"
+            >
+              <Image 
+                src="/logo.svg" 
+                alt="Logo" 
+                width={120}
+                height={24}
+                className="h-6 w-auto"
+                priority
+              />
+            </Link>
 
-          <div className="hidden md:flex items-center gap-8 absolute left-1/2 transform -translate-x-1/2">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                prefetch={true}
-                className={`px-3 py-2 text-sm font-normal transition-colors tracking-tight ${
-                  pathname === link.href
-                    ? 'text-primary-900'
-                    : 'text-primary-400 hover:text-primary-600'
-                }`}
-              >
-                {link.label}
-              </Link>
-            ))}
-          </div>
-
-          <div className="hidden md:flex items-center gap-4">
-            {user ? (
-              <div 
-                className="relative"
-                onMouseEnter={() => setIsProfileMenuOpen(true)}
-                onMouseLeave={() => setIsProfileMenuOpen(false)}
-              >
-                <button className="flex items-center gap-3 px-3 py-2 rounded-apple hover:bg-primary-50 transition-colors">
-                  {user.avatarUrl ? (
-                    <div className="relative w-8 h-8 rounded-[10px] overflow-hidden">
-                      <Image 
-                        src={user.avatarUrl} 
-                        alt={user.name || user.email}
-                        fill
-                        className="object-cover"
-                        sizes="32px"
-                      />
-                    </div>
-                  ) : (
-                    <div className="w-8 h-8 rounded-[10px] bg-primary-50 flex items-center justify-center text-primary-700 text-xs font-normal">
-                      {(user.name?.[0] || user.email?.[0] || '?').toUpperCase()}
-                    </div>
-                  )}
-                  <span className="text-primary-900 text-sm font-normal">{user.name || 'Пользователь'}</span>
-                </button>
-                
-                {isProfileMenuOpen && (
-                  <>
-                    {/* Безопасная зона между кнопкой и меню */}
-                    <div className="absolute right-0 top-full w-full h-0.5" />
-                    <div className="absolute right-0 top-full mt-0.5 w-48 bg-white rounded-apple border border-primary-100 shadow-lg py-2 z-50 animate-fade-in">
-                      <Link
-                        href="/profile/edit"
-                        className="flex items-center gap-3 px-4 py-2 mx-2 text-sm font-normal text-primary-700 hover:bg-primary-50 rounded-apple transition-colors"
-                      >
-                        <Cog6ToothIcon className="w-4 h-4" />
-                        Настройки
-                      </Link>
-                      <Link
-                        href="#"
-                        onClick={(e) => {
-                          e.preventDefault()
-                          handleLogout()
-                        }}
-                        className="flex items-center gap-3 px-4 py-2 mx-2 text-sm font-normal text-primary-700 hover:bg-primary-50 rounded-apple transition-colors"
-                      >
-                        <ArrowRightOnRectangleIcon className="w-4 h-4" />
-                        Выйти
-                      </Link>
-                    </div>
-                  </>
-                )}
-              </div>
-            ) : (
-              <>
+            <div className="hidden md:flex items-center gap-8 absolute left-1/2 transform -translate-x-1/2">
+              {navLinks.map((link) => (
                 <Link
-                  href="/auth"
-                  className="bg-primary-900 text-white px-5 py-2 rounded-apple text-sm font-normal hover:bg-primary-800 transition-all duration-200 tracking-tight active:scale-95"
+                  key={link.href}
+                  href={link.href}
+                  prefetch={true}
+                  className={`px-3 py-2 text-sm font-normal transition-colors tracking-tight ${
+                    pathname === link.href
+                      ? 'text-primary-900'
+                      : 'text-primary-400 hover:text-primary-600'
+                  }`}
                 >
-                  Войти
+                  {link.label}
                 </Link>
-              </>
-            )}
-          </div>
-
-          <button
-            className="md:hidden p-2 text-primary-700 hover:text-primary-900 transition-colors relative z-[101]"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            aria-label={isMenuOpen ? 'Закрыть меню' : 'Открыть меню'}
-            aria-expanded={isMenuOpen}
-          >
-            <div className="relative w-6 h-6">
-              <XMarkIcon 
-                className={`absolute inset-0 w-6 h-6 transition-all duration-300 ${
-                  isMenuOpen ? 'opacity-100 rotate-0' : 'opacity-0 rotate-90'
-                }`}
-              />
-              <Bars3Icon 
-                className={`absolute inset-0 w-6 h-6 transition-all duration-300 ${
-                  isMenuOpen ? 'opacity-0 -rotate-90' : 'opacity-100 rotate-0'
-                }`}
-              />
+              ))}
             </div>
-          </button>
+
+            <div className="hidden md:flex items-center gap-4 flex-shrink-0">
+              {user ? (
+                <div 
+                  className="relative"
+                  onMouseEnter={() => setIsProfileMenuOpen(true)}
+                  onMouseLeave={() => setIsProfileMenuOpen(false)}
+                >
+                  <button className="flex items-center gap-3 px-3 py-2 rounded-apple hover:bg-primary-50 transition-colors">
+                    {user.avatarUrl ? (
+                      <div className="relative w-8 h-8 rounded-[10px] overflow-hidden">
+                        <Image 
+                          src={user.avatarUrl} 
+                          alt={user.name || user.email}
+                          fill
+                          className="object-cover"
+                          sizes="32px"
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-8 h-8 rounded-[10px] bg-primary-50 flex items-center justify-center text-primary-700 text-xs font-normal">
+                        {(user.name?.[0] || user.email?.[0] || '?').toUpperCase()}
+                      </div>
+                    )}
+                    <span className="text-primary-900 text-sm font-normal">{user.name || 'Пользователь'}</span>
+                  </button>
+                  
+                  {isProfileMenuOpen && (
+                    <>
+                      {/* Безопасная зона между кнопкой и меню */}
+                      <div className="absolute right-0 top-full w-full h-0.5" />
+                      <div className="absolute right-0 top-full mt-0.5 w-48 bg-white rounded-apple border border-primary-100 shadow-lg py-2 z-50 animate-fade-in">
+                        <Link
+                          href="/profile/edit"
+                          className="flex items-center gap-3 px-4 py-2 mx-2 text-sm font-normal text-primary-700 hover:bg-primary-50 rounded-apple transition-colors"
+                        >
+                          <Cog6ToothIcon className="w-4 h-4" />
+                          Настройки
+                        </Link>
+                        <Link
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            handleLogout()
+                          }}
+                          className="flex items-center gap-3 px-4 py-2 mx-2 text-sm font-normal text-primary-700 hover:bg-primary-50 rounded-apple transition-colors"
+                        >
+                          <ArrowRightOnRectangleIcon className="w-4 h-4" />
+                          Выйти
+                        </Link>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <>
+                  <Link
+                    href="/auth"
+                    className="bg-primary-900 text-white px-5 py-2 rounded-apple text-sm font-normal hover:bg-primary-800 transition-all duration-200 tracking-tight active:scale-95"
+                  >
+                    Войти
+                  </Link>
+                </>
+              )}
+            </div>
+
+            <button
+              className="md:hidden p-2 -mr-2 text-primary-700 hover:text-primary-900 transition-colors flex-shrink-0"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              aria-label={isMenuOpen ? 'Закрыть меню' : 'Открыть меню'}
+              aria-expanded={isMenuOpen}
+            >
+              <div className="relative w-6 h-6">
+                <XMarkIcon 
+                  className={`absolute inset-0 w-6 h-6 transition-all duration-300 ${
+                    isMenuOpen ? 'opacity-100 rotate-0' : 'opacity-0 rotate-90'
+                  }`}
+                />
+                <Bars3Icon 
+                  className={`absolute inset-0 w-6 h-6 transition-all duration-300 ${
+                    isMenuOpen ? 'opacity-0 -rotate-90' : 'opacity-100 rotate-0'
+                  }`}
+                />
+              </div>
+            </button>
+          </div>
         </div>
-      </div>
+      </nav>
 
       {/* Затемнение фона - покрывает весь экран */}
-      <div 
-        className={`md:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-[90] transition-opacity duration-300 ${
-          isMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}
-        onClick={() => setIsMenuOpen(false)}
-        aria-hidden="true"
-      />
-      {/* Модальное меню */}
-      <div 
-        className={`md:hidden fixed inset-x-4 top-[4.5rem] bg-white z-[95] shadow-xl max-h-[calc(100vh-5.5rem)] overflow-y-auto rounded-apple transition-all duration-300 ease-out ${
-          isMenuOpen 
-            ? 'opacity-100 translate-y-0 pointer-events-auto' 
-            : 'opacity-0 translate-y-[-10px] pointer-events-none'
-        }`}
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Мобильное меню"
-      >
-            <div className="px-4 sm:px-6 pt-5 pb-6 space-y-1">
+      {isMenuOpen && (
+        <>
+          <div 
+            className="md:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-[90] transition-opacity duration-300"
+            onClick={() => setIsMenuOpen(false)}
+            aria-hidden="true"
+          />
+          {/* Модальное меню */}
+          <div 
+            className="md:hidden fixed left-0 right-0 top-16 bg-white z-[95] shadow-xl max-h-[calc(100vh-4rem)] overflow-y-auto border-b border-primary-100 transition-all duration-300 ease-out"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Мобильное меню"
+          >
+            <div className="px-4 sm:px-6 pt-4 pb-6 space-y-1">
               {navLinks.map((link) => (
                 <Link
                   key={link.href}
@@ -280,24 +278,24 @@ export default function Navbar() {
                       </span>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
-                    {user.type === 'specialist' && (
-                      <Link
-                        href="/profile/edit"
+                      {user.type === 'specialist' && (
+                        <Link
+                          href="/profile/edit"
                           className="p-2 text-primary-600 hover:text-primary-900 hover:bg-primary-50 rounded-apple transition-colors"
-                        onClick={() => setIsMenuOpen(false)}
-                      >
+                          onClick={() => setIsMenuOpen(false)}
+                        >
                           <Cog6ToothIcon className="w-5 h-5" />
-                      </Link>
-                    )}
-                    <button
-                      onClick={() => {
-                        handleLogout()
-                        setIsMenuOpen(false)
-                      }}
+                        </Link>
+                      )}
+                      <button
+                        onClick={() => {
+                          handleLogout()
+                          setIsMenuOpen(false)
+                        }}
                         className="p-2 text-primary-600 hover:text-primary-900 hover:bg-primary-50 rounded-apple transition-colors"
-                    >
+                      >
                         <ArrowRightOnRectangleIcon className="w-5 h-5" />
-                    </button>
+                      </button>
                     </div>
                   </div>
                 ) : (
@@ -312,6 +310,8 @@ export default function Navbar() {
               </div>
             </div>
           </div>
-    </nav>
+        </>
+      )}
+    </>
   )
 }

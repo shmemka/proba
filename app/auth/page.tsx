@@ -15,7 +15,9 @@ function AuthForm() {
   const [mode, setMode] = useState<AuthMode>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [displayName, setDisplayName] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
@@ -75,20 +77,36 @@ function AuthForm() {
       return
     }
 
-    if (mode === 'register' && !displayName.trim()) {
-      setError('Введите имя')
-      return
+    if (mode === 'register') {
+      if (!firstName.trim()) {
+        setError('Введите имя')
+        return
+      }
+      if (!lastName.trim()) {
+        setError('Введите фамилию')
+        return
+      }
+      if (password !== confirmPassword) {
+        setError('Пароли не совпадают')
+        return
+      }
+      if (password.length < 6) {
+        setError('Пароль должен быть не короче 6 символов')
+        return
+      }
     }
 
     const normalizedEmail = email.trim().toLowerCase()
     const passwordValue = password.trim()
-    const nameValue = displayName.trim()
+    const firstNameValue = firstName.trim()
+    const lastNameValue = lastName.trim()
+    const displayNameValue = `${firstNameValue} ${lastNameValue}`.trim()
 
     setIsSubmitting(true)
     try {
       if (isSupabaseAvailable()) {
         if (mode === 'register') {
-          const { user } = await signUp(normalizedEmail, passwordValue, 'specialist', nameValue)
+          const { user } = await signUp(normalizedEmail, passwordValue, 'specialist', displayNameValue)
           if (user) {
             // После регистрации показываем сообщение о подтверждении email
             setError('')
@@ -117,7 +135,7 @@ function AuthForm() {
           
           const newUser = registerUser({
             email: normalizedEmail,
-            name: nameValue || 'Пользователь',
+            name: displayNameValue || 'Пользователь',
             password: passwordValue,
             type: 'specialist',
           })
@@ -227,6 +245,9 @@ function AuthForm() {
             onClick={() => {
               setMode('login')
               setError('')
+              setFirstName('')
+              setLastName('')
+              setConfirmPassword('')
             }}
             className={`flex-1 py-2.5 px-4 rounded-apple text-sm font-normal transition-all duration-200 ${
               mode === 'login'
@@ -262,22 +283,40 @@ function AuthForm() {
           
           <div className="space-y-4">
             {mode === 'register' && (
-              <div>
-                <label htmlFor="displayName" className="sr-only">
-                  Имя
-                </label>
-                <input
-                  id="displayName"
-                  name="displayName"
-                  type="text"
-                  autoComplete="name"
-                  required={mode === 'register'}
-                  className="w-full px-5 py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white"
-                  placeholder="Ваше имя"
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                />
-              </div>
+              <>
+                <div>
+                  <label htmlFor="firstName" className="sr-only">
+                    Имя
+                  </label>
+                  <input
+                    id="firstName"
+                    name="firstName"
+                    type="text"
+                    autoComplete="given-name"
+                    required={mode === 'register'}
+                    className="w-full px-5 py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white"
+                    placeholder="Имя"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="lastName" className="sr-only">
+                    Фамилия
+                  </label>
+                  <input
+                    id="lastName"
+                    name="lastName"
+                    type="text"
+                    autoComplete="family-name"
+                    required={mode === 'register'}
+                    className="w-full px-5 py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white"
+                    placeholder="Фамилия"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                  />
+                </div>
+              </>
             )}
             
             <div>
@@ -313,6 +352,25 @@ function AuthForm() {
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
+
+            {mode === 'register' && (
+              <div>
+                <label htmlFor="confirmPassword" className="sr-only">
+                  Подтвердите пароль
+                </label>
+                <input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type="password"
+                  autoComplete="new-password"
+                  required={mode === 'register'}
+                  className="w-full px-5 py-4 border border-primary-200 rounded-apple placeholder-primary-400 text-primary-900 focus:outline-none focus:ring-1 focus:ring-primary-900 focus:border-primary-900 font-light bg-white"
+                  placeholder="Подтвердите пароль"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                />
+              </div>
+            )}
           </div>
 
           {mode === 'login' && (

@@ -386,7 +386,7 @@ export default function SpecialistsPage() {
     return (
       <button
         onClick={onClick}
-        className="bg-white rounded-apple border border-primary-100 hover:border-primary-200 hover:scale-[1.01] transition-all duration-200 ease-out active:scale-[0.99] p-4 sm:p-6 lg:p-8 text-left w-full max-w-full flex flex-col overflow-hidden"
+        className="bg-white rounded-apple border border-primary-100 active:border-primary-200 md:hover:border-primary-200 md:hover:scale-[1.01] transition-all duration-200 ease-out md:active:scale-[0.99] p-4 sm:p-6 lg:p-8 text-left w-full max-w-full flex flex-col overflow-hidden"
       >
         <div className="flex items-start gap-3 sm:gap-5 mb-3 sm:mb-4 flex-shrink-0">
           {specialist.avatarUrl ? (
