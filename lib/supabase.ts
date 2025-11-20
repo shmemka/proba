@@ -28,7 +28,7 @@ const splitDisplayName = (displayName: string) => {
   }
 }
 
-const deriveDisplayName = (
+export const deriveDisplayName = (
   email: string,
   userType: 'specialist' | 'company',
   provided?: string,
@@ -101,12 +101,14 @@ type EnsureSpecialistProfileParams = {
   id: string
   email: string
   displayName?: string
+  avatarUrl?: string
 }
 
 export const ensureSpecialistProfile = async ({
   id,
   email,
   displayName,
+  avatarUrl,
 }: EnsureSpecialistProfileParams) => {
   const supabase = getSupabaseClient()
   if (!supabase) {
@@ -117,7 +119,7 @@ export const ensureSpecialistProfile = async ({
 
   const { data: existing, error: lookupError } = await supabase
     .from('specialists')
-    .select('id')
+    .select('id, avatar_url')
     .eq('id', id)
     .limit(1)
 
@@ -125,7 +127,22 @@ export const ensureSpecialistProfile = async ({
     throw lookupError
   }
 
+  // Если профиль существует, обновляем аватарку, если её нет, но есть новая
   if (existing && existing.length > 0) {
+    const currentProfile = existing[0]
+    // Обновляем аватарку, если её нет в профиле, но есть в параметрах
+    if (avatarUrl && !currentProfile.avatar_url) {
+      const { error: updateError } = await supabase
+        .from('specialists')
+        .update({ avatar_url: avatarUrl })
+        .eq('id', id)
+
+      if (updateError) {
+        console.debug('Не удалось обновить аватарку в профиле:', updateError)
+      } else {
+        invalidateCache(`specialist:${id}`)
+      }
+    }
     return
   }
 
@@ -139,6 +156,7 @@ export const ensureSpecialistProfile = async ({
     last_name: lastName || '',
     specialization: DEFAULT_SPECIALIZATION,
     show_in_search: false, // По умолчанию карточка не публикуется
+    avatar_url: avatarUrl || null,
   })
 
   if (insertError) {
@@ -175,10 +193,17 @@ export async function signUp(
     // Инвалидируем кеш перед регистрацией
     invalidateCache('auth:')
 
+    // Получаем базовый URL для redirect
+    const baseUrl = typeof window !== 'undefined' 
+      ? window.location.origin 
+      : process.env.NEXT_PUBLIC_SITE_URL || ''
+    const emailRedirectTo = `${baseUrl}/auth/confirm`
+
     const { data, error } = await supabase.auth.signUp({
       email: normalizedEmail,
       password,
       options: {
+        emailRedirectTo,
         data: {
           userType: 'specialist',
           displayName: safeDisplayName,
@@ -267,14 +292,80 @@ export async function signIn(email: string, password: string) {
   }
 }
 
+export async function signInWithGoogle(redirectTo?: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) {
+    throw new Error('Supabase не настроен')
+  }
+
+  try {
+    // Получаем текущий URL для редиректа после OAuth
+    let baseUrl = ''
+    
+    if (typeof window !== 'undefined') {
+      baseUrl = window.location.origin
+    } else if (process.env.NEXT_PUBLIC_SITE_URL) {
+      baseUrl = process.env.NEXT_PUBLIC_SITE_URL
+    } else {
+      // Fallback для SSR
+      baseUrl = 'https://www.proba.space'
+    }
+    
+    // Убеждаемся, что baseUrl не заканчивается на /
+    baseUrl = baseUrl.replace(/\/$/, '')
+    
+    const emailRedirectTo = redirectTo || `${baseUrl}/auth/callback`
+
+    // Логирование для отладки (можно убрать после исправления)
+    if (typeof window !== 'undefined') {
+      console.log('OAuth redirect URL:', emailRedirectTo)
+    }
+
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: emailRedirectTo,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        },
+      },
+    })
+
+    if (error) {
+      console.error('OAuth error:', error)
+      throw error
+    }
+
+    return data
+  } catch (error) {
+    throw new Error(mapSupabaseError(error, 'Не удалось выполнить вход через Google'))
+  }
+}
+
 export async function signOut() {
   const supabase = getSupabaseClient()
   if (!supabase) {
     return
   }
 
-  await supabase.auth.signOut()
+  // Инвалидируем кеш до выхода, чтобы гарантировать очистку
   invalidateCache('auth:')
+  
+  // Выполняем выход из Supabase
+  await supabase.auth.signOut()
+  
+  // Дополнительная инвалидация после выхода
+  invalidateCache('auth:')
+  
+  // Устанавливаем флаг в sessionStorage, чтобы главная страница не редиректила
+  if (typeof window !== 'undefined') {
+    sessionStorage.setItem('just_logged_out', 'true')
+    // Удалим флаг через 2 секунды
+    setTimeout(() => {
+      sessionStorage.removeItem('just_logged_out')
+    }, 2000)
+  }
 }
 
 const AUTH_USER_CACHE_KEY = 'auth:user'
@@ -698,6 +789,23 @@ export async function getApplications(projectId?: string, specialistId?: string)
   const supabase = getSupabaseClient()
   if (!supabase) {
     return []
+  }
+
+  // Если запрашиваются отклики на задачу, проверяем, что пользователь является владельцем
+  if (projectId) {
+    const currentUser = await getCurrentUser()
+    if (!currentUser) {
+      // Если пользователь не авторизован, не возвращаем отклики на задачи
+      return []
+    }
+
+    // Проверяем, является ли пользователь владельцем задачи
+    const project = await getProject(projectId)
+    if (!project || project.user_id !== currentUser.id) {
+      // Пользователь не является владельцем задачи - не возвращаем отклики
+      console.warn('Попытка просмотра откликов на чужую задачу')
+      return []
+    }
   }
 
   let query = supabase

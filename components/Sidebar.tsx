@@ -17,15 +17,40 @@ export default function Sidebar() {
   const { user, refresh } = useAuthUser()
 
   const handleLogout = async () => {
-    if (SUPABASE_AVAILABLE) {
-      await signOut()
-    } else {
-      localStorage.removeItem('user')
-      window.dispatchEvent(new Event('storage'))
+    try {
+      setIsMobileMenuOpen(false)
+      
+      if (SUPABASE_AVAILABLE) {
+        await signOut()
+        // Даем время для полной очистки сессии
+        await new Promise(resolve => setTimeout(resolve, 100))
+      } else {
+        localStorage.removeItem('user')
+        window.dispatchEvent(new Event('storage'))
+        // Устанавливаем флаг для предотвращения редиректа
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('just_logged_out', 'true')
+          setTimeout(() => {
+            sessionStorage.removeItem('just_logged_out')
+          }, 2000)
+        }
+      }
+      
+      // Принудительно обновляем состояние пользователя
+      await refresh()
+      
+      // Перенаправляем на главную
+      router.push('/')
+      
+      // Дополнительное обновление после навигации
+      setTimeout(() => {
+        refresh()
+      }, 200)
+    } catch (error) {
+      console.error('Ошибка при выходе:', error)
+      // В случае ошибки все равно перенаправляем
+      router.push('/')
     }
-    await refresh()
-    router.push('/')
-    setIsMobileMenuOpen(false)
   }
 
   const navLinks = [
@@ -146,7 +171,7 @@ export default function Sidebar() {
                 )}
                 <div className="flex-1 min-w-0 text-left">
                   <p className="text-sm font-normal text-primary-900 truncate">
-                    {user.name || user.email}
+                    {user.name || 'Пользователь'}
                   </p>
                 </div>
               </button>
@@ -195,28 +220,16 @@ export default function Sidebar() {
               )}
             </div>
           ) : (
-            <div className="space-y-2">
-              <Link
-                href="/login"
-                onClick={() => {
-                  setIsMobileMenuOpen(false)
-                  setIsProfileMenuOpen(false)
-                }}
-                className="block w-full text-center px-4 py-3 rounded-apple text-sm font-normal text-primary-700 hover:bg-primary-50 active:bg-primary-50 transition-colors"
-              >
-                Войти
-              </Link>
-              <Link
-                href="/register"
-                onClick={() => {
-                  setIsMobileMenuOpen(false)
-                  setIsProfileMenuOpen(false)
-                }}
-                className="block w-full text-center px-4 py-3 rounded-apple text-sm font-normal bg-primary-900 text-white hover:bg-primary-800 active:bg-primary-800 transition-colors"
-              >
-                Регистрация
-              </Link>
-            </div>
+            <Link
+              href="/auth"
+              onClick={() => {
+                setIsMobileMenuOpen(false)
+                setIsProfileMenuOpen(false)
+              }}
+              className="block w-full text-center px-4 py-3 rounded-apple text-sm font-normal bg-primary-900 text-white hover:bg-primary-800 active:bg-primary-800 transition-colors"
+            >
+              Войти
+            </Link>
           )}
         </div>
       </aside>

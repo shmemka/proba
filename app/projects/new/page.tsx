@@ -27,14 +27,14 @@ export default function NewProjectPage() {
         if (user) {
           setIsAuthorized(true)
         } else {
-          router.push('/login?redirect=/projects/new')
+          router.push('/auth?redirect=/projects/new')
         }
       } else {
         const user = getActiveUser()
         if (user?.email) {
           setIsAuthorized(true)
         } else {
-          router.push('/login?redirect=/projects/new')
+          router.push('/auth?redirect=/projects/new')
         }
       }
     }
@@ -67,7 +67,7 @@ export default function NewProjectPage() {
         // Используем Supabase
         const user = await getCurrentUser()
         if (!user) {
-          router.push('/login?redirect=/projects/new')
+          router.push('/auth?redirect=/projects/new')
           return
         }
         

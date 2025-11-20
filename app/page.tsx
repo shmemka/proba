@@ -13,6 +13,16 @@ export default function Home() {
   // Проверяем авторизацию и редиректим авторизованных пользователей
   useEffect(() => {
     const checkAuth = async () => {
+      // Проверяем флаг выхода - не редиректим сразу после выхода
+      const justLoggedOut = typeof window !== 'undefined' && sessionStorage.getItem('just_logged_out')
+      if (justLoggedOut) {
+        // Если только что вышли, пропускаем проверку авторизации
+        return
+      }
+      
+      // Небольшая задержка для предотвращения гонки условий
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
       if (isSupabaseAvailable()) {
         const user = await getCurrentUser({ force: true })
         if (user) {
@@ -45,19 +55,11 @@ export default function Home() {
           </p>
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center px-4 sm:px-0">
             <Link
-              href="/register"
+              href="/auth"
               prefetch={true}
               className="bg-primary-900 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-apple font-normal hover:bg-primary-800 transition-colors inline-flex items-center justify-center gap-2 text-sm sm:text-base tracking-tight"
             >
-              Зарегистрироваться
-              <ArrowRightIcon className="w-4 h-4" />
-            </Link>
-            <Link
-              href="/login"
-              prefetch={true}
-              className="bg-white text-primary-900 px-6 sm:px-8 py-3 sm:py-4 rounded-apple font-normal hover:bg-primary-50 transition-colors inline-flex items-center justify-center gap-2 border border-primary-200 text-sm sm:text-base tracking-tight"
-            >
-              Войти
+              Начать
               <ArrowRightIcon className="w-4 h-4" />
             </Link>
           </div>
