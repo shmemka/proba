@@ -28,7 +28,7 @@ const splitDisplayName = (displayName: string) => {
   }
 }
 
-export const deriveDisplayName = (
+const deriveDisplayName = (
   email: string,
   userType: 'specialist' | 'company',
   provided?: string,
@@ -101,14 +101,12 @@ type EnsureSpecialistProfileParams = {
   id: string
   email: string
   displayName?: string
-  avatarUrl?: string
 }
 
 export const ensureSpecialistProfile = async ({
   id,
   email,
   displayName,
-  avatarUrl,
 }: EnsureSpecialistProfileParams) => {
   const supabase = getSupabaseClient()
   if (!supabase) {
@@ -119,7 +117,7 @@ export const ensureSpecialistProfile = async ({
 
   const { data: existing, error: lookupError } = await supabase
     .from('specialists')
-    .select('id, avatar_url')
+    .select('id')
     .eq('id', id)
     .limit(1)
 
@@ -127,21 +125,7 @@ export const ensureSpecialistProfile = async ({
     throw lookupError
   }
 
-  // Если профиль существует, обновляем аватарку, если её нет, но есть новая
   if (existing && existing.length > 0) {
-    const currentProfile = existing[0]
-    if (avatarUrl && !currentProfile.avatar_url) {
-      const { error: updateError } = await supabase
-        .from('specialists')
-        .update({ avatar_url: avatarUrl })
-        .eq('id', id)
-
-      if (updateError) {
-        console.debug('Не удалось обновить аватарку в профиле:', updateError)
-      } else {
-        invalidateCache(`specialist:${id}`)
-      }
-    }
     return
   }
 
@@ -155,7 +139,6 @@ export const ensureSpecialistProfile = async ({
     last_name: lastName || '',
     specialization: DEFAULT_SPECIALIZATION,
     show_in_search: false, // По умолчанию карточка не публикуется
-    avatar_url: avatarUrl || null,
   })
 
   if (insertError) {
@@ -292,57 +275,6 @@ export async function signOut() {
 
   await supabase.auth.signOut()
   invalidateCache('auth:')
-  
-  // Устанавливаем флаг в sessionStorage, чтобы главная страница не редиректила
-  if (typeof window !== 'undefined') {
-    sessionStorage.setItem('just_logged_out', 'true')
-    setTimeout(() => {
-      sessionStorage.removeItem('just_logged_out')
-    }, 2000)
-  }
-}
-
-export async function signInWithGoogle(redirectTo?: string) {
-  const supabase = getSupabaseClient()
-  if (!supabase) {
-    throw new Error('Supabase не настроен')
-  }
-
-  try {
-    // Получаем текущий URL для редиректа после OAuth
-    let baseUrl = ''
-    
-    if (typeof window !== 'undefined') {
-      baseUrl = window.location.origin
-    } else if (process.env.NEXT_PUBLIC_SITE_URL) {
-      baseUrl = process.env.NEXT_PUBLIC_SITE_URL
-    } else {
-      baseUrl = 'https://www.proba.space'
-    }
-    
-    baseUrl = baseUrl.replace(/\/$/, '')
-    const emailRedirectTo = redirectTo || `${baseUrl}/auth/callback`
-
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: emailRedirectTo,
-        queryParams: {
-          access_type: 'offline',
-          prompt: 'consent',
-        },
-      },
-    })
-
-    if (error) {
-      console.error('OAuth error:', error)
-      throw error
-    }
-
-    return data
-  } catch (error) {
-    throw new Error(mapSupabaseError(error, 'Не удалось выполнить вход через Google'))
-  }
 }
 
 const AUTH_USER_CACHE_KEY = 'auth:user'
