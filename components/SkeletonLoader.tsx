@@ -43,3 +43,27 @@ export function ProjectCardSkeleton() {
   )
 }
 
+export function ArticleSkeleton() {
+  return (
+    <div className="animate-pulse space-y-6">
+      {/* Заголовок */}
+      <div className="h-10 bg-primary-100 rounded w-3/4 mb-4" />
+      
+      {/* Изображение 16:9 */}
+      <div className="w-full bg-primary-50 rounded-apple" style={{ aspectRatio: '16/9' }} />
+      
+      {/* Содержание */}
+      <div className="space-y-3">
+        <div className="h-4 bg-primary-50 rounded w-full" />
+        <div className="h-4 bg-primary-50 rounded w-full" />
+        <div className="h-4 bg-primary-50 rounded w-5/6" />
+        <div className="h-4 bg-primary-50 rounded w-full" />
+        <div className="h-4 bg-primary-50 rounded w-4/5" />
+      </div>
+    </div>
+  )
+}
+
+// Default export для обратной совместимости
+export default ArticleSkeleton
+
