@@ -194,9 +194,21 @@ export async function signUp(
     invalidateCache('auth:')
 
     // Получаем базовый URL для redirect
-    const baseUrl = typeof window !== 'undefined' 
-      ? window.location.origin 
-      : process.env.NEXT_PUBLIC_SITE_URL || ''
+    let baseUrl = ''
+    if (typeof window !== 'undefined') {
+      baseUrl = window.location.origin
+    } else if (process.env.NEXT_PUBLIC_SITE_URL) {
+      baseUrl = process.env.NEXT_PUBLIC_SITE_URL
+    } else if (process.env.VERCEL_URL) {
+      baseUrl = `https://${process.env.VERCEL_URL}`
+    }
+    
+    if (!baseUrl) {
+      throw new Error('Не удалось определить базовый URL. Установите NEXT_PUBLIC_SITE_URL в переменных окружения.')
+    }
+    
+    // Убеждаемся, что baseUrl не заканчивается на /
+    baseUrl = baseUrl.replace(/\/$/, '')
     const emailRedirectTo = `${baseUrl}/auth/confirm`
 
     const { data, error } = await supabase.auth.signUp({
@@ -303,12 +315,22 @@ export async function signInWithGoogle(redirectTo?: string) {
     let baseUrl = ''
     
     if (typeof window !== 'undefined') {
+      // Используем текущий домен из браузера
       baseUrl = window.location.origin
     } else if (process.env.NEXT_PUBLIC_SITE_URL) {
+      // Используем переменную окружения, если задана
       baseUrl = process.env.NEXT_PUBLIC_SITE_URL
     } else {
-      // Fallback для SSR
-      baseUrl = 'https://www.proba.space'
+      // Fallback: используем Vercel URL из переменных окружения
+      // Это будет работать для всех доменов, подключенных к Vercel
+      baseUrl = process.env.VERCEL_URL 
+        ? `https://${process.env.VERCEL_URL}`
+        : ''
+    }
+    
+    // Если baseUrl все еще пустой, это ошибка конфигурации
+    if (!baseUrl) {
+      throw new Error('Не удалось определить базовый URL. Установите NEXT_PUBLIC_SITE_URL в переменных окружения.')
     }
     
     // Убеждаемся, что baseUrl не заканчивается на /
