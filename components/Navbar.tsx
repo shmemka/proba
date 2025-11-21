@@ -54,8 +54,7 @@ export default function Navbar() {
     try {
       if (SUPABASE_AVAILABLE) {
         await signOut()
-        // Даем время для полной очистки сессии
-        await new Promise(resolve => setTimeout(resolve, 100))
+        // onAuthStateChange в useAuthUser автоматически обновит состояние
       } else {
         localStorage.removeItem('user')
         window.dispatchEvent(new Event('storage'))
@@ -66,18 +65,12 @@ export default function Navbar() {
             sessionStorage.removeItem('just_logged_out')
           }, 2000)
         }
+        // Для localStorage обновляем состояние один раз
+        await refresh()
       }
-      
-      // Принудительно обновляем состояние пользователя
-      await refresh()
       
       // Перенаправляем на главную
       router.push('/')
-      
-      // Дополнительное обновление после навигации
-      setTimeout(() => {
-        refresh()
-      }, 200)
     } catch (error) {
       console.error('Ошибка при выходе:', error)
       // В случае ошибки все равно перенаправляем

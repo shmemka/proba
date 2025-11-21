@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, useRef } from 'react'
 import { getActiveUser, type StoredUser } from '@/lib/storage'
 import { getCurrentUser, getSpecialist, isSupabaseAvailable } from '@/lib/supabase'
 import { invalidateCache } from '@/lib/cache'
@@ -25,16 +25,36 @@ const mapStoredUserToAuthUser = (storedUser: StoredUser): AuthUser => ({
   type: storedUser.type,
 })
 
+// Throttle для предотвращения частых вызовов
+let lastRefreshTime = 0
+const REFRESH_THROTTLE_MS = 1000 // Минимум 1 секунда между вызовами
+
 export function useAuthUser() {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const refreshRef = useRef<((options?: RefreshOptions) => Promise<void>) | null>(null)
+  const isRefreshingRef = useRef(false)
 
   const refresh = useCallback(
     async (options?: RefreshOptions) => {
+      // Предотвращаем параллельные вызовы
+      if (isRefreshingRef.current) {
+        return
+      }
+
+      // Throttle для предотвращения частых вызовов
+      const now = Date.now()
+      if (!options?.forceProfile && now - lastRefreshTime < REFRESH_THROTTLE_MS) {
+        return
+      }
+      lastRefreshTime = now
+
+      isRefreshingRef.current = true
       setIsLoading(true)
 
       try {
         if (SUPABASE_AVAILABLE) {
+          // Используем force только при явном запросе или при изменении auth state
           const supabaseUser = await getCurrentUser({ force: options?.forceProfile })
 
           if (!supabaseUser) {
@@ -81,14 +101,20 @@ export function useAuthUser() {
         setUser(storedUser ? mapStoredUserToAuthUser(storedUser) : null)
       } finally {
         setIsLoading(false)
+        isRefreshingRef.current = false
       }
     },
-    [SUPABASE_AVAILABLE],
+    [],
   )
+
+  // Сохраняем ссылку на refresh для использования в эффектах
+  refreshRef.current = refresh
 
   useEffect(() => {
     let cleanup: (() => void) | undefined
+    let visibilityTimeout: NodeJS.Timeout | null = null
 
+    // Первоначальная загрузка
     refresh({ forceProfile: true })
 
     if (SUPABASE_AVAILABLE && supabase) {
@@ -97,17 +123,41 @@ export function useAuthUser() {
         if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
           invalidateCache('auth:')
         }
-        refresh({ forceProfile: true })
+        // Используем force только для критических событий
+        if (refreshRef.current) {
+          refreshRef.current({ forceProfile: true })
+        }
       })
 
       cleanup = () => {
         data.subscription.unsubscribe()
       }
     } else {
-      const handleStorage = () => refresh()
+      const handleStorage = () => {
+        if (refreshRef.current) {
+          refreshRef.current()
+        }
+      }
+      
+      // Throttle для visibilitychange - обновляем только если страница была скрыта более 5 секунд
       const handleVisibility = () => {
         if (document.visibilityState === 'visible') {
-          refresh()
+          // Очищаем предыдущий таймаут
+          if (visibilityTimeout) {
+            clearTimeout(visibilityTimeout)
+          }
+          // Задержка перед обновлением, чтобы избежать лишних запросов
+          visibilityTimeout = setTimeout(() => {
+            if (refreshRef.current) {
+              refreshRef.current()
+            }
+          }, 2000) // Обновляем только через 2 секунды после возврата на страницу
+        } else {
+          // Очищаем таймаут если страница скрыта
+          if (visibilityTimeout) {
+            clearTimeout(visibilityTimeout)
+            visibilityTimeout = null
+          }
         }
       }
 
@@ -117,13 +167,16 @@ export function useAuthUser() {
       cleanup = () => {
         window.removeEventListener('storage', handleStorage)
         document.removeEventListener('visibilitychange', handleVisibility)
+        if (visibilityTimeout) {
+          clearTimeout(visibilityTimeout)
+        }
       }
     }
 
     return () => {
       cleanup?.()
     }
-  }, [refresh, SUPABASE_AVAILABLE])
+  }, []) // Убираем refresh из зависимостей, используем ref вместо этого
 
   return {
     user,

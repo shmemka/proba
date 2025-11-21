@@ -24,7 +24,8 @@ export default function Home() {
       await new Promise(resolve => setTimeout(resolve, 100))
       
       if (isSupabaseAvailable()) {
-        const user = await getCurrentUser({ force: true })
+        // Используем кэш вместо force: true для лучшей производительности
+        const user = await getCurrentUser()
         if (user) {
           router.push('/specialists')
         }
