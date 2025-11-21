@@ -10,6 +10,7 @@
 html {
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
+  overflow-y: scroll; /* Сохраняем возможность прокрутки */
 }
 
 html::-webkit-scrollbar {

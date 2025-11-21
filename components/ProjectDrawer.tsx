@@ -278,7 +278,7 @@ export default function ProjectDrawer({
       {/* Overlay */}
       <div
         className={`
-          fixed inset-0 bg-black/20 backdrop-blur-sm z-50
+          fixed inset-0 bg-black/20 backdrop-blur-sm z-[110]
           transition-opacity duration-300 ease-out
           ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}
         `}
@@ -288,7 +288,7 @@ export default function ProjectDrawer({
       {/* Drawer */}
       <div
         className={`
-          fixed top-0 right-0 h-full w-full max-w-4xl bg-white z-50
+          fixed top-0 right-0 h-full w-full max-w-4xl bg-white z-[110]
           transform transition-transform duration-300 ease-out
           ${isOpen ? 'translate-x-0' : 'translate-x-full'}
           flex flex-col
