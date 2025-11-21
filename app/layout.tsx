@@ -27,9 +27,9 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'ru_RU',
-    url: 'https://freeexperience.ru',
-    siteName: 'FreeExperience',
-    title: 'FreeExperience - Платформа для опыта и портфолио',
+    url: 'https://proba.space',
+    siteName: 'проба',
+    title: 'проба - Платформа для опыта и портфолио',
     description: 'Платформа, где молодые специалисты получают реальный опыт, а малые компании — качественные решения',
   },
   twitter: {

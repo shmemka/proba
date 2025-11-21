@@ -55,7 +55,11 @@ export function useAuthUser() {
       try {
         if (SUPABASE_AVAILABLE) {
           // Используем force только при явном запросе или при изменении auth state
-          const supabaseUser = await getCurrentUser({ force: options?.forceProfile })
+          const supabaseUser = await getCurrentUser({ force: options?.forceProfile }).catch((error) => {
+            // При ошибке сети или таймауте не блокируем загрузку
+            console.warn('Ошибка загрузки пользователя:', error.message)
+            return null
+          })
 
           if (!supabaseUser) {
             setUser(null)
@@ -67,19 +71,26 @@ export function useAuthUser() {
 
           // Пытаемся загрузить профиль специалиста (если есть) - один раз для всего
           try {
-            const specialist = await getSpecialist(supabaseUser.id, { force: options?.forceProfile })
-            avatarUrl = (specialist as any)?.avatar_url || ''
+            const specialist = await getSpecialist(supabaseUser.id, { force: options?.forceProfile }).catch((error) => {
+              // При ошибке просто пропускаем загрузку профиля
+              console.debug('Профиль специалиста не загружен:', error.message)
+              return null
+            })
             
-            // Получаем имя из профиля специалиста
-            if (specialist && specialist.first_name) {
-              const fullName = [specialist.first_name, specialist.last_name].filter(Boolean).join(' ')
-              if (fullName) {
-                displayName = fullName
+            if (specialist) {
+              avatarUrl = (specialist as any)?.avatar_url || ''
+              
+              // Получаем имя из профиля специалиста
+              if (specialist.first_name) {
+                const fullName = [specialist.first_name, specialist.last_name].filter(Boolean).join(' ')
+                if (fullName) {
+                  displayName = fullName
+                }
               }
             }
-          } catch (error) {
+          } catch (error: any) {
             // Профиль специалиста может не существовать - это нормально
-            console.debug('Профиль специалиста не найден:', error)
+            console.debug('Профиль специалиста не найден:', error?.message || error)
           }
           
           // Если нет имени из профиля, используем displayName из метаданных, но не email
@@ -99,6 +110,10 @@ export function useAuthUser() {
 
         const storedUser = getActiveUser()
         setUser(storedUser ? mapStoredUserToAuthUser(storedUser) : null)
+      } catch (error: any) {
+        // При любой ошибке просто устанавливаем null и продолжаем работу
+        console.warn('Ошибка в refresh:', error?.message || error)
+        setUser(null)
       } finally {
         setIsLoading(false)
         isRefreshingRef.current = false

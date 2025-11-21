@@ -16,6 +16,29 @@ export const supabase = isSupabaseConfigured
         detectSessionInUrl: true,
         storage: typeof window !== 'undefined' ? window.localStorage : undefined,
       },
+      global: {
+        // Добавляем таймаут для всех запросов (только в браузере)
+        ...(typeof window !== 'undefined' && typeof fetch !== 'undefined' ? {
+          fetch: (url: RequestInfo | URL, options: RequestInit = {}) => {
+            const controller = new AbortController()
+            const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 секунд
+
+            return fetch(url, {
+              ...options,
+              signal: controller.signal,
+            })
+              .finally(() => {
+                clearTimeout(timeoutId)
+              })
+              .catch((error: any) => {
+                if (error.name === 'AbortError') {
+                  throw new Error('Request timeout')
+                }
+                throw error
+              })
+          },
+        } : {}),
+      },
     })
   : null
 

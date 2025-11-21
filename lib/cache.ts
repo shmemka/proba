@@ -24,6 +24,21 @@ export function invalidateCache(prefix?: string) {
   keysToDelete.forEach(key => cache.delete(key))
 }
 
+// Таймаут для запросов (10 секунд)
+const REQUEST_TIMEOUT_MS = 10_000
+
+// Обертка с таймаутом
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => {
+      setTimeout(() => {
+        reject(new Error(`Request timeout after ${timeoutMs}ms`))
+      }, timeoutMs)
+    }),
+  ])
+}
+
 export async function fetchWithCache<T>(
   key: string,
   fetcher: () => Promise<T>,
@@ -38,11 +53,17 @@ export async function fetchWithCache<T>(
       return existing.value
     }
     if (existing.promise) {
-      return existing.promise
+      // Если есть незавершенный запрос, используем его, но с таймаутом
+      return withTimeout(existing.promise, REQUEST_TIMEOUT_MS).catch((error) => {
+        // Если запрос завис, удаляем его из кеша
+        cache.delete(key)
+        throw error
+      })
     }
   }
 
-  const promise = fetcher()
+  // Добавляем таймаут к новому запросу
+  const promise = withTimeout(fetcher(), REQUEST_TIMEOUT_MS)
     .then((value) => {
       cache.set(key, {
         value,
@@ -52,6 +73,10 @@ export async function fetchWithCache<T>(
     })
     .catch((error) => {
       cache.delete(key)
+      // Не логируем таймауты как критические ошибки
+      if (error.message?.includes('timeout')) {
+        console.warn(`Request timeout for key: ${key}`)
+      }
       throw error
     })
 
