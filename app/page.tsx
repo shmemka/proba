@@ -41,9 +41,9 @@ export default function Home() {
   }, [router])
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col -mt-16">
       {/* Hero Section */}
-      <section className="bg-white py-16 sm:py-24 lg:py-32 px-4 sm:px-6">
+      <section className="bg-white pt-16 sm:pt-24 lg:pt-32 pb-16 sm:pb-24 lg:pb-32 px-4 sm:px-6">
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-light tracking-tight mb-6 sm:mb-8 text-primary-900 leading-tight">
             Опыт и портфолио

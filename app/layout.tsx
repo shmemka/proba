@@ -62,7 +62,7 @@ export default function RootLayout({
     <html lang="ru" className={inter.variable}>
       <body className={inter.className}>
         <Navbar />
-        <main className="min-h-screen">
+        <main className="min-h-screen pt-16">
           {children}
         </main>
       </body>

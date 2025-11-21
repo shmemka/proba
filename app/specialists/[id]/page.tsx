@@ -129,7 +129,7 @@ export default function SpecialistProfilePage({ params }: { params: { id: string
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16 pt-16 sm:pt-20 lg:pt-16">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
       <div className="bg-white rounded-apple border border-primary-100 p-4 sm:p-6 lg:p-10 mb-4 sm:mb-6">
         <div className="flex flex-col md:flex-row gap-6 sm:gap-8 mb-6 sm:mb-8">
           <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-apple bg-primary-50 flex items-center justify-center text-primary-700 text-xl sm:text-2xl font-normal flex-shrink-0">
