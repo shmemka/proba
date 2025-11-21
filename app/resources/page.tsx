@@ -1,6 +1,50 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { BookOpenIcon, LightBulbIcon, UserGroupIcon } from '@heroicons/react/24/outline'
+import { getSupabaseClient } from '@/lib/supabaseClient'
+import ArticleCard from '@/components/ArticleCard'
+import SkeletonLoader from '@/components/SkeletonLoader'
+
+interface Article {
+  id: string
+  title: string
+  excerpt: string
+  image_url: string
+}
 
 export default function ResourcesPage() {
+  const [articles, setArticles] = useState<Article[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    const loadArticles = async () => {
+      const supabase = getSupabaseClient()
+      if (!supabase) {
+        setIsLoading(false)
+        return
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('articles')
+          .select('id, title, excerpt, image_url')
+          .order('created_at', { ascending: false })
+
+        if (!error && data) {
+          setArticles(data)
+        }
+      } catch (err) {
+        console.error('Ошибка загрузки статей:', err)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadArticles()
+  }, [])
+
   return (
     <div className="min-h-screen bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
@@ -14,7 +58,30 @@ export default function ResourcesPage() {
         </div>
 
         <div className="space-y-8 sm:space-y-12">
-          {/* Статья "Что такое Проба?" */}
+          {/* Статьи из базы данных */}
+          {isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="bg-white rounded-apple border border-primary-100 overflow-hidden">
+                  <SkeletonLoader />
+                </div>
+              ))}
+            </div>
+          ) : articles.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+              {articles.map((article) => (
+                <ArticleCard
+                  key={article.id}
+                  id={article.id}
+                  title={article.title}
+                  excerpt={article.excerpt || article.title}
+                  imageUrl={article.image_url || ''}
+                />
+              ))}
+            </div>
+          ) : null}
+
+          {/* Статья "Что такое Проба?" - оставляем как статическую информацию */}
           <article className="bg-white rounded-apple border border-primary-100 p-6 sm:p-8 lg:p-10">
             <div className="flex items-start gap-4 mb-6">
               <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-apple bg-primary-50 flex items-center justify-center flex-shrink-0">

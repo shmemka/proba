@@ -127,6 +127,20 @@ export interface Database {
         Insert: Omit<Database['public']['Tables']['applications']['Row'], 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Database['public']['Tables']['applications']['Insert']>
       }
+      articles: {
+        Row: {
+          id: string
+          title: string
+          content: string
+          image_url: string
+          excerpt: string
+          author_id: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: Omit<Database['public']['Tables']['articles']['Row'], 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Database['public']['Tables']['articles']['Insert']>
+      }
     }
   }
 }
